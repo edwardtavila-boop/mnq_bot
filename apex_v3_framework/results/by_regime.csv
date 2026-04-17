@@ -1,0 +1,3 @@
+regime,n,wins,losses,be,win_rate,strike,avg_r,total_r,pf,avg_mfe,avg_mae
+RISK-ON,122,56,21,45,45.9,72.7,0.018,2.25,1.12,0.62,-0.5
+NEUTRAL,71,31,15,25,43.7,67.4,-0.069,-4.9,0.66,0.54,-0.57

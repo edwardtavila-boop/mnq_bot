@@ -1,0 +1,91 @@
+//@version=6
+// Generated from spec mnq_baseline_v0_1 (0.1.0)
+// content_hash: sha256:3101335bb6f6493cb228259d0d0bde13591acd352c458700f89e97de9f584b39
+// DO NOT EDIT BY HAND — regenerate via `mnq spec render --target pine`.
+
+strategy(title = "mnq_baseline_v0_1 v0.1.0", overlay = true, pyramiding = 0, calc_on_every_tick = false, process_orders_on_close = false, use_bar_magnifier = true, default_qty_type = strategy.fixed, default_qty_value = 1)
+
+// --- helpers ---
+_json_str(x) => "\"" + str.tostring(x) + "\""
+_json_bool(x) => x ? "true" : "false"
+_json_num(x) => str.tostring(x)
+_bars_since_session_open = ta.barssince(ta.change(time("D")) != 0)
+_session_end_bar_index = ta.valuewhen(session.isfirstbar_regular, bar_index, 0) + (timeframe.in_seconds("1D") / timeframe.in_seconds(timeframe.period))
+_bars_since_entry = strategy.position_size != 0 ? bar_index - ta.valuewhen(strategy.position_size[1] == 0 and strategy.position_size != 0, bar_index, 0) : 0
+_for_bars_ok(a, b, op, n) =>
+    ok = true
+    for i = 0 to n - 1
+        cur = op == ">" ? a[i] > b[i] : op == "<" ? a[i] < b[i] : op == ">=" ? a[i] >= b[i] : op == "<=" ? a[i] <= b[i] : op == "==" ? a[i] == b[i] : op == "!=" ? a[i] != b[i] : false
+        ok := ok and cur
+    ok
+_crossed_within(fn, a, b, n) =>
+    any = false
+    for i = 0 to n - 1
+        any := any or fn(a, b)[i]
+    any
+
+// --- session windows ---
+_sw_rth_open_drive = not na(time(timeframe.period, "0930-1030", "America/New_York"))
+_sw_midday = false
+_sw_afternoon = not na(time(timeframe.period, "1400-1555", "America/New_York"))
+
+// --- blackouts ---
+_bk_first_30s = (_bars_since_session_open >= 0) and (_bars_since_session_open < 1)
+_bk_last_5min_eod = (bar_index - _session_end_bar_index > -5) and (bar_index - _session_end_bar_index <= 0)
+_bk_fomc = false  // executor-enforced: FOMC_RATE_DECISION
+_in_blackout = (_bk_first_30s or _bk_last_5min_eod or _bk_fomc)
+
+// --- features ---
+_f_ema_fast = ta.ema(close, 9)
+_f_ema_slow = ta.ema(close, 21)
+_f_atr_14 = ta.atr(14)
+_f_vwap_session = ta.vwap
+_f_rvol_20 = (volume / math.max(ta.sma(volume, 20), 1))
+_f_htf_trend = request.security(syminfo.tickerid, "5", ta.ema(close, 50), lookahead = barmerge.lookahead_off)
+
+// --- entry conditions ---
+_long_entry_raw  = ((_f_ema_fast > _f_ema_slow) and _crossed_within(ta.crossover, _f_ema_fast, _f_ema_slow, 3) and (close > _f_vwap_session) and ta.rising(_f_htf_trend, 2) and (_f_rvol_20 > 1.2) and (_sw_rth_open_drive or _sw_afternoon) and (not _in_blackout) and (strategy.position_size == 0))
+_short_entry_raw = ((_f_ema_fast < _f_ema_slow) and _crossed_within(ta.crossunder, _f_ema_fast, _f_ema_slow, 3) and (close < _f_vwap_session) and ta.falling(_f_htf_trend, 2) and (_f_rvol_20 < 1.2) and (_sw_rth_open_drive or _sw_afternoon) and (not _in_blackout) and (strategy.position_size == 0))
+_long_entry  = _long_entry_raw  and barstate.isconfirmed
+_short_entry = _short_entry_raw and barstate.isconfirmed
+
+// --- exit distances (diagnostic only; executor is authoritative) ---
+_stop_ticks_raw = math.round((_f_atr_14 * 1.2) / 0.25)
+_stop_ticks = math.max(4, math.min(40, _stop_ticks_raw))
+_tp_ticks = math.round(_stop_ticks * 1.5)
+
+// --- alert payloads (see docs/ALERT_CONTRACT.md) ---
+_bar_iso = str.format_time(time_close, "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC")
+_nonce() => str.format("{0}{1}", time_close, bar_index)
+_entry_json(_side) =>
+    "{" + 
+      "\"schema_version\":1," + 
+      "\"event\":\"entry\"," + 
+      "\"spec_id\":" + "mnq_baseline_v0_1" + "," + 
+      "\"spec_hash\":" + "sha256:3101335bb6f6493cb228259d0d0bde13591acd352c458700f89e97de9f584b39" + "," + 
+      "\"bar_time_iso\":\"" + _bar_iso + "\"," + 
+      "\"bar_index\":" + str.tostring(bar_index) + "," + 
+      "\"symbol\":\"" + syminfo.tickerid + "\"," + 
+      "\"nonce\":\"" + _nonce() + "\"," + 
+      "\"side\":\"" + _side + "\"," + 
+      "\"stop_distance_ticks\":" + str.tostring(_stop_ticks) + "," + 
+      "\"take_profit_distance_ticks\":" + str.tostring(_tp_ticks) + 
+    "}"
+
+// --- entries ---
+if _long_entry
+    alert(_entry_json("long"),  alert.freq_once_per_bar_close)
+    strategy.entry("long",  strategy.long)
+if _short_entry
+    alert(_entry_json("short"), alert.freq_once_per_bar_close)
+    strategy.entry("short", strategy.short)
+
+// --- exits (local; executor has its own OCO at venue) ---
+if strategy.position_size != 0
+    _px = strategy.position_avg_price
+    _sz = strategy.position_size
+    _long = _sz > 0
+    _stop_px = _long ? _px - _stop_ticks * syminfo.mintick : _px + _stop_ticks * syminfo.mintick
+    _tp_px   = _long ? _px + _tp_ticks   * syminfo.mintick : _px - _tp_ticks   * syminfo.mintick
+    strategy.exit("bracket", from_entry = _long ? "long" : "short", stop = _stop_px, limit = _tp_px)
+

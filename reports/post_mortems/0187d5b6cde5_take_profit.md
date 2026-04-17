@@ -1,0 +1,51 @@
+# Post-Mortem — 0187d5b6cde54fc393088c47d60a3dcb (WIN)
+
+Auto-generated from journal on close. Consumes only `firm/templates/*`
+markdown; the in-progress `desktop_app/firm/*` Python is untouched.
+
+## Thesis
+
+SHORT entry on 2026-01-14T15:02:00+00:00 against a `chop` tape. Exit via `take_profit` at 19972.00 vs entry 19975.75.
+
+## Evidence
+
+- PnL: $+6.76 (commission $+0.74)
+- Entry slippage: +1.0 ticks; exit slippage: +2.0 ticks.
+- Regime at entry: `chop`; qty: 1.
+
+## Red Team's primary dissent
+
+- Exit slippage +2.0 ticks — realized fill was meaningfully worse than reference; spread/liquidity was adverse.
+
+## Resolution
+
+[x] Accepted as surviving risk — monitoring: next 5 trades in this bucket.
+
+## Falsification
+
+I abandon this setup if ANY of:
+
+- In the `chop` / `short` bucket after the next 5 closed trades, win-rate must be ≥ 80% (current: 80.0% on n=5).
+- Mean slippage for this bucket must be ≤ +1.5 ticks.
+- Net PnL in this bucket across the next 5 trades must be positive; if not, this setup is retired.
+
+## Monitoring
+
+- First review: after the next 5 trades in the `chop` / `short` bucket.
+- Success: bucket expectancy > $0 and exit slippage p95 ≤ +2.0 ticks.
+- Failure: bucket net PnL < 0 across those 5 trades.
+
+## Raw payload snapshot
+
+```
+order_id           = 0187d5b6cde54fc393088c47d60a3dcb
+side               = short
+entry_ts / exit_ts = 2026-01-14T15:02:00+00:00 → 2026-01-14T15:03:00+00:00
+entry / exit price = 19975.75 → 19972.00
+pnl_dollars        = +6.7600
+commission         = +0.7400
+exit_reason        = take_profit
+regime             = chop
+slippage_ticks     = +2.00
+entry_slip_ticks   = +1.00
+```

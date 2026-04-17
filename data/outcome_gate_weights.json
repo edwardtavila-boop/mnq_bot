@@ -1,0 +1,141 @@
+{
+  "method": "pearson_clamp",
+  "n_days": 200,
+  "total_pnl": 152.5,
+  "gate_weights": {
+    "correlation": 0.0,
+    "cross_mag": 0.07311447340721933,
+    "news_window": 0.0,
+    "orderflow": 0.0,
+    "regime": 0.0,
+    "session": 0.01850615302008453,
+    "spread": 0.0,
+    "streak": 0.0,
+    "time_of_day": 0.0,
+    "trend_align": 0.0,
+    "vol_band": 0.008927514527391952,
+    "volume_confirm": 0.0
+  },
+  "gate_details": [
+    {
+      "name": "cross_mag",
+      "weight": 0.0731,
+      "raw_correlation": 0.0731,
+      "pass_pnl_mean": 0.92,
+      "fail_pnl_mean": -2.25,
+      "pass_count": 190,
+      "fail_count": 10,
+      "information_value": 0.3355
+    },
+    {
+      "name": "session",
+      "weight": 0.0185,
+      "raw_correlation": 0.0185,
+      "pass_pnl_mean": 0.8,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 190,
+      "fail_count": 10,
+      "information_value": 0.0849
+    },
+    {
+      "name": "vol_band",
+      "weight": 0.0089,
+      "raw_correlation": 0.0089,
+      "pass_pnl_mean": 0.83,
+      "fail_pnl_mean": 0.66,
+      "pass_count": 123,
+      "fail_count": 77,
+      "information_value": 0.0183
+    },
+    {
+      "name": "correlation",
+      "weight": 0.0,
+      "raw_correlation": 0.0,
+      "pass_pnl_mean": 0.76,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 200,
+      "fail_count": 0,
+      "information_value": 0.0
+    },
+    {
+      "name": "news_window",
+      "weight": 0.0,
+      "raw_correlation": 0.0,
+      "pass_pnl_mean": 0.76,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 200,
+      "fail_count": 0,
+      "information_value": 0.0
+    },
+    {
+      "name": "orderflow",
+      "weight": 0.0,
+      "raw_correlation": -0.0585,
+      "pass_pnl_mean": 0.16,
+      "fail_pnl_mean": 1.27,
+      "pass_count": 92,
+      "fail_count": 108,
+      "information_value": 0.1174
+    },
+    {
+      "name": "regime",
+      "weight": 0.0,
+      "raw_correlation": -0.0833,
+      "pass_pnl_mean": -0.04,
+      "fail_pnl_mean": 1.53,
+      "pass_count": 98,
+      "fail_count": 102,
+      "information_value": 0.1666
+    },
+    {
+      "name": "spread",
+      "weight": 0.0,
+      "raw_correlation": 0.0,
+      "pass_pnl_mean": 0.76,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 200,
+      "fail_count": 0,
+      "information_value": 0.0
+    },
+    {
+      "name": "streak",
+      "weight": 0.0,
+      "raw_correlation": 0.0,
+      "pass_pnl_mean": 0.76,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 200,
+      "fail_count": 0,
+      "information_value": 0.0
+    },
+    {
+      "name": "time_of_day",
+      "weight": 0.0,
+      "raw_correlation": 0.0,
+      "pass_pnl_mean": 0.77,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 197,
+      "fail_count": 3,
+      "information_value": 0.0
+    },
+    {
+      "name": "trend_align",
+      "weight": 0.0,
+      "raw_correlation": -0.1552,
+      "pass_pnl_mean": -0.58,
+      "fail_pnl_mean": 2.37,
+      "pass_count": 109,
+      "fail_count": 91,
+      "information_value": 0.3117
+    },
+    {
+      "name": "volume_confirm",
+      "weight": 0.0,
+      "raw_correlation": 0.0,
+      "pass_pnl_mean": 0.76,
+      "fail_pnl_mean": 0.0,
+      "pass_count": 200,
+      "fail_count": 0,
+      "information_value": 0.0
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "n_train": 8,
+  "train_accuracy": 0.875,
+  "train_class_balance": 0.375,
+  "coefficients": {
+    "slippage_ticks": 0.5582215946755463,
+    "entry_slip_ticks": 1.8353535490695374,
+    "hour_of_day": 0.40937529657995886,
+    "minute_of_day": 0.006639112390885113,
+    "is_morning": 0.0,
+    "is_afternoon": -0.035101685248542944,
+    "side_long": 0.1974588917899843,
+    "regime_high_vol": 0.0,
+    "regime_trend_up": -0.38836275018626654,
+    "regime_trend_down": 0.38836275018626654,
+    "regime_chop": 0.0,
+    "regime_range_bound": 0.0
+  },
+  "intercept": -15.276491468885936,
+  "metadata": {
+    "l2": 0.1
+  }
+}

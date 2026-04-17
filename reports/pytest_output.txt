@@ -1,0 +1,67 @@
+........................................................................ [  6%]
+........................................................................ [ 13%]
+......................................E.E............................... [ 19%]
+........................................................................ [ 26%]
+........................................................................ [ 33%]
+........................................................................ [ 40%]
+.......................................................................s [ 46%]
+........................................................................ [ 53%]
+........................................................................ [ 60%]
+........................................................................ [ 66%]
+........................................................................ [ 73%]
+........................................................................ [ 80%]
+..................E.E.E...E.E.E......................................... [ 86%]
+........................................................................ [ 93%]
+........................................................................ [ 99%]
+s                                                                        [100%]
+=================================== ERRORS ====================================
+_ ERROR at teardown of TestFeatureStalenessMonitor.test_journal_emits_feature_staleness_event _
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpal9uw17r\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpal9uw17r\\test.db'
+_ ERROR at teardown of TestFeatureStalenessMonitor.test_journal_only_emits_for_stale_features _
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpj1k1k1ng\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpj1k1k1ng\\test.db'
+_ ERROR at teardown of TestSlippageRecorder.test_journal_emits_fill_expected_event _
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpvo8htp5v\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpvo8htp5v\\test.db'
+_ ERROR at teardown of TestSlippageRecorder.test_journal_emits_fill_realized_event _
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmp2d10zfob\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmp2d10zfob\\test.db'
+_ ERROR at teardown of TestSlippageRecorder.test_journal_emits_fill_orphaned_event _
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpksd2bfec\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmpksd2bfec\\test.db'
+____ ERROR at teardown of TestExportToDataframe.test_export_empty_journal _____
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmp3603bb6j\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmp3603bb6j\\test.db'
+_____ ERROR at teardown of TestExportToDataframe.test_export_single_fill ______
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmplwa9_hbi\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmplwa9_hbi\\test.db'
+_ ERROR at teardown of TestExportToDataframe.test_export_has_required_columns _
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmp350jb4op\\test.db'
+
+During handling of the above exception, another exception occurred:
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\edwar\\AppData\\Local\\Temp\\tmp350jb4op\\test.db'
+=========================== short test summary info ===========================
+ERROR tests/level_1_unit/test_feature_staleness.py::TestFeatureStalenessMonitor::test_journal_emits_feature_staleness_event
+ERROR tests/level_1_unit/test_feature_staleness.py::TestFeatureStalenessMonitor::test_journal_only_emits_for_stale_features
+ERROR tests/level_1_unit/test_slippage_recorder.py::TestSlippageRecorder::test_journal_emits_fill_expected_event
+ERROR tests/level_1_unit/test_slippage_recorder.py::TestSlippageRecorder::test_journal_emits_fill_realized_event
+ERROR tests/level_1_unit/test_slippage_recorder.py::TestSlippageRecorder::test_journal_emits_fill_orphaned_event
+ERROR tests/level_1_unit/test_slippage_recorder.py::TestExportToDataframe::test_export_empty_journal
+ERROR tests/level_1_unit/test_slippage_recorder.py::TestExportToDataframe::test_export_single_fill
+ERROR tests/level_1_unit/test_slippage_recorder.py::TestExportToDataframe::test_export_has_required_columns
+1071 passed, 2 skipped, 8 errors in 22.46s

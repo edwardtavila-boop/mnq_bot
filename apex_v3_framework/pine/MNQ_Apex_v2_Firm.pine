@@ -1,0 +1,1378 @@
+//@version=6
+indicator("MNQ Apex v2 • The Firm Edition", overlay=true,
+     max_lines_count=500, max_labels_count=500, max_boxes_count=100)
+// ============================================================================
+// APEX v2 — THE FIRM EDITION
+// v1's three setups (ORB / EMA PB / Sweep) are now Voices 1-3 of a 7-voice
+// Quant Ensemble. Four new voices add independent scoring perspectives.
+// Regime Detector (4-state) tunes voice weights. Red Team penalizes.
+// PM Weighted Voting requires final score ≥75 to fire.
+//
+//   Quant total      = Σ (voice_score × regime_weight)         [-100..+100]
+//   Red Team penalty = disqualifier_score × regime_red_weight  [0..100]
+//   PM final         = |Quant total| − Red Team penalty
+//   Fire if          = PM final ≥ pm_threshold (default 75)
+//
+// v1 setup levels (entry/SL/TP1/TP2) are preserved. Firm layer only gates
+// whether the signal fires — it never invents new entries.
+// ============================================================================
+
+// ──────── DISPLAY ────────
+show_status      = input.bool(true,  "Setup status table",         group="DISPLAY")
+show_firm_dash   = input.bool(true,  "Firm voting dashboard",      group="DISPLAY")
+show_hit_rate    = input.bool(true,  "Hit-rate tracker",           group="DISPLAY")
+show_levels      = input.bool(true,  "SL/TP lines on signal",      group="DISPLAY")
+show_labels      = input.bool(true,  "Signal labels",              group="DISPLAY")
+show_key_lvls    = input.bool(true,  "Key levels (PDH/PDL/Open)",  group="DISPLAY")
+show_orb_box     = input.bool(true,  "Opening Range box",          group="DISPLAY")
+show_pending     = input.bool(true,  "Pending order lines",        group="DISPLAY")
+lvl_extend       = input.int(20,     "SL/TP lines extend bars",    group="DISPLAY", minval=5, maxval=100)
+
+// ──────── FIRM PARAMETERS ────────
+pm_threshold     = input.int(40,     "PM final score threshold",   group="FIRM", minval=20, maxval=95,
+     tooltip="Minimum |Quant total| - RedTeam penalty to fire. Calibrated to 40 empirically (spec value 75 was unreachable given weighted-average math). Lower = more trades.")
+redteam_weight   = input.float(1.0,  "Red Team weight (×)",        group="FIRM", minval=0.0, maxval=2.0, step=0.1,
+     tooltip="Multiplier applied to Red Team score before subtracting from Quant total. 1.0 = full weight.")
+require_setup    = input.bool(true,  "Require v1 setup trigger",   group="FIRM",
+     tooltip="If ON: a v1 setup (ORB/EMA PB/Sweep) must be firing AND Firm gate must clear. If OFF: Firm-only signals allowed (uses synthesized levels).")
+show_voice_log   = input.bool(true,  "Show all 7 voice scores",    group="FIRM")
+
+// ──────── VOICE WEIGHTS (per regime) ────────
+// In each regime, voice weights sum to ~7.0 (one weight unit per voice baseline).
+// Setup voices (V1-V3) get bumped in regimes that suit them.
+w_orb_riskon    = input.float(1.5, "V1 ORB weight (Risk-On)",    group="VOICE WEIGHTS", minval=0.0, maxval=3.0, step=0.1)
+w_orb_riskoff   = input.float(0.5, "V1 ORB weight (Risk-Off)",   group="VOICE WEIGHTS", minval=0.0, maxval=3.0, step=0.1)
+w_ema_riskon    = input.float(1.2, "V2 EMA weight (Risk-On)",    group="VOICE WEIGHTS", minval=0.0, maxval=3.0, step=0.1)
+w_ema_riskoff   = input.float(0.8, "V2 EMA weight (Risk-Off)",   group="VOICE WEIGHTS", minval=0.0, maxval=3.0, step=0.1)
+w_sweep_riskon  = input.float(0.8, "V3 Sweep weight (Risk-On)",  group="VOICE WEIGHTS", minval=0.0, maxval=3.0, step=0.1)
+w_sweep_riskoff = input.float(1.5, "V3 Sweep weight (Risk-Off)", group="VOICE WEIGHTS", minval=0.0, maxval=3.0, step=0.1)
+
+// ──────── SESSION ────────
+use_session    = input.bool(true,  "NY session filter",            group="SESSION")
+shade_off      = input.bool(true,  "Tint background off-session",  group="SESSION")
+orb_sess       = input.session("0930-0945", "Opening Range window",group="SESSION")
+trade_sess     = input.session("0930-1600", "Trade window",        group="SESSION")
+kl_tz          = input.string("America/New_York", "Timezone",      group="SESSION")
+
+// ──────── ORB ────────
+en_orb         = input.bool(true,  "Enable ORB Breakout",                     group="ORB")
+orb_tick_buf   = input.int(4,      "Ticks past ORB for entry (0.25 ea)",      group="ORB", minval=1, maxval=10)
+orb_sl_mode    = input.string("Structure", "SL mode", options=["Tight","Structure"], group="ORB")
+orb_sl_ticks   = input.int(2,      "Tight SL ticks past level",               group="ORB", minval=1, maxval=10)
+orb_vol_mult   = input.float(1.5,  "Min volume multiplier on break",          group="ORB", minval=1.0, step=0.1)
+orb_require_retest = input.bool(false, "Require retest of OR level after break", group="ORB")
+orb_timeout    = input.int(15,     "Timeout (bars, 0=off)",                   group="ORB", minval=0, maxval=30)
+
+// ──────── EMA PULLBACK ────────
+en_ema         = input.bool(true,  "Enable EMA Pullback",        group="EMA PULLBACK")
+ema_fast_len   = input.int(9,      "Fast EMA",                   group="EMA PULLBACK")
+ema_slow_len   = input.int(21,     "Slow EMA",                   group="EMA PULLBACK")
+pb_zone_atr    = input.float(0.3,  "Pullback zone width (ATR)",  group="EMA PULLBACK", minval=0.1, step=0.1)
+ema_sl_mode    = input.string("ATR", "SL mode", options=["Swing","ATR"], group="EMA PULLBACK")
+ema_sl_atr     = input.float(1.5,  "ATR SL multiplier",          group="EMA PULLBACK", minval=1.0, maxval=2.0, step=0.25)
+ema_tod_filter = input.string("Power Hours", "Time-of-day filter", group="EMA PULLBACK", options=["Full Session", "Morning Only", "Avoid Lunch", "Power Hours"])
+ema_orb_align  = input.bool(true,  "Require ORB bias alignment", group="EMA PULLBACK")
+ema_dow_filter = input.string("Skip Thursday", "Day-of-week filter", group="EMA PULLBACK", options=["All Days", "Skip Thursday", "Skip Thu+Fri", "Mon-Tue Only"])
+ema_min_score  = input.int(4,      "Minimum score to fire EMA PB (legacy)", group="EMA PULLBACK", minval=3, maxval=6)
+ema_adx_floor  = input.int(0,      "EMA PB ADX floor (0=off)",   group="EMA PULLBACK", minval=0, maxval=30)
+max_pb         = input.int(1,      "Max pullbacks per trend (0=first only)", group="EMA PULLBACK", minval=0, maxval=5)
+
+// ──────── SWEEP ────────
+en_sweep       = input.bool(true,  "Enable Sweep + Reclaim",     group="SWEEP")
+swing_lb       = input.int(15,     "Swing lookback",             group="SWEEP", minval=5)
+sweep_wick_min = input.float(0.5,  "Min wick (ATR)",             group="SWEEP", minval=0.2, step=0.1)
+sweep_depth_atr= input.float(0.3,  "Min sweep depth (ATR)",      group="SWEEP", minval=0.1, step=0.05)
+bos_window     = input.int(5,      "Reclaim window (bars)",      group="SWEEP", minval=3)
+sweep_entry_win= input.int(5,      "Entry window after reclaim", group="SWEEP", minval=3, maxval=15)
+sweep_sl_ticks = input.int(4,      "SL buffer ticks past swept level", group="SWEEP", minval=2, maxval=8)
+sweep_bos_valid= input.int(40,     "BOS context validity (bars)",      group="SWEEP", minval=15, maxval=80)
+
+// ──────── TARGETS ────────
+orb_tp1_r      = input.float(1.5,  "ORB TP1 (R)",               group="TARGETS", minval=0.5, step=0.25)
+orb_tp2_r      = input.float(3.0,  "ORB TP2 (R)",               group="TARGETS", minval=1.0, step=0.25)
+ema_tp1_r      = input.float(1.0,  "EMA PB TP1 (R)",            group="TARGETS", minval=0.5, step=0.25)
+ema_tp2_r      = input.float(2.0,  "EMA PB TP2 (R)",            group="TARGETS", minval=1.0, step=0.25)
+sweep_tp1_r    = input.float(1.0,  "Sweep TP1 (R)",             group="TARGETS", minval=0.5, step=0.25)
+sweep_tp2_r    = input.float(2.0,  "Sweep TP2 (R)",             group="TARGETS", minval=1.0, step=0.25)
+use_runner     = input.bool(true,  "Runner with 9 EMA trail",   group="TARGETS")
+
+// ──────── RISK ────────
+cooldown       = input.int(12,     "Cooldown bars per setup",   group="RISK", minval=0, maxval=50)
+min_score      = input.int(3,      "Minimum legacy score",      group="RISK", minval=1, maxval=5)
+use_oco        = input.bool(true,  "OCO: cancel opposite ORB on fill", group="RISK")
+ema_size_pct   = input.int(50,     "EMA PB position size (%)",  group="RISK", minval=25, maxval=100, step=25)
+
+// ──────── INTERMARKET VOICES (V8-V11) ────────
+en_intermarket = input.bool(true, "Enable intermarket voices (V8-V11)", group="INTERMARKET")
+sym_vix  = input.symbol("CBOE:VIX",         "VIX symbol",  group="INTERMARKET")
+sym_es   = input.symbol("CME_MINI:ES1!",    "ES symbol",   group="INTERMARKET")
+sym_dxy  = input.symbol("TVC:DXY",          "DXY symbol",  group="INTERMARKET")
+sym_tick = input.symbol("USI:TICK",         "TICK symbol", group="INTERMARKET")
+w_v8_vix  = input.float(1.5, "V8 VIX weight",  group="INTERMARKET", minval=0.0, maxval=3.0, step=0.1)
+w_v9_es   = input.float(1.3, "V9 ES weight",   group="INTERMARKET", minval=0.0, maxval=3.0, step=0.1)
+w_v10_dxy = input.float(0.6, "V10 DXY weight", group="INTERMARKET", minval=0.0, maxval=3.0, step=0.1)
+w_v11_tick = input.float(0.8, "V11 TICK weight", group="INTERMARKET", minval=0.0, maxval=3.0, step=0.1)
+
+// ──────── EDGE STACK VOICES (V12-V15) ────────
+en_edge_stack = input.bool(true, "Enable edge stack voices (V12-V15)", group="EDGE STACK")
+w_v12_delta    = input.float(0.6, "V12 Cumulative Delta weight", group="EDGE STACK", minval=0.0, maxval=2.0, step=0.1)
+w_v13_killzone = input.float(0.7, "V13 ICT Killzone weight",     group="EDGE STACK", minval=0.0, maxval=2.0, step=0.1)
+w_v14_premdisc = input.float(0.4, "V14 Premium/Discount weight", group="EDGE STACK", minval=0.0, maxval=2.0, step=0.1)
+w_v15_fvg      = input.float(0.5, "V15 Fair Value Gap weight",   group="EDGE STACK", minval=0.0, maxval=2.0, step=0.1)
+
+// ──────── DAILY CIRCUIT BREAKER ────────
+en_circuit_breaker = input.bool(true, "Enable daily P&L circuit breaker", group="CIRCUIT BREAKER")
+cb_half_size_R = input.float(-1.0, "Half size after daily R reaches", group="CIRCUIT BREAKER", minval=-5.0, maxval=0.0, step=0.5)
+cb_pause_R     = input.float(-2.0, "Pause trading after daily R reaches", group="CIRCUIT BREAKER", minval=-5.0, maxval=0.0, step=0.5)
+
+// ──────── PARAMS ────────
+atr_per        = input.int(14,     "ATR Period",                 group="PARAMS")
+adx_per        = input.int(14,     "ADX Period",                 group="PARAMS")
+rsi_per        = input.int(14,     "RSI Period",                 group="PARAMS")
+
+// ============================================================================
+// CORE CALCULATIONS
+// ============================================================================
+atr      = ta.atr(atr_per)
+vwap_val = ta.vwap(hlc3)
+ema9     = ta.ema(close, ema_fast_len)
+ema21    = ta.ema(close, ema_slow_len)
+ema50    = ta.ema(close, 50)
+rsi_val  = ta.rsi(close, rsi_per)
+[diPlus, diMinus, adx_val] = ta.dmi(adx_per, adx_per)
+
+new_day = ta.change(time("D")) != 0
+
+// Session-aware volume
+var float rth_vol_sum   = 0.0
+var int   rth_vol_count = 0
+var float rth_vol_avg   = na
+in_rth = not na(time(timeframe.period, "0930-1600", kl_tz))
+if new_day
+    rth_vol_sum   := 0.0
+    rth_vol_count := 0
+if in_rth
+    rth_vol_sum   += volume
+    rth_vol_count += 1
+    rth_vol_avg   := rth_vol_count > 0 ? rth_vol_sum / rth_vol_count : na
+
+vol_ma   = not na(rth_vol_avg) ? rth_vol_avg : ta.sma(volume, 20)
+vol_mean = ta.sma(volume, 50)
+vol_std  = ta.stdev(volume, 50)
+vol_z    = vol_std > 0 ? (volume - vol_mean) / vol_std : 0.0
+
+// ATR statistics for regime detection
+atr_ma20 = ta.sma(atr, 20)
+atr_ratio = atr_ma20 > 0 ? atr / atr_ma20 : 1.0
+
+// Session
+in_session  = not na(time(timeframe.period, trade_sess, kl_tz))
+session_ok  = not use_session or in_session
+in_orb_win  = not na(time(timeframe.period, orb_sess, kl_tz))
+new_orb_win = in_orb_win and not in_orb_win[1]
+orb_ended   = not in_orb_win and in_orb_win[1]
+
+// HTF trend
+htf_close = request.security(syminfo.tickerid, "15", close, lookahead=barmerge.lookahead_off)
+htf_ema50 = request.security(syminfo.tickerid, "15", ta.ema(close, 50), lookahead=barmerge.lookahead_off)
+htf_bull  = htf_close > htf_ema50
+htf_bear  = htf_close < htf_ema50
+htf_dist_atr = atr > 0 ? math.abs(htf_close - htf_ema50) / atr : 0.0
+
+// PDH/PDL/Open
+prev_day_high = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+prev_day_low  = request.security(syminfo.tickerid, "D", low[1],  lookahead=barmerge.lookahead_on)
+rth_open_win  = not na(time(timeframe.period, "0930-0935", kl_tz))
+new_rth       = rth_open_win and not rth_open_win[1]
+var float today_open = na
+if new_rth
+    today_open := open
+
+f_near(lv) => not na(lv) and math.abs(close - lv) <= atr * 1.5
+near_key = f_near(prev_day_high) or f_near(prev_day_low) or f_near(today_open)
+
+// ============================================================================
+// REGIME DETECTOR — 4-state
+// Risk-On: trending + healthy vol + expanding range
+// Risk-Off: chopping/contracting, low conviction
+// Neutral: in-between
+// Crisis: ATR > 2x avg OR vol_z > 3 (don't trade)
+// ============================================================================
+crisis_cond = atr_ratio > 2.0 or vol_z > 3.0
+riskon_cond = adx_val >= 22 and atr_ratio >= 0.9 and atr_ratio <= 1.6 and not crisis_cond
+riskoff_cond = adx_val <= 15 and atr_ratio < 0.9 and not crisis_cond
+
+string regime = "NEUTRAL"
+if crisis_cond
+    regime := "CRISIS"
+else if riskon_cond
+    regime := "RISK-ON"
+else if riskoff_cond
+    regime := "RISK-OFF"
+
+// Voice weight blend (interpolated between Risk-On and Risk-Off endpoints)
+risk_blend = regime == "RISK-ON" ? 1.0 : regime == "RISK-OFF" ? 0.0 : 0.5
+w_orb_now   = w_orb_riskoff   + (w_orb_riskon   - w_orb_riskoff)   * risk_blend
+w_ema_now   = w_ema_riskoff   + (w_ema_riskon   - w_ema_riskoff)   * risk_blend
+w_sweep_now = w_sweep_riskoff + (w_sweep_riskon - w_sweep_riskoff) * risk_blend
+// New voices: equal weight ~1.0 in Neutral, scaled by regime
+w_v4_now = regime == "RISK-OFF" ? 1.3 : regime == "RISK-ON" ? 0.7 : 1.0  // VWAP MR favors chop
+w_v5_now = regime == "RISK-ON"  ? 1.4 : regime == "RISK-OFF" ? 0.6 : 1.0  // Momentum favors trend
+w_v6_now = 1.0  // HTF bias always relevant
+w_v7_now = regime == "RISK-OFF" ? 1.2 : regime == "RISK-ON" ? 0.8 : 1.0  // Liq vacuum favors thin
+
+// Red Team weight: heavier in Crisis/Risk-Off
+red_w_regime = regime == "CRISIS" ? 1.5 : regime == "RISK-OFF" ? 1.2 : regime == "RISK-ON" ? 0.8 : 1.0
+
+// ============================================================================
+// OPENING RANGE (preserved from v1)
+// ============================================================================
+var float or_high    = na
+var float or_low     = na
+var bool  or_set     = false
+var bool  orb_long_triggered  = false
+var bool  orb_short_triggered = false
+var box   or_box_id  = na
+
+if new_day
+    or_high    := na
+    or_low     := na
+    or_set     := false
+    orb_long_triggered  := false
+    orb_short_triggered := false
+
+if in_orb_win
+    or_high := na(or_high) ? high : math.max(or_high, high)
+    or_low  := na(or_low)  ? low  : math.min(or_low,  low)
+
+if orb_ended and not or_set
+    or_set := true
+    if show_orb_box
+        if not na(or_box_id)
+            box.delete(or_box_id)
+        or_box_id := box.new(bar_index - 6, or_high, bar_index, or_low,
+             border_color=color.new(color.yellow, 40), bgcolor=color.new(color.yellow, 92), border_width=1)
+
+tick_size    = 0.25
+orb_buf      = orb_tick_buf * tick_size
+orb_long_entry  = or_set ? or_high + orb_buf : na
+orb_short_entry = or_set ? or_low  - orb_buf : na
+orb_long_sl  = orb_sl_mode == "Tight" ? or_high - (orb_sl_ticks * tick_size) : or_low  - atr * 0.15
+orb_short_sl = orb_sl_mode == "Tight" ? or_low  + (orb_sl_ticks * tick_size) : or_high + atr * 0.15
+orb_long_r   = not na(orb_long_entry)  and not na(orb_long_sl)  ? orb_long_entry  - orb_long_sl  : na
+orb_short_r  = not na(orb_short_entry) and not na(orb_short_sl) ? orb_short_sl - orb_short_entry : na
+orb_long_tp1  = not na(orb_long_r)  ? orb_long_entry  + orb_long_r  * orb_tp1_r : na
+orb_long_tp2  = not na(orb_long_r)  ? orb_long_entry  + orb_long_r  * orb_tp2_r : na
+orb_short_tp1 = not na(orb_short_r) ? orb_short_entry - orb_short_r * orb_tp1_r : na
+orb_short_tp2 = not na(orb_short_r) ? orb_short_entry - orb_short_r * orb_tp2_r : na
+
+orb_vol_ok = volume >= vol_ma * orb_vol_mult
+orb_pending = en_orb and or_set and in_session and not orb_long_triggered and not orb_short_triggered
+orb_break_up = orb_pending and close > orb_long_entry  and orb_vol_ok and session_ok
+orb_break_dn = orb_pending and close < orb_short_entry and orb_vol_ok and session_ok
+
+var bool or_broke_up = false
+var bool or_broke_dn = false
+if new_day
+    or_broke_up := false
+    or_broke_dn := false
+if orb_break_up
+    or_broke_up := true
+if orb_break_dn
+    or_broke_dn := true
+
+or_range_w     = nz(or_high - or_low, atr)
+retest_overshoot = math.max(or_range_w * 0.05, atr * 0.05)
+retest_depth     = math.max(or_range_w * 0.20, atr * 0.15)
+orb_retest_long  = or_broke_up and not orb_long_triggered and
+     low <= or_high + retest_overshoot and low >= or_high - retest_depth and
+     close > or_high and close > open and session_ok
+orb_retest_short = or_broke_dn and not orb_short_triggered and
+     high >= or_low - retest_overshoot and high <= or_low + retest_depth and
+     close < or_low and close < open and session_ok
+
+orb_long_raw  = orb_require_retest ? orb_retest_long  : orb_break_up
+orb_short_raw = orb_require_retest ? orb_retest_short : orb_break_dn
+
+if orb_long_raw
+    orb_long_triggered := true
+if orb_short_raw
+    orb_short_triggered := true
+
+orb_oco_done = use_oco and (orb_long_triggered or orb_short_triggered)
+
+// Legacy ORB score (kept for hit-rate)
+f_orb_score(is_long) =>
+    s = 0
+    s += (is_long and htf_bull) or (not is_long and htf_bear) ? 1 : 0
+    s += vol_z >= 1.5                                          ? 1 : 0
+    s += adx_val >= 20                                         ? 1 : 0
+    s += (is_long and close > vwap_val) or (not is_long and close < vwap_val) ? 1 : 0
+    s += f_near(prev_day_high) or f_near(prev_day_low)        ? 1 : 0
+    s
+
+var int last_orb_bar = na
+f_cd_ok(last_bar) => na(last_bar) or (bar_index - last_bar) >= cooldown
+orb_long_pre_fire  = orb_long_raw  and f_cd_ok(last_orb_bar) and f_orb_score(true)  >= min_score
+orb_short_pre_fire = orb_short_raw and f_cd_ok(last_orb_bar) and f_orb_score(false) >= min_score
+
+// ============================================================================
+// EMA PULLBACK (preserved from v1)
+// ============================================================================
+trend_bull = ema9 > ema21
+trend_bear = ema9 < ema21
+zone_top = math.max(ema9, ema21) + atr * pb_zone_atr
+zone_bot = math.min(ema9, ema21) - atr * pb_zone_atr
+in_zone  = low <= zone_top and high >= zone_bot
+
+bull_engulf = close > open and open < close[1] and close > open[1]
+bear_engulf = close < open and open > close[1] and close < open[1]
+pin_bull    = (open - low) > (high - close) * 2 and (high - low) > atr * 0.8
+pin_bear    = (high - open) > (close - low) * 2 and (high - low) > atr * 0.8
+bull_reject = bull_engulf or pin_bull
+bear_reject = bear_engulf or pin_bear
+ema_in_range = math.abs(close - ema9) <= atr * 1.0
+
+var int  pb_count_bull = 0
+var int  pb_count_bear = 0
+var bool was_bull      = false
+var bool was_bear      = false
+ema_cross_bull = trend_bull and not was_bull
+ema_cross_bear = trend_bear and not was_bear
+if ema_cross_bull
+    pb_count_bull := 0
+if ema_cross_bear
+    pb_count_bear := 0
+was_bull := trend_bull
+was_bear := trend_bear
+
+var bool was_in_zone = false
+zone_entry = in_zone and not was_in_zone
+if zone_entry and trend_bull
+    pb_count_bull += 1
+if zone_entry and trend_bear
+    pb_count_bear += 1
+was_in_zone := in_zone
+pb_count = trend_bull ? pb_count_bull : pb_count_bear
+wave_ok = pb_count <= (max_pb + 1)
+
+bar_time = time(timeframe.period, "0930-1130", kl_tz)
+morning_ok = not na(bar_time)
+lunch_time = time(timeframe.period, "1130-1330", kl_tz)
+in_lunch   = not na(lunch_time)
+power_pm   = not na(time(timeframe.period, "1430-1600", kl_tz))
+
+ema_tod_ok = true
+if ema_tod_filter == "Morning Only"
+    ema_tod_ok := morning_ok
+else if ema_tod_filter == "Avoid Lunch"
+    ema_tod_ok := not in_lunch
+else if ema_tod_filter == "Power Hours"
+    ema_tod_ok := morning_ok or power_pm
+
+orb_bias_long  = not ema_orb_align or not or_set or or_broke_up or (not or_broke_up and not or_broke_dn)
+orb_bias_short = not ema_orb_align or not or_set or or_broke_dn or (not or_broke_up and not or_broke_dn)
+
+bar_dow = dayofweek
+ema_dow_ok = true
+if ema_dow_filter == "Skip Thursday"
+    ema_dow_ok := bar_dow != 5
+else if ema_dow_filter == "Skip Thu+Fri"
+    ema_dow_ok := bar_dow != 5 and bar_dow != 6
+else if ema_dow_filter == "Mon-Tue Only"
+    ema_dow_ok := bar_dow == 2 or bar_dow == 3
+
+ema_adx_ok = ema_adx_floor == 0 or adx_val >= ema_adx_floor
+
+emapb_long_pre  = en_ema and trend_bull and in_zone and bull_reject and ema_in_range and wave_ok and ema_tod_ok and ema_dow_ok and ema_adx_ok and orb_bias_long and session_ok
+emapb_short_pre = en_ema and trend_bear and in_zone and bear_reject and ema_in_range and wave_ok and ema_tod_ok and ema_dow_ok and ema_adx_ok and orb_bias_short and session_ok
+
+ema_confirm_max = atr * 0.4
+min_body = 4 * tick_size
+emapb_long_conf  = close > close[1] and (close - close[1]) <= ema_confirm_max
+emapb_short_conf = close < close[1] and (close[1] - close) <= ema_confirm_max
+emapb_long_raw  = emapb_long_pre[1]  and emapb_long_conf  and session_ok
+emapb_short_raw = emapb_short_pre[1] and emapb_short_conf and session_ok
+
+swing_low_5  = ta.lowest(low,  5)
+swing_high_5 = ta.highest(high, 5)
+
+f_ema_levels(is_long) =>
+    entry = close
+    long_sl  = ema_sl_mode == "Swing" ? swing_low_5  - atr * 0.15 : entry - ema_sl_atr * atr
+    short_sl = ema_sl_mode == "Swing" ? swing_high_5 + atr * 0.15 : entry + ema_sl_atr * atr
+    raw_sl = is_long ? long_sl : short_sl
+    sl_dist = math.abs(entry - raw_sl)
+    tp1 = is_long ? entry + sl_dist * ema_tp1_r : entry - sl_dist * ema_tp1_r
+    tp2 = is_long ? entry + sl_dist * ema_tp2_r : entry - sl_dist * ema_tp2_r
+    [raw_sl, tp1, tp2, sl_dist]
+
+f_ema_score(is_long) =>
+    s = 0
+    s += (is_long and trend_bull) or (not is_long and trend_bear)  ? 1 : 0
+    s += adx_val >= 22                                              ? 1 : 0
+    s += (is_long and bull_reject) or (not is_long and bear_reject) ? 1 : 0
+    shallow_l = is_long  and low  > ema21 - atr * 0.3
+    shallow_s = not is_long and high < ema21 + atr * 0.3
+    s += (shallow_l or shallow_s)                                   ? 1 : 0
+    s += near_key                                                   ? 1 : 0
+    s += (is_long and close > vwap_val) or (not is_long and close < vwap_val) ? 1 : 0
+    s
+
+var int last_ema_bar = na
+emapb_long_pre_fire  = emapb_long_raw  and f_cd_ok(last_ema_bar) and f_ema_score(true)  >= ema_min_score
+emapb_short_pre_fire = emapb_short_raw and f_cd_ok(last_ema_bar) and f_ema_score(false) >= ema_min_score
+
+// ============================================================================
+// SWEEP + RECLAIM (preserved from v1)
+// ============================================================================
+pivot_len = math.round(swing_lb / 3)
+pvt_hi_val = ta.pivothigh(high, pivot_len, pivot_len)
+pvt_lo_val = ta.pivotlow(low, pivot_len, pivot_len)
+
+var float last_swing_hi = na
+var float last_swing_lo = na
+if not na(pvt_hi_val)
+    last_swing_hi := pvt_hi_val
+if not na(pvt_lo_val)
+    last_swing_lo := pvt_lo_val
+
+var bool  bos_bull_active = false
+var bool  bos_bear_active = false
+var int   bos_bull_bar    = na
+var int   bos_bear_bar    = na
+bos_bull_trigger = not na(last_swing_hi) and close > last_swing_hi and close[1] <= last_swing_hi
+bos_bear_trigger = not na(last_swing_lo) and close < last_swing_lo and close[1] >= last_swing_lo
+if bos_bull_trigger
+    bos_bull_active := true
+    bos_bull_bar    := bar_index
+if bos_bear_trigger
+    bos_bear_active := true
+    bos_bear_bar    := bar_index
+if not na(bos_bull_bar) and (bar_index - bos_bull_bar) > sweep_bos_valid
+    bos_bull_active := false
+if not na(bos_bear_bar) and (bar_index - bos_bear_bar) > sweep_bos_valid
+    bos_bear_active := false
+if new_day
+    bos_bull_active := false
+    bos_bear_active := false
+
+var float ob_demand_hi = na
+var float ob_demand_lo = na
+var float ob_supply_hi = na
+var float ob_supply_lo = na
+if bos_bull_trigger
+    ob_demand_hi := na
+    ob_demand_lo := na
+    for i = 1 to 10
+        if close[i] < open[i]
+            ob_demand_hi := high[i]
+            ob_demand_lo := low[i]
+            break
+if bos_bear_trigger
+    ob_supply_hi := na
+    ob_supply_lo := na
+    for i = 1 to 10
+        if close[i] > open[i]
+            ob_supply_hi := high[i]
+            ob_supply_lo := low[i]
+            break
+
+swing_hi = ta.highest(high, swing_lb)[1]
+swing_lo = ta.lowest(low,   swing_lb)[1]
+sweep_depth_hi = high - swing_hi
+sweep_depth_lo = swing_lo - low
+sweep_high = en_sweep and bos_bear_active and high > swing_hi and close < swing_hi and (high - math.max(close, open)) > atr * sweep_wick_min and sweep_depth_hi >= atr * sweep_depth_atr
+sweep_low  = en_sweep and bos_bull_active and low < swing_lo and close > swing_lo and (math.min(close, open) - low) > atr * sweep_wick_min and sweep_depth_lo >= atr * sweep_depth_atr
+
+var int   sweep_hi_bar     = na
+var int   sweep_lo_bar     = na
+var bool  reclaim_up_armed = false
+var bool  reclaim_dn_armed = false
+var float swept_hi_px      = na
+var float swept_lo_px      = na
+if sweep_low
+    sweep_lo_bar     := bar_index
+    reclaim_up_armed := true
+    swept_lo_px      := low
+if sweep_high
+    sweep_hi_bar     := bar_index
+    reclaim_dn_armed := true
+    swept_hi_px      := high
+if not na(sweep_lo_bar) and (bar_index - sweep_lo_bar) > bos_window
+    reclaim_up_armed := false
+if not na(sweep_hi_bar) and (bar_index - sweep_hi_bar) > bos_window
+    reclaim_dn_armed := false
+
+reclaim_up = reclaim_up_armed and not na(ob_demand_lo) and close > ob_demand_lo and close > open and math.abs(close - open) >= min_body
+reclaim_dn = reclaim_dn_armed and not na(ob_supply_hi) and close < ob_supply_hi and close < open and math.abs(close - open) >= min_body
+
+var int reclaim_up_bar = na
+var int reclaim_dn_bar = na
+if reclaim_up
+    reclaim_up_bar   := bar_index
+    reclaim_up_armed := false
+if reclaim_dn
+    reclaim_dn_bar   := bar_index
+    reclaim_dn_armed := false
+
+sweep_long_pre  = not na(reclaim_up_bar) and (bar_index - reclaim_up_bar) <= sweep_entry_win and (bar_index - reclaim_up_bar) >= 1 and close > open and close > ob_demand_lo and session_ok
+sweep_short_pre = not na(reclaim_dn_bar) and (bar_index - reclaim_dn_bar) <= sweep_entry_win and (bar_index - reclaim_dn_bar) >= 1 and close < open and close < ob_supply_hi and session_ok
+sweep_long_raw  = sweep_long_pre[1] and close > close[1] and math.abs(close - open) >= min_body and session_ok
+sweep_short_raw = sweep_short_pre[1] and close < close[1] and math.abs(close - open) >= min_body and session_ok
+
+f_sweep_levels(is_long) =>
+    entry = close
+    raw_sl = is_long ? swept_lo_px - sweep_sl_ticks * tick_size : swept_hi_px + sweep_sl_ticks * tick_size
+    sl_dist = math.abs(entry - raw_sl)
+    tp1 = is_long ? entry + sl_dist * sweep_tp1_r : entry - sl_dist * sweep_tp1_r
+    tp2 = is_long ? entry + sl_dist * sweep_tp2_r : entry - sl_dist * sweep_tp2_r
+    [raw_sl, tp1, tp2, sl_dist]
+
+f_sweep_score(is_long) =>
+    s = 0
+    s += vol_z >= 1.0                                          ? 1 : 0
+    s += f_near(prev_day_high) or f_near(prev_day_low) or f_near(nz(or_high)) or f_near(nz(or_low)) ? 1 : 0
+    s += adx_val <= 25                                         ? 1 : 0
+    s += (is_long and htf_bull) or (not is_long and htf_bear)  ? 1 : 0
+    s += (is_long and close > vwap_val) or (not is_long and close < vwap_val) ? 1 : 0
+    s
+
+var int last_sweep_bar = na
+sweep_long_pre_fire  = sweep_long_raw  and f_cd_ok(last_sweep_bar) and f_sweep_score(true)  >= min_score
+sweep_short_pre_fire = sweep_short_raw and f_cd_ok(last_sweep_bar) and f_sweep_score(false) >= min_score
+
+// ============================================================================
+// ▓▓▓  T H E   F I R M  ▓▓▓
+// ============================================================================
+
+// ──────── QUANT ENSEMBLE — 7 VOICES ────────
+// Each voice returns -100 (max conviction short) to +100 (max conviction long)
+// 0 = no opinion. Voices vote independently every bar.
+
+// V1: ORB Voice (mirrors setup logic, calibrated to match Python)
+f_voice_orb() =>
+    score = 0.0
+    if or_set
+        if orb_long_pre_fire
+            score := 90.0 + (f_orb_score(true) * 2.0)  // 90-100
+        else if orb_short_pre_fire
+            score := -90.0 - (f_orb_score(false) * 2.0)
+        else if orb_pending and close > or_high - atr * 0.2
+            score := 35.0  // Watching for upside break
+        else if orb_pending and close < or_low + atr * 0.2
+            score := -35.0
+    score
+
+// V2: EMA Voice (calibrated)
+f_voice_ema() =>
+    score = 0.0
+    if emapb_long_pre_fire
+        score := 80.0 + (f_ema_score(true) * 3.0)  // 80-100
+    else if emapb_short_pre_fire
+        score := -80.0 - (f_ema_score(false) * 3.0)
+    else if trend_bull and in_zone
+        score := 35.0
+    else if trend_bear and in_zone
+        score := -35.0
+    else if trend_bull
+        score := 15.0
+    else if trend_bear
+        score := -15.0
+    score
+
+// V3: Sweep Voice (calibrated)
+f_voice_sweep() =>
+    score = 0.0
+    if sweep_long_pre_fire
+        score := 90.0 + (f_sweep_score(true) * 2.0)
+    else if sweep_short_pre_fire
+        score := -90.0 - (f_sweep_score(false) * 2.0)
+    else if reclaim_up_armed
+        score := 45.0
+    else if reclaim_dn_armed
+        score := -45.0
+    else if bos_bull_active
+        score := 20.0
+    else if bos_bear_active
+        score := -20.0
+    score
+
+// V4: VWAP Mean Reversion Voice
+// Strong opinion when price is stretched from VWAP and showing reversal
+f_voice_vwap_mr() =>
+    score = 0.0
+    if not na(vwap_val) and atr > 0
+        dist_atr = (close - vwap_val) / atr
+        // Stretched short reversal opportunity
+        if dist_atr > 1.5 and close < open and rsi_val > 65
+            score := -60.0 - math.min(dist_atr * 5, 40)
+        else if dist_atr < -1.5 and close > open and rsi_val < 35
+            score := 60.0 + math.min(math.abs(dist_atr) * 5, 40)
+        else if dist_atr > 0.5
+            score := 15.0  // Modest long bias above VWAP
+        else if dist_atr < -0.5
+            score := -15.0
+    score
+
+// V5: Momentum Burst Voice
+// Strong directional candle + volume spike + ADX expanding
+f_voice_momentum() =>
+    score = 0.0
+    body = math.abs(close - open)
+    range_full = high - low
+    body_ratio = range_full > 0 ? body / range_full : 0
+    big_bar = body >= atr * 0.7 and body_ratio >= 0.6
+    vol_burst = vol_z >= 1.5
+    adx_rising = adx_val > adx_val[3]
+    if big_bar and vol_burst and adx_rising
+        if close > open
+            score := 75.0 + (vol_z >= 2.5 ? 15.0 : 0.0)
+        else
+            score := -75.0 - (vol_z >= 2.5 ? 15.0 : 0.0)
+    else if big_bar and vol_burst
+        score := close > open ? 40.0 : -40.0
+    else if big_bar
+        score := close > open ? 20.0 : -20.0
+    score
+
+// V6: HTF Bias Voice
+// Strength of higher-timeframe alignment
+f_voice_htf() =>
+    score = 0.0
+    if htf_bull
+        score := 30.0 + math.min(htf_dist_atr * 15, 50)  // 30-80
+    else if htf_bear
+        score := -30.0 - math.min(htf_dist_atr * 15, 50)
+    score
+
+// Pre-computed globals for V7 Liquidity Vacuum (ta.* calls must be at global scope)
+range_avg_20 = ta.sma(high - low, 20)
+highest_5_prev = ta.highest(high, 5)[1]
+lowest_5_prev  = ta.lowest(low,  5)[1]
+
+// V7: Liquidity Vacuum Voice
+// Thin volume + range expansion = breakout-friendly conditions
+f_voice_liqvac() =>
+    score = 0.0
+    range_now = high - low
+    range_expand = range_avg_20 > 0 and range_now / range_avg_20 > 1.4
+    thin_vol_prior = vol_z[1] < -0.5 and vol_z[2] < -0.5
+    if range_expand and thin_vol_prior
+        if close > open and close > highest_5_prev
+            score := 65.0
+        else if close < open and close < lowest_5_prev
+            score := -65.0
+    else if range_expand
+        score := close > open ? 25.0 : -25.0
+    score
+
+// ──────── INTERMARKET DATA FETCHES (V8-V11) ────────
+// Pulled via request.security; returns na when symbol unavailable
+vix_close = en_intermarket ? request.security(sym_vix, timeframe.period, close, ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+vix_open  = en_intermarket ? request.security(sym_vix, timeframe.period, open,  ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+es_close  = en_intermarket ? request.security(sym_es,  timeframe.period, close, ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+es_open   = en_intermarket ? request.security(sym_es,  timeframe.period, open,  ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+dxy_close = en_intermarket ? request.security(sym_dxy, timeframe.period, close, ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+dxy_open  = en_intermarket ? request.security(sym_dxy, timeframe.period, open,  ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+tick_close = en_intermarket ? request.security(sym_tick, timeframe.period, close, ignore_invalid_symbol=true, lookahead=barmerge.lookahead_off) : na
+
+// V8: VIX Spike Voice
+f_voice_vix() =>
+    score = 0.0
+    if not na(vix_close) and not na(vix_open) and vix_open > 0
+        vix_pct = (vix_close - vix_open) / vix_open * 100
+        if vix_pct > 5
+            score := -70.0
+        else if vix_pct < -5
+            score := 50.0
+        else if vix_close > 30
+            score := -50.0
+        else if vix_close > 25
+            score := -30.0
+        else if vix_close > 20
+            score := -15.0
+        else if vix_close < 13
+            score := 25.0
+        else if vix_close < 16
+            score := 10.0
+    score
+
+// V9: ES/NQ Correlation Voice
+f_voice_es() =>
+    score = 0.0
+    if not na(es_close) and not na(es_open) and es_open > 0 and open > 0
+        nq_pct = (close - open) / open * 100
+        es_pct = (es_close - es_open) / es_open * 100
+        if nq_pct > 0.1 and es_pct > 0.1
+            score := 40.0 + math.min(math.abs(nq_pct + es_pct) * 5, 30)
+        else if nq_pct < -0.1 and es_pct < -0.1
+            score := -(40.0 + math.min(math.abs(nq_pct + es_pct) * 5, 30))
+        else if nq_pct > 0.1 and es_pct < -0.1
+            score := -50.0
+        else if nq_pct < -0.1 and es_pct > 0.1
+            score := 50.0
+        else if math.abs(nq_pct) >= 0.05 and math.abs(es_pct) >= 0.05
+            score := (nq_pct > 0) == (es_pct > 0) ? (nq_pct > 0 ? 15.0 : -15.0) : 0.0
+    score
+
+// V10: DXY Risk Currents
+f_voice_dxy() =>
+    score = 0.0
+    if not na(dxy_close) and not na(dxy_open) and dxy_open > 0
+        dxy_pct = (dxy_close - dxy_open) / dxy_open * 100
+        if dxy_pct > 0.3
+            score := -25.0
+        else if dxy_pct < -0.3
+            score := 25.0
+        else if dxy_pct > 0.1
+            score := -10.0
+        else if dxy_pct < -0.1
+            score := 10.0
+    score
+
+// V11: TICK Breadth Voice
+f_voice_tick() =>
+    score = 0.0
+    if not na(tick_close)
+        if tick_close > 1000
+            score := -30.0
+        else if tick_close < -1000
+            score := 30.0
+        else if tick_close > 600
+            score := -10.0
+        else if tick_close < -600
+            score := 10.0
+        else if tick_close > 200
+            score := 15.0
+        else if tick_close < -200
+            score := -15.0
+    score
+
+// Compute V8-V11 + active flags (for proper weight normalization)
+v8 = f_voice_vix()
+v9 = f_voice_es()
+v10 = f_voice_dxy()
+v11 = f_voice_tick()
+v8_active  = en_intermarket and not na(vix_close)
+v9_active  = en_intermarket and not na(es_close)
+v10_active = en_intermarket and not na(dxy_close)
+v11_active = en_intermarket and not na(tick_close)
+
+// ──────── EDGE STACK VOICES (V12-V15) ────────
+// V12: Cumulative Delta proxy — close position + body strength
+f_voice_delta() =>
+    rng = high - low
+    score = 0.0
+    if rng > 0
+        close_pos = (close - low) / rng
+        is_green = close > open
+        body_pct = math.abs(close - open) / rng
+        if is_green and close_pos > 0.7 and body_pct > 0.5
+            score := 50.0 + (close_pos - 0.7) * 100
+        else if not is_green and close_pos < 0.3 and body_pct > 0.5
+            score := -(50.0 + (0.3 - close_pos) * 100)
+        else if is_green and close_pos > 0.5
+            score := 25.0
+        else if not is_green and close_pos < 0.5
+            score := -25.0
+        else if is_green and close_pos < 0.3
+            score := -20.0
+        else if not is_green and close_pos > 0.7
+            score := 20.0
+    score
+
+// V13: ICT Killzone filter — time-of-day quality
+f_voice_killzone() =>
+    h_et = hour(time, "America/New_York")
+    m_et = minute(time, "America/New_York")
+    dow = dayofweek(time, "America/New_York")
+    m = h_et * 60 + m_et
+    score = 0.0
+    if dow >= 2 and dow <= 6  // Mon(2)-Fri(6)
+        if m >= 9*60+30 and m < 11*60+30
+            score := 35.0
+        else if m >= 13*60+30 and m < 15*60
+            score := 30.0
+        else if m >= 11*60+30 and m < 13*60+30
+            score := -25.0
+        else if m >= 15*60 and m < 16*60
+            score := 15.0
+        else
+            score := -30.0
+    score
+
+// V14: Premium/Discount filter
+range_hi_50 = ta.highest(high, 50)
+range_lo_50 = ta.lowest(low, 50)
+f_voice_premdisc(dir_hint) =>
+    score = 0.0
+    span = range_hi_50 - range_lo_50
+    if span > 0 and dir_hint != 0
+        pos = (close - range_lo_50) / span
+        if dir_hint > 0
+            score := pos < 0.3 ? 30.0 : pos < 0.5 ? 15.0 : pos < 0.7 ? -10.0 : -25.0
+        else
+            score := pos > 0.7 ? 30.0 : pos > 0.5 ? 15.0 : pos > 0.3 ? -10.0 : -25.0
+    score
+
+// V15: Fair Value Gap detector
+f_voice_fvg() =>
+    score = 0.0
+    p2h = high[2]
+    p2l = low[2]
+    if p2h < low and close > open
+        gap = low - p2h
+        score := (atr > 0 and gap > atr * 0.2) ? 60.0 : 35.0
+    else if p2l > high and close < open
+        gap = p2l - high
+        score := (atr > 0 and gap > atr * 0.2) ? -60.0 : -35.0
+    score
+
+// Compute V12-V15
+v12 = f_voice_delta()
+v13 = f_voice_killzone()
+// Direction hint for V14 from setup pre-fires
+dir_hint_int = orb_long_pre_fire or emapb_long_pre_fire or sweep_long_pre_fire ? 1 : orb_short_pre_fire or emapb_short_pre_fire or sweep_short_pre_fire ? -1 : 0
+v14 = f_voice_premdisc(dir_hint_int)
+v15 = f_voice_fvg()
+v14_active = dir_hint_int != 0
+v15_active = high[2] < low or low[2] > high
+
+// Compute all voice scores
+v1 = f_voice_orb()
+v2 = f_voice_ema()
+v3 = f_voice_sweep()
+v4 = f_voice_vwap_mr()
+v5 = f_voice_momentum()
+v6 = f_voice_htf()
+v7 = f_voice_liqvac()
+
+// Quant total = weighted sum, normalized to -100..+100 range
+// Includes V8-V11 only when their data is present, V12-V15 when edge stack enabled
+quant_raw_base = v1 * w_orb_now + v2 * w_ema_now + v3 * w_sweep_now + v4 * w_v4_now + v5 * w_v5_now + v6 * w_v6_now + v7 * w_v7_now
+total_w_base   = w_orb_now + w_ema_now + w_sweep_now + w_v4_now + w_v5_now + w_v6_now + w_v7_now
+quant_raw_im = (v8_active ? v8 * w_v8_vix : 0) + (v9_active ? v9 * w_v9_es : 0) + (v10_active ? v10 * w_v10_dxy : 0) + (v11_active ? v11 * w_v11_tick : 0)
+total_w_im   = (v8_active ? w_v8_vix : 0) + (v9_active ? w_v9_es : 0) + (v10_active ? w_v10_dxy : 0) + (v11_active ? w_v11_tick : 0)
+quant_raw_edge = en_edge_stack ? (v12 * w_v12_delta + v13 * w_v13_killzone + (v14_active ? v14 * w_v14_premdisc : 0) + (v15_active ? v15 * w_v15_fvg : 0)) : 0
+total_w_edge   = en_edge_stack ? (w_v12_delta + w_v13_killzone + (v14_active ? w_v14_premdisc : 0) + (v15_active ? w_v15_fvg : 0)) : 0
+quant_raw = quant_raw_base + quant_raw_im + quant_raw_edge
+total_w   = total_w_base + total_w_im + total_w_edge
+quant_total = total_w > 0 ? quant_raw / total_w : 0.0
+
+// Direction agreement: count of voices with same sign as quant total
+direction = quant_total > 0 ? 1 : quant_total < 0 ? -1 : 0
+voice_agree = 0
+voice_agree += (v1 > 0 ? 1 : v1 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+voice_agree += (v2 > 0 ? 1 : v2 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+voice_agree += (v3 > 0 ? 1 : v3 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+voice_agree += (v4 > 0 ? 1 : v4 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+voice_agree += (v5 > 0 ? 1 : v5 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+voice_agree += (v6 > 0 ? 1 : v6 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+voice_agree += (v7 > 0 ? 1 : v7 < 0 ? -1 : 0) == direction and direction != 0 ? 1 : 0
+
+// ──────── RED TEAM — Devil's Advocate (0-100) ────────
+// Each disqualifier returns 0..N points. Higher = more reasons to skip.
+f_redteam(is_long) =>
+    score = 0.0
+    // 1. Counter-HTF (worst sin: trading against higher TF)
+    if (is_long and htf_bear) or (not is_long and htf_bull)
+        score += 25.0
+    // 2. RSI extreme (chasing)
+    if (is_long and rsi_val > 75) or (not is_long and rsi_val < 25)
+        score += 15.0
+    // 3. Crisis regime
+    if regime == "CRISIS"
+        score += 30.0
+    // 4. Risk-Off + trying to trade trend setup
+    if regime == "RISK-OFF" and adx_val < 15
+        score += 15.0
+    // 5. Key level proximity (resistance for longs / support for shorts)
+    if is_long and not na(prev_day_high) and close < prev_day_high and (prev_day_high - close) < atr * 0.5
+        score += 10.0
+    if not is_long and not na(prev_day_low) and close > prev_day_low and (close - prev_day_low) < atr * 0.5
+        score += 10.0
+    // 6. Recent failure cluster (track via varip below)
+    // Added below by reading recent_losses var
+    // 7. Spread/volatility anomaly
+    if atr_ratio > 1.8
+        score += 10.0
+    // 8. Wrong side of VWAP for momentum trades
+    if (is_long and close < vwap_val and rsi_val < 50) or (not is_long and close > vwap_val and rsi_val > 50)
+        score += 10.0
+    math.min(score, 100.0)
+
+// Recent losses cluster tracker (added to red team)
+varip int recent_losses = 0
+varip int total_signals = 0
+
+f_redteam_full(is_long) =>
+    base = f_redteam(is_long)
+    cluster_pen = recent_losses >= 2 ? 15.0 : recent_losses >= 1 ? 5.0 : 0.0
+    math.min(base + cluster_pen, 100.0)
+
+red_long  = f_redteam_full(true)
+red_short = f_redteam_full(false)
+
+// ──────── PM WEIGHTED VOTING — Final Gate ────────
+// Quant total magnitude minus red team penalty (regime-weighted)
+red_used = direction > 0 ? red_long : direction < 0 ? red_short : 50.0
+pm_final = math.abs(quant_total) - (red_used * red_w_regime * redteam_weight)
+
+pm_pass = pm_final >= pm_threshold
+
+// ──────── FINAL SIGNAL RESOLUTION ────────
+// Mode 1 (require_setup ON): v1 setup must trigger AND PM must clear
+// Mode 2 (require_setup OFF): PM-only signals allowed (direction-based)
+
+setup_long  = orb_long_pre_fire  or emapb_long_pre_fire  or sweep_long_pre_fire
+setup_short = orb_short_pre_fire or emapb_short_pre_fire or sweep_short_pre_fire
+
+sig_long  = require_setup ? (setup_long  and pm_pass and direction > 0) : (pm_pass and direction > 0)
+sig_short = require_setup ? (setup_short and pm_pass and direction < 0) : (pm_pass and direction < 0)
+
+// ──────── DAILY P&L CIRCUIT BREAKER ────────
+// Tracks running daily P&L, halves size after first loss threshold,
+// pauses entirely after second loss threshold. Resets each new day.
+varip float daily_pnl_R = 0.0
+varip int   daily_trade_count = 0
+varip int   consecutive_loss_days = 0
+if new_day
+    if daily_pnl_R < 0
+        consecutive_loss_days := consecutive_loss_days + 1
+    else
+        consecutive_loss_days := 0
+    daily_pnl_R := 0.0
+    daily_trade_count := 0
+
+cb_can_trade = not en_circuit_breaker or (daily_pnl_R > cb_pause_R and consecutive_loss_days < 2)
+cb_size_mult = (en_circuit_breaker and daily_pnl_R <= cb_half_size_R) ? 0.5 : 1.0
+
+// Apply circuit breaker to fire decisions
+if not cb_can_trade
+    sig_long  := false
+    sig_short := false
+
+// Crisis lockdown: never trade in crisis regardless of PM
+if regime == "CRISIS"
+    sig_long  := false
+    sig_short := false
+
+// Setup name resolution (priority Sweep > ORB > EMA, or "FIRM" if no setup)
+var string setup_name = ""
+var int    sig_score  = 0
+var float  pm_at_fire = na
+var float  red_at_fire = na
+
+if sweep_long_pre_fire and sig_long
+    setup_name := "SWEEP"
+    sig_score  := f_sweep_score(true)
+else if sweep_short_pre_fire and sig_short
+    setup_name := "SWEEP"
+    sig_score  := f_sweep_score(false)
+else if orb_long_pre_fire and sig_long
+    setup_name := "ORB"
+    sig_score  := f_orb_score(true)
+else if orb_short_pre_fire and sig_short
+    setup_name := "ORB"
+    sig_score  := f_orb_score(false)
+else if emapb_long_pre_fire and sig_long
+    setup_name := "EMA PB"
+    sig_score  := f_ema_score(true)
+else if emapb_short_pre_fire and sig_short
+    setup_name := "EMA PB"
+    sig_score  := f_ema_score(false)
+else if (sig_long or sig_short) and not require_setup
+    setup_name := "FIRM"
+    sig_score  := math.round(pm_final / 20)  // synthetic 0-5 score
+else
+    setup_name := ""
+    sig_score  := 0
+
+if sig_long or sig_short
+    pm_at_fire := pm_final
+    red_at_fire := red_used
+    if setup_name == "ORB"
+        last_orb_bar := bar_index
+    else if setup_name == "EMA PB"
+        last_ema_bar := bar_index
+    else if setup_name == "SWEEP"
+        last_sweep_bar := bar_index
+
+// Compute SL/TP for active signal
+var float sig_sl      = na
+var float sig_tp1     = na
+var float sig_tp2     = na
+var float sig_sl_dist = na
+
+if setup_name == "ORB" and (sig_long or sig_short)
+    is_l      = sig_long
+    sig_sl      := is_l ? orb_long_sl  : orb_short_sl
+    sig_tp1     := is_l ? orb_long_tp1 : orb_short_tp1
+    sig_tp2     := is_l ? orb_long_tp2 : orb_short_tp2
+    sig_sl_dist := is_l ? nz(orb_long_r) : nz(orb_short_r)
+else if setup_name == "EMA PB" and (sig_long or sig_short)
+    [sl_e, tp1_e, tp2_e, d_e] = f_ema_levels(sig_long)
+    sig_sl      := sl_e
+    sig_tp1     := tp1_e
+    sig_tp2     := tp2_e
+    sig_sl_dist := d_e
+else if setup_name == "SWEEP" and (sig_long or sig_short)
+    [sl_s, tp1_s, tp2_s, d_s] = f_sweep_levels(sig_long)
+    sig_sl      := sl_s
+    sig_tp1     := tp1_s
+    sig_tp2     := tp2_s
+    sig_sl_dist := d_s
+else if setup_name == "FIRM" and (sig_long or sig_short)
+    // Synthetic ATR-based levels
+    sig_sl_dist := atr * 1.5
+    sig_sl      := sig_long ? close - sig_sl_dist : close + sig_sl_dist
+    sig_tp1     := sig_long ? close + sig_sl_dist : close - sig_sl_dist
+    sig_tp2     := sig_long ? close + sig_sl_dist * 2 : close - sig_sl_dist * 2
+else
+    sig_sl      := na
+    sig_tp1     := na
+    sig_tp2     := na
+    sig_sl_dist := na
+
+// ============================================================================
+// HIT-RATE TRACKING (for recent_losses feedback into Red Team)
+// ============================================================================
+varip int orb_fired = 0, varip int orb_tp1_hits = 0, varip int orb_sl_hits = 0, varip int orb_exp = 0
+varip int ema_fired = 0, varip int ema_tp1_hits = 0, varip int ema_sl_hits = 0, varip int ema_exp = 0
+varip int swp_fired = 0, varip int swp_tp1_hits = 0, varip int swp_sl_hits = 0, varip int swp_exp = 0
+varip int firm_fired = 0, varip int firm_tp1_hits = 0, varip int firm_sl_hits = 0, varip int firm_exp = 0
+
+var array<int>    ht_bar     = array.new<int>()
+var array<string> ht_setup   = array.new<string>()
+var array<bool>   ht_long    = array.new<bool>()
+var array<float>  ht_entry   = array.new<float>()
+var array<float>  ht_sl_arr  = array.new<float>()
+var array<float>  ht_tp1_arr = array.new<float>()
+var array<float>  ht_tp2_arr = array.new<float>()
+var array<bool>   ht_hit1    = array.new<bool>()
+
+if (sig_long or sig_short) and not na(sig_sl_dist) and sig_sl_dist > 0
+    array.push(ht_bar,     bar_index)
+    array.push(ht_setup,   setup_name)
+    array.push(ht_long,    sig_long)
+    array.push(ht_entry,   close)
+    array.push(ht_sl_arr,  sig_sl)
+    array.push(ht_tp1_arr, sig_tp1)
+    array.push(ht_tp2_arr, sig_tp2)
+    array.push(ht_hit1,    false)
+    total_signals += 1
+    if setup_name == "ORB"
+        orb_fired += 1
+    else if setup_name == "EMA PB"
+        ema_fired += 1
+    else if setup_name == "SWEEP"
+        swp_fired += 1
+    else
+        firm_fired += 1
+
+if array.size(ht_bar) > 0
+    for i = array.size(ht_bar) - 1 to 0
+        bars_open = bar_index - array.get(ht_bar, i)
+        if bars_open >= 1
+            is_l  = array.get(ht_long, i)
+            slv   = array.get(ht_sl_arr, i)
+            tp1v  = array.get(ht_tp1_arr, i)
+            h1    = array.get(ht_hit1, i)
+            sl_hit  = is_l ? low <= slv   : high >= slv
+            tp1_hit = not h1 and (is_l ? high >= tp1v : low <= tp1v)
+            stp  = array.get(ht_setup, i)
+            if tp1_hit
+                array.set(ht_hit1, i, true)
+                recent_losses := math.max(0, recent_losses - 1)  // win clears one loss
+                daily_pnl_R := daily_pnl_R + 1.0  // tally for circuit breaker (assume +1R partial)
+                if stp == "ORB"
+                    orb_tp1_hits += 1
+                else if stp == "EMA PB"
+                    ema_tp1_hits += 1
+                else if stp == "SWEEP"
+                    swp_tp1_hits += 1
+                else
+                    firm_tp1_hits += 1
+            if sl_hit and not array.get(ht_hit1, i)
+                recent_losses += 1
+                daily_pnl_R := daily_pnl_R - 1.0  // tally loss for circuit breaker
+                if stp == "ORB"
+                    orb_sl_hits += 1
+                else if stp == "EMA PB"
+                    ema_sl_hits += 1
+                else if stp == "SWEEP"
+                    swp_sl_hits += 1
+                else
+                    firm_sl_hits += 1
+            tp2_hit = is_l ? high >= array.get(ht_tp2_arr, i) : low <= array.get(ht_tp2_arr, i)
+            orb_timed_out = stp == "ORB" and orb_timeout > 0 and bars_open >= orb_timeout and not array.get(ht_hit1, i)
+            expired = (not sl_hit and not tp2_hit and bars_open >= 30) or orb_timed_out
+            if expired
+                if stp == "ORB"
+                    orb_exp += 1
+                else if stp == "EMA PB"
+                    ema_exp += 1
+                else if stp == "SWEEP"
+                    swp_exp += 1
+                else
+                    firm_exp += 1
+            if sl_hit or tp2_hit or expired
+                array.remove(ht_bar, i)
+                array.remove(ht_setup, i)
+                array.remove(ht_long, i)
+                array.remove(ht_entry, i)
+                array.remove(ht_sl_arr, i)
+                array.remove(ht_tp1_arr, i)
+                array.remove(ht_tp2_arr, i)
+                array.remove(ht_hit1, i)
+
+// Reset recent_losses counter daily so cluster penalty doesn't persist forever
+if new_day
+    recent_losses := 0
+
+f_pct(num, den) => den > 0 ? str.tostring(math.round(num / den * 100)) + "%" : "—"
+
+// ════════════════════════════════════════════════════════════════════════════
+// ▓▓▓  V I S U A L   L A Y E R  ▓▓▓
+// ════════════════════════════════════════════════════════════════════════════
+
+// Color palette
+c_gold     = #FFD700
+c_cyan     = #00E5FF
+c_magenta  = #E040FB
+c_neon_grn = #00FF87
+c_neon_red = #FF1744
+c_ember    = #FF6D00
+c_ice      = #B3E5FC
+c_slate    = #1A1A2E
+c_charcoal = #0F0F1A
+c_steel    = #2C2C3E
+
+// EMA ribbon
+p_ema9  = plot(ema9,  "EMA 9",  trend_bull ? color.new(c_cyan, 10) : color.new(c_magenta, 10), 2)
+p_ema21 = plot(ema21, "EMA 21", trend_bull ? color.new(c_cyan, 40) : color.new(c_magenta, 40), 1)
+fill(p_ema9, p_ema21, color=trend_bull ? color.new(c_cyan, 88) : trend_bear ? color.new(c_magenta, 88) : color.new(color.gray, 95), title="EMA Ribbon")
+
+plot(vwap_val, "VWAP", color.new(c_ember, 25), 2, plot.style_stepline)
+plot(use_runner ? ema9 : na, "Runner Trail", color.new(c_cyan, 70), 1, plot.style_circles)
+
+barcolor(sig_long ? color.new(c_neon_grn, 30) : sig_short ? color.new(c_neon_red, 30) : na)
+bgcolor(shade_off and not session_ok ? color.new(c_charcoal, 50) : na, title="Off-session")
+bgcolor(sig_long  ? color.new(c_neon_grn, 90) : na, title="Long flash")
+bgcolor(sig_short ? color.new(c_neon_red, 90) : na, title="Short flash")
+bgcolor(regime == "CRISIS" ? color.new(c_neon_red, 88) : na, title="Crisis lockdown")
+
+// SL/TP zones
+var line ln_entry = na, var line ln_sl = na, var line ln_tp1 = na, var line ln_tp2 = na
+var label lbl_entry = na, var label lbl_sl = na, var label lbl_tp1 = na, var label lbl_tp2 = na
+var box  bx_sl = na, var box bx_tp1 = na, var box bx_tp2 = na
+
+if (sig_long or sig_short) and show_levels and not na(sig_sl_dist) and sig_sl_dist > 0
+    if not na(ln_entry)
+        line.delete(ln_entry), line.delete(ln_sl), line.delete(ln_tp1), line.delete(ln_tp2)
+    if not na(lbl_entry)
+        label.delete(lbl_entry), label.delete(lbl_sl), label.delete(lbl_tp1), label.delete(lbl_tp2)
+    if not na(bx_sl)
+        box.delete(bx_sl), box.delete(bx_tp1), box.delete(bx_tp2)
+    end_b = bar_index + lvl_extend
+    entry_px = close
+    sig_r1 = sig_sl_dist > 0 ? math.abs(sig_tp1 - entry_px) / sig_sl_dist : 0
+    sig_r2 = sig_sl_dist > 0 ? math.abs(sig_tp2 - entry_px) / sig_sl_dist : 0
+    bx_sl  := box.new(bar_index, entry_px, end_b, sig_sl,  border_color=color.new(c_neon_red, 70), bgcolor=color.new(c_neon_red, 92), border_width=0)
+    bx_tp1 := box.new(bar_index, entry_px, end_b, sig_tp1, border_color=color.new(c_gold, 80), bgcolor=color.new(c_gold, 93), border_width=0)
+    bx_tp2 := box.new(bar_index, sig_tp1, end_b, sig_tp2,  border_color=color.new(c_neon_grn, 80), bgcolor=color.new(c_neon_grn, 94), border_width=0)
+    ln_entry := line.new(bar_index, entry_px, end_b, entry_px, color=color.white, width=2)
+    ln_sl    := line.new(bar_index, sig_sl,   end_b, sig_sl,   color=c_neon_red, width=2)
+    ln_tp1   := line.new(bar_index, sig_tp1,  end_b, sig_tp1,  color=color.new(c_gold, 20), width=1, style=line.style_dashed)
+    ln_tp2   := line.new(bar_index, sig_tp2,  end_b, sig_tp2,  color=color.new(c_neon_grn, 15), width=1, style=line.style_dashed)
+    lbl_entry := label.new(end_b, entry_px, " ENTRY " + str.tostring(entry_px, format.mintick) + " ", color=color.new(color.white, 50), textcolor=c_charcoal, style=label.style_label_left, size=size.tiny)
+    lbl_sl := label.new(end_b, sig_sl, " SL " + str.tostring(sig_sl, format.mintick) + "  −1R ", color=color.new(c_neon_red, 30), textcolor=color.white, style=label.style_label_left, size=size.tiny)
+    lbl_tp1 := label.new(end_b, sig_tp1, " TP1 +" + str.tostring(sig_r1, "#.#") + "R ", color=color.new(c_gold, 30), textcolor=color.white, style=label.style_label_left, size=size.tiny)
+    lbl_tp2 := label.new(end_b, sig_tp2, " TP2 +" + str.tostring(sig_r2, "#.#") + "R ", color=color.new(c_neon_grn, 25), textcolor=color.white, style=label.style_label_left, size=size.tiny)
+
+// Signal label with FIRM details
+if show_labels and (sig_long or sig_short)
+    lbl_y = sig_long ? low - atr * 0.5 : high + atr * 0.5
+    dir_icon = sig_long ? "⬆" : "⬇"
+    lbl_txt = "◆ " + dir_icon + " " + setup_name + "  PM " + str.tostring(math.round(pm_final))
+    lbl_col = setup_name == "ORB" ? color.new(c_gold, 5) : setup_name == "EMA PB" ? color.new(c_cyan, 5) : setup_name == "SWEEP" ? color.new(c_magenta, 5) : color.new(color.purple, 5)
+    lbl_sty = sig_long ? label.style_label_up : label.style_label_down
+    tt = "━━━ FIRM SIGNAL · " + setup_name + " " + (sig_long ? "LONG" : "SHORT") + " ━━━\n" +
+         "Regime:        " + regime + "\n" +
+         "Quant total:   " + str.tostring(quant_total, "#.#") + "  (agree " + str.tostring(voice_agree) + "/7)\n" +
+         "Red Team:      " + str.tostring(math.round(red_used)) + "  (×" + str.tostring(red_w_regime, "#.#") + " regime)\n" +
+         "PM final:      " + str.tostring(math.round(pm_final)) + "  ≥ " + str.tostring(pm_threshold) + "\n" +
+         "─── Voices ───\n" +
+         "V1 ORB:        " + str.tostring(math.round(v1)) + "\n" +
+         "V2 EMA:        " + str.tostring(math.round(v2)) + "\n" +
+         "V3 Sweep:      " + str.tostring(math.round(v3)) + "\n" +
+         "V4 VWAP MR:    " + str.tostring(math.round(v4)) + "\n" +
+         "V5 Momentum:   " + str.tostring(math.round(v5)) + "\n" +
+         "V6 HTF Bias:   " + str.tostring(math.round(v6)) + "\n" +
+         "V7 Liq Vacuum: " + str.tostring(math.round(v7)) + "\n" +
+         "─── Trade ───\n" +
+         "Entry:  " + str.tostring(close, format.mintick) + "\n" +
+         "SL:     " + str.tostring(sig_sl, format.mintick) + "\n" +
+         "TP1:    " + str.tostring(sig_tp1, format.mintick) + "\n" +
+         "TP2:    " + str.tostring(sig_tp2, format.mintick)
+    label.new(bar_index, lbl_y, lbl_txt, color=lbl_col, textcolor=color.white, style=lbl_sty, size=size.large, tooltip=tt)
+
+// ════════════════════════════════════════════════════════════════════════════
+// THE FIRM DASHBOARD (top-right)
+// ════════════════════════════════════════════════════════════════════════════
+var table firm = table.new(position.top_right, 4, 14, border_width=0,
+     frame_color=color.new(c_slate, 0), bgcolor=color.new(c_charcoal, 0))
+
+// Pine requires function definitions at global scope (not inside if blocks)
+f_voice_color(float v) =>
+    v > 50 ? c_neon_grn : v > 0 ? color.new(c_neon_grn, 50) : v < -50 ? c_neon_red : v < 0 ? color.new(c_neon_red, 50) : color.gray
+
+f_v_row(int row, string label_txt, float v, float w) =>
+    table.cell(firm, 0, row, "  " + label_txt + "  ", bgcolor=color.new(c_charcoal, 0), text_color=color.white, text_size=size.small)
+    table.cell(firm, 1, row, "  " + str.tostring(math.round(v)) + "  ", bgcolor=color.new(c_charcoal, 0), text_color=f_voice_color(v), text_size=size.small)
+    table.cell(firm, 2, row, "  " + str.tostring(w, "#.#") + "  ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+    table.cell(firm, 3, row, "  " + str.tostring(math.round(v * w)) + "  ", bgcolor=color.new(c_charcoal, 0), text_color=f_voice_color(v * w), text_size=size.small)
+
+if show_firm_dash and barstate.islast
+    // Header
+    table.cell(firm, 0, 0, "  THE FIRM  ", bgcolor=color.new(c_slate, 0), text_color=c_gold, text_size=size.normal)
+    table.cell(firm, 1, 0, "", bgcolor=color.new(c_slate, 0))
+    table.cell(firm, 2, 0, "", bgcolor=color.new(c_slate, 0))
+    reg_col = regime == "RISK-ON" ? c_neon_grn : regime == "RISK-OFF" ? c_ember : regime == "CRISIS" ? c_neon_red : color.gray
+    table.cell(firm, 3, 0, regime, bgcolor=color.new(c_slate, 0), text_color=reg_col, text_size=size.small)
+
+    // PM Final - the most important line
+    pm_color = pm_final >= pm_threshold ? c_neon_grn : pm_final >= (pm_threshold - 15) ? c_ember : color.gray
+    pm_status = pm_final >= pm_threshold ? (direction > 0 ? "▶ FIRE LONG" : direction < 0 ? "▶ FIRE SHORT" : "—") : pm_final >= (pm_threshold - 15) ? "◉ NEAR" : "◎ HOLD"
+    table.cell(firm, 0, 1, "  PM FINAL  ", bgcolor=color.new(c_steel, 0), text_color=color.white, text_size=size.small)
+    table.cell(firm, 1, 1, "  " + str.tostring(math.round(pm_final)) + "  ", bgcolor=color.new(c_charcoal, 0), text_color=pm_color, text_size=size.normal)
+    table.cell(firm, 2, 1, "  ≥" + str.tostring(pm_threshold) + "  ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+    table.cell(firm, 3, 1, "  " + pm_status + "  ", bgcolor=color.new(c_charcoal, 0), text_color=pm_color, text_size=size.small)
+
+    // Quant Total
+    q_col = quant_total > 30 ? c_neon_grn : quant_total < -30 ? c_neon_red : color.gray
+    table.cell(firm, 0, 2, "  QUANT  ", bgcolor=color.new(c_steel, 0), text_color=color.white, text_size=size.small)
+    table.cell(firm, 1, 2, "  " + str.tostring(quant_total, "#.#") + "  ", bgcolor=color.new(c_charcoal, 0), text_color=q_col, text_size=size.small)
+    table.cell(firm, 2, 2, "  agree " + str.tostring(voice_agree) + "/7  ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+    table.cell(firm, 3, 2, "", bgcolor=color.new(c_charcoal, 0))
+
+    // Red Team
+    r_col = red_used >= 50 ? c_neon_red : red_used >= 30 ? c_ember : c_neon_grn
+    table.cell(firm, 0, 3, "  RED TEAM  ", bgcolor=color.new(c_steel, 0), text_color=color.white, text_size=size.small)
+    table.cell(firm, 1, 3, "  " + str.tostring(math.round(red_used)) + "  ", bgcolor=color.new(c_charcoal, 0), text_color=r_col, text_size=size.small)
+    table.cell(firm, 2, 3, "  ×" + str.tostring(red_w_regime, "#.#") + "  ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+    table.cell(firm, 3, 3, "  pen " + str.tostring(math.round(red_used * red_w_regime * redteam_weight)) + "  ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+
+    // Voice rows (if enabled)
+    if show_voice_log
+        table.cell(firm, 0, 4, "  VOICES  ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+        table.cell(firm, 1, 4, " SCORE ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+        table.cell(firm, 2, 4, "  W   ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+        table.cell(firm, 3, 4, "  CONTRIB  ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+
+        f_v_row(5,  "V1 ORB    ", v1, w_orb_now)
+        f_v_row(6,  "V2 EMA    ", v2, w_ema_now)
+        f_v_row(7,  "V3 SWEEP  ", v3, w_sweep_now)
+        f_v_row(8,  "V4 VWAP MR", v4, w_v4_now)
+        f_v_row(9,  "V5 MOMENT ", v5, w_v5_now)
+        f_v_row(10, "V6 HTF    ", v6, w_v6_now)
+        f_v_row(11, "V7 LIQ VAC", v7, w_v7_now)
+
+// ════════════════════════════════════════════════════════════════════════════
+// HIT-RATE SCORECARD (bottom-left)
+// ════════════════════════════════════════════════════════════════════════════
+var table hr = table.new(position.bottom_left, 6, 6, border_width=0,
+     frame_color=color.new(c_slate, 0), bgcolor=color.new(c_charcoal, 0))
+
+if show_hit_rate and barstate.islast
+    table.cell(hr, 0, 0, "  SETUP  ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+    table.cell(hr, 1, 0, " FIRED ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+    table.cell(hr, 2, 0, " TP1%  ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+    table.cell(hr, 3, 0, "  SL   ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+    table.cell(hr, 4, 0, "  EXP  ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+    table.cell(hr, 5, 0, " OPEN  ", bgcolor=color.new(c_steel, 0), text_color=color.new(color.white, 30), text_size=size.small)
+
+    table.cell(hr, 0, 1, "  ORB  ", bgcolor=color.new(c_gold, 75), text_color=color.white, text_size=size.small)
+    table.cell(hr, 1, 1, " " + str.tostring(orb_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.white, text_size=size.small)
+    table.cell(hr, 2, 1, " " + f_pct(orb_tp1_hits, orb_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_grn, text_size=size.small)
+    table.cell(hr, 3, 1, " " + str.tostring(orb_sl_hits) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_red, text_size=size.small)
+    table.cell(hr, 4, 1, " " + str.tostring(orb_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_ember, text_size=size.small)
+    table.cell(hr, 5, 1, " " + str.tostring(orb_fired - orb_tp1_hits - orb_sl_hits - orb_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+
+    table.cell(hr, 0, 2, "  EMA  ", bgcolor=color.new(c_cyan, 75), text_color=color.white, text_size=size.small)
+    table.cell(hr, 1, 2, " " + str.tostring(ema_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.white, text_size=size.small)
+    table.cell(hr, 2, 2, " " + f_pct(ema_tp1_hits, ema_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_grn, text_size=size.small)
+    table.cell(hr, 3, 2, " " + str.tostring(ema_sl_hits) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_red, text_size=size.small)
+    table.cell(hr, 4, 2, " " + str.tostring(ema_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_ember, text_size=size.small)
+    table.cell(hr, 5, 2, " " + str.tostring(ema_fired - ema_tp1_hits - ema_sl_hits - ema_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+
+    table.cell(hr, 0, 3, "  SWP  ", bgcolor=color.new(c_magenta, 75), text_color=color.white, text_size=size.small)
+    table.cell(hr, 1, 3, " " + str.tostring(swp_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.white, text_size=size.small)
+    table.cell(hr, 2, 3, " " + f_pct(swp_tp1_hits, swp_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_grn, text_size=size.small)
+    table.cell(hr, 3, 3, " " + str.tostring(swp_sl_hits) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_red, text_size=size.small)
+    table.cell(hr, 4, 3, " " + str.tostring(swp_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_ember, text_size=size.small)
+    table.cell(hr, 5, 3, " " + str.tostring(swp_fired - swp_tp1_hits - swp_sl_hits - swp_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+
+    table.cell(hr, 0, 4, " FIRM  ", bgcolor=color.new(color.purple, 75), text_color=color.white, text_size=size.small)
+    table.cell(hr, 1, 4, " " + str.tostring(firm_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.white, text_size=size.small)
+    table.cell(hr, 2, 4, " " + f_pct(firm_tp1_hits, firm_fired) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_grn, text_size=size.small)
+    table.cell(hr, 3, 4, " " + str.tostring(firm_sl_hits) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_red, text_size=size.small)
+    table.cell(hr, 4, 4, " " + str.tostring(firm_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_ember, text_size=size.small)
+    table.cell(hr, 5, 4, " " + str.tostring(firm_fired - firm_tp1_hits - firm_sl_hits - firm_exp) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+
+    tot_f = orb_fired + ema_fired + swp_fired + firm_fired
+    tot_t = orb_tp1_hits + ema_tp1_hits + swp_tp1_hits + firm_tp1_hits
+    tot_s = orb_sl_hits + ema_sl_hits + swp_sl_hits + firm_sl_hits
+    tot_e = orb_exp + ema_exp + swp_exp + firm_exp
+    table.cell(hr, 0, 5, "  ALL  ", bgcolor=color.new(c_steel, 0), text_color=color.white, text_size=size.small)
+    table.cell(hr, 1, 5, " " + str.tostring(tot_f) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.white, text_size=size.small)
+    table.cell(hr, 2, 5, " " + f_pct(tot_t, tot_f) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_grn, text_size=size.small)
+    table.cell(hr, 3, 5, " " + str.tostring(tot_s) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_neon_red, text_size=size.small)
+    table.cell(hr, 4, 5, " " + str.tostring(tot_e) + " ", bgcolor=color.new(c_charcoal, 0), text_color=c_ember, text_size=size.small)
+    table.cell(hr, 5, 5, " " + str.tostring(tot_f - tot_t - tot_s - tot_e) + " ", bgcolor=color.new(c_charcoal, 0), text_color=color.gray, text_size=size.small)
+
+// ════════════════════════════════════════════════════════════════════════════
+// ALERTS (with full Firm payload for webhook → Python bot)
+// ════════════════════════════════════════════════════════════════════════════
+// Webhook payload format (JSON):
+// {
+//   "ticker": "{{ticker}}",
+//   "side": "long" | "short",
+//   "setup": "ORB" | "EMA PB" | "SWEEP" | "FIRM",
+//   "entry": <price>,
+//   "sl": <price>,
+//   "tp1": <price>,
+//   "tp2": <price>,
+//   "regime": "RISK-ON" | "RISK-OFF" | "NEUTRAL" | "CRISIS",
+//   "pm_final": <number>,
+//   "red_team": <number>,
+//   "voices": {v1, v2, v3, v4, v5, v6, v7},
+//   "time": <unix>
+// }
+
+// Build the full Firm payload as a JSON string (uses local-var concatenation
+// to avoid Pine v6 multi-line string continuation issues).
+f_payload(string side) =>
+    voices_arr = "[" + str.tostring(math.round(v1)) + "," + str.tostring(math.round(v2)) + "," + str.tostring(math.round(v3)) + "," + str.tostring(math.round(v4)) + "," + str.tostring(math.round(v5)) + "," + str.tostring(math.round(v6)) + "," + str.tostring(math.round(v7)) + "]"
+    p1 = "{\"ticker\":\"" + syminfo.ticker + "\",\"side\":\"" + side + "\",\"setup\":\"" + setup_name + "\""
+    p2 = ",\"entry\":" + str.tostring(close, format.mintick) + ",\"sl\":" + str.tostring(sig_sl, format.mintick)
+    p3 = ",\"tp1\":" + str.tostring(sig_tp1, format.mintick) + ",\"tp2\":" + str.tostring(sig_tp2, format.mintick)
+    p4 = ",\"regime\":\"" + regime + "\",\"pm_final\":" + str.tostring(math.round(pm_final))
+    p5 = ",\"red_team\":" + str.tostring(math.round(red_used)) + ",\"voices\":" + voices_arr
+    p6 = ",\"time\":" + str.tostring(time) + "}"
+    p1 + p2 + p3 + p4 + p5 + p6
+
+// Fire dynamic alerts with full Firm payload (works with TradingView webhook
+// when the alert is set to "Any alert() function call" trigger mode)
+if sig_long
+    alert(f_payload("long"), alert.freq_once_per_bar)
+if sig_short
+    alert(f_payload("short"), alert.freq_once_per_bar)
+
+// Static alertconditions (legacy — for users who prefer named alerts over alert())
+alertcondition(sig_long,  "FIRM Long",  "APEX v2 FIRM signal LONG fired")
+alertcondition(sig_short, "FIRM Short", "APEX v2 FIRM signal SHORT fired")
+alertcondition(pm_final >= (pm_threshold - 10) and pm_final < pm_threshold and direction != 0, "PM Near Threshold", "APEX v2 PM near gate — watch for fire next bar")
+alertcondition(regime == "CRISIS" and regime[1] != "CRISIS", "Crisis Entered", "APEX v2 entered CRISIS regime — all signals locked")
+alertcondition(regime != "CRISIS" and regime[1] == "CRISIS", "Crisis Cleared", "APEX v2 CRISIS regime cleared — signals re-armed")

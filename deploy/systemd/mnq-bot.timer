@@ -1,0 +1,15 @@
+[Unit]
+Description=MNQ Bot Health Check Timer
+Documentation=file:///opt/mnq-bot/docs/RUNBOOK.md
+PartOf=mnq-bot.service
+
+[Timer]
+# Run health check every 5 minutes
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+# Run immediately if the bot has been down for more than 5 minutes
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

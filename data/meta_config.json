@@ -1,0 +1,59 @@
+{
+  "confidence": 48.5,
+  "diffs_from_default": {
+    "allowed_setups": {
+      "default": [
+        "ORB",
+        "EMA PB",
+        "SWEEP"
+      ],
+      "overridden": [
+        "ORB",
+        "SWEEP"
+      ]
+    },
+    "daily_loss_cap_r": {
+      "default": 3.0,
+      "overridden": 2.0
+    },
+    "meta_confidence": {
+      "default": null,
+      "overridden": 48.5
+    },
+    "meta_reason": {
+      "default": null,
+      "overridden": "TRADE: meta-confidence 49/100, 2 setups active"
+    },
+    "meta_regime_vote": {
+      "default": null,
+      "overridden": "NEUTRAL"
+    },
+    "pm_gate": {
+      "default": 40.0,
+      "overridden": 40.4
+    },
+    "trade_allowed": {
+      "default": null,
+      "overridden": true
+    }
+  },
+  "generated_at": "2026-04-17T01:39:43.150322+00:00",
+  "meta_summary": "eta_v3_meta: TRADE \u00b7 regime=NEUTRAL \u00b7 pm=40.4 \u00b7 size_x=1.00 \u00b7 budget=2.0R \u00b7 setups=2/3 \u00b7 conf=48",
+  "params": {
+    "allowed_setups": [
+      "ORB",
+      "SWEEP"
+    ],
+    "daily_loss_cap_r": 2.0,
+    "gauntlet_weight": 0.15,
+    "max_trades_per_day": 5,
+    "meta_confidence": 48.5,
+    "meta_reason": "TRADE: meta-confidence 49/100, 2 setups active",
+    "meta_regime_vote": "NEUTRAL",
+    "pm_gate": 40.4,
+    "size_multiplier": 1.0,
+    "trade_allowed": true
+  },
+  "source": "live (firm_meta engine)",
+  "trade_allowed": true
+}

@@ -1,0 +1,41 @@
+# Apex V3 Live Configuration Template
+# Copy to live_config.yaml and fill in your values
+
+# Webhook server
+webhook:
+  port: 5000
+  shared_secret: "CHANGE_THIS_TO_RANDOM_STRING"
+  log_file: "live_trades.log"
+
+# Risk management
+risk:
+  base_risk_per_trade_pct: 0.5    # 0.5% of account per 1R
+  daily_loss_limit_R: -2.5         # Halt trading at -2.5R cumulative loss
+  weekly_loss_limit_R: -5.0        # Halt for the week at -5R
+  max_open_trades: 1               # Only one open trade at a time
+
+# Tier sizing (matches V3 OPTIMAL params)
+sizing:
+  tier1_size_mult: 0.5             # Tier 1 = 0.5x base risk
+  aplus_size_mult: 1.5             # A+ = 1.5x base risk
+  skip_below_score: 35             # Don't trade signals below this score
+
+# V3 management
+management:
+  stall_bar: 4
+  early_cut_mae: -0.6
+  tp1_R: 0.5
+  tp2_R: 1.5
+  tp_partial_pct: 0.33
+  trail_arm_R: 0.3
+
+# Broker connection (TODO: implement based on your broker)
+broker:
+  type: "paper"                    # "paper" | "tradestation" | "ibkr"
+  account_id: ""
+  api_key: ""
+
+# Logging
+logging:
+  level: "INFO"
+  file: "eta_v3.log"

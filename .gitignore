@@ -1,0 +1,56 @@
+# EVOLUTIONARY TRADING ALGO v3 framework  //  .gitignore
+# Never commit real secrets.
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+
+# Venv
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local data (too large / machine-local)
+# The bars dir holds tick-aggregated parquet data mirrored from C:\mnq_data\.
+# Triggers running in the cloud do not need bars; tests use mocked fixtures.
+data/bars/
+data/ticks/
+data/fills/
+data/burn_in/
+data/live_sim/
+data/shadow/
+
+# Backups dir is machine-local snapshots
+backups/
+
+# Transient artifacts
+/tmp/
+/logs/runtime/
+
+# OneDrive junk
+*.~lock.*

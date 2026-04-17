@@ -1,0 +1,45 @@
+[Unit]
+Description=MNQ Trading Bot - Automated MNQ Scalping System
+Documentation=file:///opt/mnq-bot/docs/RUNBOOK.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mnq
+Group=mnq
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+StartLimitBurst=5
+StartLimitIntervalSec=60s
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/mnq-bot/env
+
+# Working directory
+WorkingDirectory=/opt/mnq-bot
+
+# Execution
+# TODO: Replace 'doctor' with 'run' once executor is wired and ready for deployment
+# For now, doctor runs a health check. Real bot operation uses: ExecStart=python -m mnq.cli.main run
+ExecStart=python -m mnq.cli.main doctor
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mnq-bot
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/mnq-bot /var/log/mnq-bot
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\Users\edwar\projects\mnq_bot\scripts\run_all_phases.py", line 579, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "C:\Users\edwar\projects\mnq_bot\scripts\run_all_phases.py", line 544, in main
+    _pre_run_shim_guard()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\edwar\projects\mnq_bot\scripts\run_all_phases.py", line 532, in _pre_run_shim_guard
+    print(f"\u2713 shim guard: {len(healed)} files verified clean", flush=True)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\edwar\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 0: character maps to <undefined>

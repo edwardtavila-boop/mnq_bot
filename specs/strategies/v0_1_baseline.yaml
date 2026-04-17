@@ -1,0 +1,175 @@
+schema_version: 2
+
+strategy:
+  id: mnq_baseline_v0_1
+  semver: 0.1.0
+  parent_hash: null
+  content_hash: ""                         # filled by `mnq spec rehash`
+  created_by: human:user
+  created_at: 2026-04-14T00:00:00+00:00
+  tier: sim
+  experimental: false
+  rationale: |
+    First-light scalper. EMA-cross trigger on 1m, gated by VWAP side and
+    HTF (5m) trend, with a relative-volume confirmation. ATR-based stop
+    bounded by tick floor/ceiling. Fixed 1.5R target, MFE giveback trail
+    after +0.8R. Hard risk caps. Designed to LOSE in noisy regimes via
+    the rvol filter rather than win cleverly. Intentionally NOT optimized.
+    Use as foundation; agent variants compete against this in shadow.
+
+instrument:
+  symbol: MNQ
+  exchange: CME
+  tick_size: 0.25
+  point_value: 2.00
+  contract_months: [H, M, U, Z]
+  roll_method: calendar_8_days_before_expiry
+  data_feed: tradovate_l1
+
+timeframes:
+  primary: 1m
+  context: [5m]
+  htf_lookahead_protection: true
+
+session:
+  timezone: America/New_York
+  windows:
+    - name: rth_open_drive
+      start: "09:30"
+      end:   "10:30"
+      enabled: true
+    - name: midday
+      start: "10:30"
+      end:   "14:00"
+      enabled: false
+    - name: afternoon
+      start: "14:00"
+      end:   "15:55"
+      enabled: true
+  blackouts:
+    - name: first_30s
+      type: session_offset
+      offset_from_session_start_sec: 0
+      duration_sec: 30
+    - name: last_5min_eod
+      type: session_offset
+      offset_from_session_end_sec: -300
+      duration_sec: 300
+    - name: fomc
+      type: economic_event
+      event: FOMC_RATE_DECISION
+      pre_minutes: 15
+      post_minutes: 30
+
+features:
+  - id: ema_fast
+    type: ema
+    source: close
+    length: 9
+  - id: ema_slow
+    type: ema
+    source: close
+    length: 21
+  - id: atr_14
+    type: atr
+    length: 14
+  - id: vwap_session
+    type: vwap
+    anchor: session
+  - id: rvol_20
+    type: relative_volume
+    length: 20
+  - id: htf_trend
+    type: ema
+    source: close
+    length: 50
+    timeframe: 5m
+
+entry:
+  long:
+    all_of:
+      - "feature:ema_fast > feature:ema_slow"
+      - "feature:ema_fast crosses_above feature:ema_slow within_bars 3"
+      - "close > feature:vwap_session"
+      - "rising feature:htf_trend for_bars 2"
+      - "feature:rvol_20 > 1.2"
+      - "session_window in [ rth_open_drive , afternoon ]"
+      - "not in_blackout"
+      - "flat"
+  short:
+    mirror_of: long
+
+position_sizing:
+  mode: fixed_risk
+  risk_per_trade_usd: 50
+  max_contracts: 3
+  min_contracts: 1
+  rounding: floor
+
+exit:
+  initial_stop:
+    type: atr_multiple
+    feature: atr_14
+    multiplier: 1.2
+    min_ticks: 4
+    max_ticks: 40
+  take_profit:
+    type: r_multiple
+    value: 1.5
+  trailing:
+    type: mfe_giveback
+    activate_at_r: 0.8
+    giveback_fraction: 0.4
+  breakeven:
+    activate_at_r: 0.5
+    offset_ticks: 1
+  time_stop_bars: 20
+
+risk:
+  per_trade:
+    max_loss_usd: 80
+  per_session:
+    max_loss_usd: 250
+    max_trades: 8
+    max_consecutive_losses: 3
+    cooldown_after_loss_min: 5
+    cooldown_after_consecutive_losses_min: 30
+  per_week:
+    max_loss_usd: 800
+  position:
+    max_concurrent: 1
+    no_pyramiding: true
+    no_reverse_within_bars: 2
+
+execution:
+  order_type: limit_then_market
+  limit_offset_ticks: 0
+  market_fallback_ms: 500
+  cancel_unfilled_after_bars: 1
+  use_oco_for_brackets: true
+
+slippage_model:
+  entry_ticks: 1
+  exit_market_ticks: 1
+  exit_stop_ticks: 2
+  exit_limit_ticks: 0
+  rejection_probability: 0.005
+
+commission_model:
+  per_contract_per_side_usd: 0.37
+
+generators:
+  pine:
+    enabled: true
+    purpose: visualization_and_crosscheck
+    pine_version: 6
+  python_executor:
+    enabled: true
+    target: tradovate_ws_v1
+  sim:
+    enabled: true
+    engine: builtin
+
+provenance:
+  training_data: {}
+  validation: {}
