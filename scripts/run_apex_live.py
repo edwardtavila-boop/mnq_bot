@@ -763,6 +763,41 @@ async def _amain(argv: list[str] | None = None) -> int:
     return rc
 
 
+def _format_regime_table(regime_expectancy: dict) -> str:
+    """Render the regime_expectancy dict as a small markdown table.
+
+    Returns the empty string when there's no regime evidence (lets
+    the caller cleanly skip emitting an empty section). v0.2.16
+    helper for ``--inspect`` so the operator can scan per-regime
+    edge without parsing the JSON dump of spec_payload.
+    """
+    if not regime_expectancy:
+        return ""
+    lines = [
+        "| regime | n_days | total_pnl | pnl_per_day | expectancy_r |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    # Order regimes by expectancy descending so the strongest evidence
+    # bubbles to the top. Within the same expectancy, by n_days desc.
+    sorted_regimes = sorted(
+        regime_expectancy.items(),
+        key=lambda kv: (
+            -kv[1].get("expectancy_r", 0.0),
+            -kv[1].get("n_days", 0.0),
+        ),
+    )
+    for regime, stats in sorted_regimes:
+        n = int(stats.get("n_days", 0))
+        total = stats.get("total_pnl", 0.0)
+        per_day = stats.get("pnl_per_day", 0.0)
+        e = stats.get("expectancy_r", 0.0)
+        lines.append(
+            f"| {regime} | {n} | ${total:+.2f} | ${per_day:+.2f} | "
+            f"{e:+.4f}R |",
+        )
+    return "\n".join(lines)
+
+
 def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
     """Diagnostic mode: print full spec + first-bar Firm verdict.
 
@@ -775,6 +810,17 @@ def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
     """
     print("\n--- spec_payload (full) ---")
     print(json.dumps(spec_payload, indent=2, default=str))
+
+    # v0.2.16: per-regime expectancy as a markdown table for human
+    # readability. Skipped when regime_expectancy is empty (e.g. stub
+    # provenance, no tape coverage).
+    regime_table = _format_regime_table(
+        spec_payload.get("regime_expectancy") or {},
+    )
+    if regime_table:
+        print("\n--- regime_expectancy (sorted by expectancy_r desc) ---")
+        print(regime_table)
+
     bar = runtime._next_bar()  # noqa: SLF001 -- diagnostic access
     if bar is None:
         print("\n--- bar: none (no tape configured or tape empty) ---")
