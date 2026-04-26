@@ -8,6 +8,7 @@ from __future__ import annotations
 import typer
 
 from mnq.cli import doctor as doctor_cli
+from mnq.cli import inspect as inspect_cli
 from mnq.cli import mcp as mcp_cli
 from mnq.cli import morning as morning_cli
 from mnq.cli import parity as parity_cli
@@ -29,6 +30,10 @@ app.add_typer(parity_cli.app, name="parity", help="Paper-vs-live parity dashboar
 app.add_typer(
     morning_cli.app, name="morning",
     help="Consolidated daily operator status (doctor + variants + drift).",
+)
+app.add_typer(
+    inspect_cli.app, name="inspect",
+    help="Diagnostic: dump spec_payload + first-bar Firm verdict.",
 )
 
 
