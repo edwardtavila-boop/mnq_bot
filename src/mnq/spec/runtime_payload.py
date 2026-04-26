@@ -46,6 +46,13 @@ BACKTEST_DAILY_JSON: Path = REPO_ROOT / "data" / "backtest_real_daily.json"
 # is derived per-variant from the journal via ``_journal_trades_per_day``.
 TRADES_PER_DAY_PROXY = 2
 
+# Recency-weighted expectancy half-life (v0.2.18). Days N_HALF days
+# old contribute half as much weight as the most recent day. Tuned
+# for MNQ paper-soak: a 14-day half-life means recent two weeks
+# dominate, but 30-day-old days still contribute ~25% weight (so
+# regime drift signal isn't lost completely).
+DEFAULT_HALF_LIFE_DAYS = 14.0
+
 # Path to the live_sim journal that records every fill. Loaded
 # lazily so this module doesn't fail to import when the journal
 # infrastructure isn't on the path.
@@ -375,6 +382,75 @@ def _approved_regimes(daily_pnl: dict[str, float] | None) -> list[str]:
     return []
 
 
+def _recency_weighted_expectancy_r(
+    cfg: Any,
+    daily_pnl: dict[str, float] | None,
+    *,
+    half_life_days: float = DEFAULT_HALF_LIFE_DAYS,
+) -> float | None:
+    """Compute recency-weighted expectancy_r over the cached backtest.
+
+    Uses an exponential decay weight per day:
+      weight(d) = 0.5 ** (age_days(d) / half_life_days)
+    where age_days is computed from the most recent date in
+    ``daily_pnl``. Newest day -> weight 1.0; one half-life back ->
+    weight 0.5; two half-lives back -> weight 0.25; etc.
+
+    The recency-weighted value lets the Firm see the variant's
+    *current* edge distinct from the all-time edge:
+
+      expected_expectancy_r       = unweighted mean (v0.2.7+)
+      recency_weighted_expectancy_r = exponentially-weighted mean
+
+    A drifted variant (used to win, no longer winning) will show
+    recency_weighted_expectancy_r << expected_expectancy_r --
+    a signal the Firm MacroAgent can't get from the unweighted mean.
+
+    Returns None when no daily_pnl is available -- caller leaves the
+    field absent so downstream consumers see "no recency signal" not
+    "0 expectancy" (which would conflate empty-sample with no-edge).
+    """
+    if not daily_pnl:
+        return None
+    from datetime import date as _date
+    # Filter out malformed date keys BEFORE finding "latest" -- a
+    # garbage key could otherwise sort to the end and short-circuit
+    # the whole computation.
+    valid_dates: list[tuple[_date, float]] = []
+    for d_str, pnl in daily_pnl.items():
+        try:
+            valid_dates.append((_date.fromisoformat(d_str), pnl))
+        except ValueError:
+            continue
+    if not valid_dates:
+        return None
+    latest = max(d for d, _ in valid_dates)
+    risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
+    risk_dollars = (
+        risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)
+    ) if risk_ticks > 0 else 0.0
+    if risk_dollars <= 0:
+        return None
+    rate = _journal_trades_per_day() or float(TRADES_PER_DAY_PROXY)
+    if rate <= 0:
+        return None
+    # Weighted sum / weighted count of pnl per day.
+    total_weight = 0.0
+    weighted_pnl = 0.0
+    for d, pnl in valid_dates:
+        age_days = (latest - d).days
+        # Exponential decay
+        weight = 0.5 ** (age_days / half_life_days)
+        total_weight += weight
+        weighted_pnl += pnl * weight
+    if total_weight <= 0:
+        return None
+    weighted_pnl_per_day = weighted_pnl / total_weight
+    # Per-trade R: divide by (rate * risk_dollars) like the
+    # unweighted expectancy_r path.
+    return float(weighted_pnl_per_day / (rate * risk_dollars))
+
+
 def _regime_expectancy_stats(
     cfg: Any,
     daily_pnl: dict[str, float] | None,
@@ -555,6 +631,11 @@ def build_spec_payload(variant_name: str) -> dict[str, Any]:
     if not provenance:
         provenance = ["stub"]
 
+    # v0.2.18: recency-weighted expectancy. Helps the Firm see if the
+    # variant's edge has DRIFTED -- compare to expected_expectancy_r
+    # (unweighted) to spot regime drift over the backtest window.
+    recency_r = _recency_weighted_expectancy_r(cfg, daily)
+
     return {
         "strategy_id": variant_name,
         "sample_size": sample_size,
@@ -569,6 +650,11 @@ def build_spec_payload(variant_name: str) -> dict[str, Any]:
         # MacroAgent see "regime X passed BUT n_days=1 of 15" -- a
         # verdict the agent can't reach from regimes_approved alone.
         "regime_expectancy": _regime_expectancy_stats(cfg, daily),
+        # v0.2.18: recency-weighted expectancy_r (None when unavailable).
+        "recency_weighted_expectancy_r": recency_r,
+        "recency_half_life_days": (
+            DEFAULT_HALF_LIFE_DAYS if recency_r is not None else None
+        ),
         "approved_sessions": _approved_sessions(spec),
         "provenance": provenance,
     }
