@@ -27,15 +27,13 @@ Authentication: set APEX_WEBHOOK_SECRET in env. Pine should append it as a
 import json
 import logging
 import os
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 try:
-    from flask import Flask, request, jsonify
-except ImportError:
-    raise SystemExit("Install dependencies: pip install -r requirements.txt")
+    from flask import Flask, jsonify, request
+except ImportError as e:
+    raise SystemExit("Install dependencies: pip install -r requirements.txt") from e
 
 import requests
 
@@ -67,7 +65,7 @@ BROKER_API_KEY = os.environ.get("APEX_BROKER_API_KEY", "")
 TRADES_LOG = LOG_DIR / "trades.jsonl"
 
 
-def validate_payload(p: dict) -> Optional[str]:
+def validate_payload(p: dict) -> str | None:
     """Returns error string if invalid, None if OK.
 
     Voice payload now accepts 7 (legacy) or 15 (current) voices. The 15-voice
@@ -112,11 +110,71 @@ def double_check_firm(p: dict) -> tuple[bool, str]:
 
 
 def forward_to_broker(p: dict) -> dict:
-    """Forward to broker API. Replace with your actual broker integration."""
+    """Forward to broker API. Replace with your actual broker integration.
+
+    B1 closure (Red Team review 2026-04-25): paper-only enforcement.
+
+    The Red Team observed that this function would POST a real order
+    to BROKER_URL whenever DRY_RUN was set to false, with no kill
+    switch, no gate chain, no tiered rollout, no Firm review.
+    Setting APEX_DRY_RUN=false was a one-env-var path to live with
+    every safety subsystem bypassed.
+
+    Live mode now requires THREE concurrent conditions:
+      1. APEX_DRY_RUN is unset / "false" (legacy)
+      2. APEX_LIVE_READY is set to "1" (operator-acknowledged
+         live-readiness; the env var name is intentionally distinct
+         from any existing config so flipping it is a deliberate act)
+      3. The configured broker is NOT in DORMANT_BROKERS (per
+         CLAUDE.md operator mandate)
+
+    Any one missing -> returns {"forwarded": False, ...} with a
+    reason string the operator can grep. The webhook keeps running
+    so paper signals continue to populate logs/trades.jsonl.
+
+    The architectural BLOCKER (no kill switch / gate chain wiring
+    on this path) remains open. This guard is risk reduction, not a
+    full B1 closure -- the full closure is a design call documented
+    in docs/RED_TEAM_REVIEW_2026_04_25.md.
+    """
     if not BROKER_URL:
         return {"forwarded": False, "reason": "no_broker_configured"}
     if DRY_RUN:
         return {"forwarded": False, "reason": "dry_run_mode"}
+
+    # B1 paper-only gate: explicit live-readiness env var required.
+    if os.environ.get("APEX_LIVE_READY", "").strip() != "1":
+        log.warning(
+            "live order REFUSED: APEX_LIVE_READY != '1' (got %r). "
+            "See docs/RED_TEAM_REVIEW_2026_04_25.md B1 for the "
+            "full live-promotion checklist.",
+            os.environ.get("APEX_LIVE_READY", ""),
+        )
+        return {
+            "forwarded": False,
+            "reason": "live_mode_not_acknowledged_set_APEX_LIVE_READY=1",
+        }
+
+    # B5 dormancy gate: refuse if broker is on the dormant list.
+    broker_name = os.environ.get("BROKER_TYPE", "").strip().lower()
+    if broker_name:
+        try:
+            from mnq.venues.dormancy import (
+                DormantBrokerError,
+                assert_broker_active,
+            )
+            assert_broker_active(broker_name)
+        except DormantBrokerError as exc:
+            log.error("live order REFUSED: %s", exc)
+            return {
+                "forwarded": False,
+                "reason": f"broker_dormant:{broker_name}",
+            }
+        except ImportError:
+            log.warning(
+                "dormancy module not importable; falling through to broker",
+            )
+
     try:
         order = {
             "symbol": p["ticker"],
@@ -145,7 +203,7 @@ def forward_to_broker(p: dict) -> dict:
 
 def log_trade(p: dict, validation: dict, broker_resp: dict) -> None:
     record = {
-        "received_at": datetime.now(timezone.utc).isoformat(),
+        "received_at": datetime.now(UTC).isoformat(),
         "payload": p,
         "validation": validation,
         "broker": broker_resp,

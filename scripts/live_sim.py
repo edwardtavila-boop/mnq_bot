@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 import random
 import sys
 from dataclasses import dataclass, field
@@ -874,7 +875,52 @@ def main() -> int:
     ap.add_argument("--real", action="store_true", help="use real MNQ 1m RTH data")
     ap.add_argument("--variant", default=None, help="ScriptedStrategyV2 variant name")
     ap.add_argument("--n-days", type=int, default=None)
+    ap.add_argument(
+        "--skip-shim-probe",
+        action="store_true",
+        help=(
+            "Bypass the firm-bridge contract probe at startup. Use only for "
+            "offline test runs where the firm package is intentionally absent."
+        ),
+    )
     args = ap.parse_args()
+
+    # Verify the firm-bridge shim contract still matches the live `firm`
+    # package. Drift here is silent: tests stay green because they mock
+    # the agents, but live runs would surface the wrong AgentOutput shape
+    # mid-trade. Strict mode raises ShimContractDriftError which we
+    # surface cleanly to the operator.
+    if not args.skip_shim_probe:
+        from mnq._shim_probe import (
+            ContractStatus,
+            ShimContractDriftError,
+            verify_shim_contract,
+        )
+
+        try:
+            probe_result = verify_shim_contract(strict=False)
+        except Exception as e:  # noqa: BLE001 — probe failure must not block startup
+            print(
+                f"[live_sim] WARNING shim probe crashed: {type(e).__name__}: {e}",
+                file=sys.stderr,
+            )
+            probe_result = None
+
+        if probe_result is not None:
+            status_label = probe_result.status.value
+            if probe_result.status is ContractStatus.DRIFT:
+                raise ShimContractDriftError(probe_result.detail)
+            if probe_result.status is ContractStatus.OK:
+                print(
+                    f"[live_sim] firm-bridge contract OK "
+                    f"(checksum={probe_result.locked_checksum})"
+                )
+            else:
+                print(
+                    f"[live_sim] firm-bridge probe={status_label}: "
+                    f"{probe_result.detail}",
+                    file=sys.stderr,
+                )
 
     cfg = RunConfig()
     if args.real:
@@ -886,10 +932,29 @@ def main() -> int:
     if args.variant:
         cfg.variant_name = args.variant
 
-    # SQLite on the FUSE-mounted workspace errors with "disk I/O error" when
-    # WAL pragmas fire. Keep the journal on the session scratch volume and
-    # copy/finalize the markdown analysis into the user-visible reports/.
-    scratch_dir = Path("/sessions/kind-keen-faraday/data/live_sim")
+    # B2 partial closure (Red Team review 2026-04-25): journal-path
+    # coherence with gate_chain.JOURNAL_PATH. The Red Team found that
+    # this writer used a hardcoded sandbox path
+    # (``/sessions/kind-keen-faraday/...``) while
+    # ``mnq.risk.gate_chain.governor_gate`` reads from
+    # ``data/live_sim/journal.sqlite``. On Windows the sandbox path is
+    # interpreted as ``C:\sessions\...`` -- a different file -- so the
+    # daily-trade-cap, loss-streak, and daily-loss gates were silently
+    # reading a 0-byte file and ALLOWing every trade.
+    #
+    # Resolution order:
+    #   1. ``MNQ_LIVE_SIM_DIR`` env override (FUSE workspaces, sandboxes)
+    #   2. ``mnq.risk.gate_chain.JOURNAL_PATH``'s parent directory --
+    #      this is the SAME path the gate chain reads from, so writer
+    #      and reader stay aligned.
+    # SQLite on FUSE-mounted workspaces errors with "disk I/O error"
+    # when WAL pragmas fire; that's why the env override exists.
+    env_dir = os.environ.get("MNQ_LIVE_SIM_DIR", "").strip()
+    if env_dir:
+        scratch_dir = Path(env_dir)
+    else:
+        from mnq.risk.gate_chain import JOURNAL_PATH as _GC_JOURNAL
+        scratch_dir = _GC_JOURNAL.parent
     scratch_dir.mkdir(parents=True, exist_ok=True)
     journal_path = scratch_dir / "journal.sqlite"
     # Fresh run.
@@ -915,7 +980,7 @@ def main() -> int:
 
     out_md = REPO_ROOT / "reports" / "live_sim_analysis.md"
     out_md.parent.mkdir(parents=True, exist_ok=True)
-    out_md.write_text(render_markdown(rpt, journal_path=journal_path))
+    out_md.write_text(render_markdown(rpt, journal_path=journal_path), encoding="utf-8")
     print(f"[live_sim] wrote {out_md}")
     return 0
 

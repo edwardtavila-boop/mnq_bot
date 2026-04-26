@@ -193,6 +193,65 @@ def _check_generators() -> CheckResult:
         return CheckResult("generators", "fail", f"{type(e).__name__}: {e}")
 
 
+def _check_broker_dormancy() -> CheckResult:
+    """B5 closure (Red Team review 2026-04-25): refuse to consider the bot
+    healthy when the configured execution broker is in DORMANT_BROKERS.
+
+    Reads the broker name from the same env var families the
+    eta_v3_framework webhook reads (``BROKER_TYPE`` / ``APEX_BROKER``)
+    so a misconfiguration is caught at ``mnq doctor`` time rather than
+    at order-submission time. When neither env var is set we skip
+    (paper-only sessions are common; this check is for the live path).
+
+    Mirrors the pattern at
+    ``eta_engine/venues/router.py::DORMANT_BROKERS``. Cross-repo
+    coupling is intentional -- when one repo flips dormancy the other
+    should follow in the same operator action.
+    """
+    # Probe the broker name from the most common env vars first,
+    # falling back to the venue name in any live config the operator
+    # might have wired. None of these are required; absence is fine.
+    candidates = [
+        os.environ.get("BROKER_TYPE", "").strip(),
+        os.environ.get("APEX_BROKER", "").strip(),
+        os.environ.get("MNQ_LIVE_BROKER", "").strip(),
+    ]
+    configured = next((c for c in candidates if c), "")
+
+    if not configured:
+        return CheckResult(
+            "broker_dormancy",
+            "ok",
+            "no live broker configured (paper-only OK)",
+        )
+
+    try:
+        from mnq.venues.dormancy import DORMANT_BROKERS, is_broker_dormant
+    except ImportError as e:
+        return CheckResult(
+            "broker_dormancy",
+            "fail",
+            f"dormancy module not importable: {e}",
+        )
+
+    if is_broker_dormant(configured):
+        return CheckResult(
+            "broker_dormancy",
+            "fail",
+            (
+                f"configured broker {configured!r} is in DORMANT_BROKERS "
+                f"({sorted(DORMANT_BROKERS)}). Live mode will refuse to "
+                f"route orders. Either change the env var or unset "
+                f"DORMANT_BROKERS in src/mnq/venues/dormancy.py."
+            ),
+        )
+    return CheckResult(
+        "broker_dormancy",
+        "ok",
+        f"broker {configured!r} is active (not in {sorted(DORMANT_BROKERS)})",
+    )
+
+
 def _check_mcp_server() -> CheckResult:
     try:
         importlib.import_module("mnq.mcp.server")
@@ -212,6 +271,7 @@ def run_all_checks(*, strict: bool = False) -> list[CheckResult]:
         _check_spec_load(),
         _check_generators(),
         _check_mcp_server(),
+        _check_broker_dormancy(),
     ]
 
 

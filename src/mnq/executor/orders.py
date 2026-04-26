@@ -26,6 +26,7 @@ from uuid import uuid4
 from mnq.core.types import Side
 from mnq.observability.logger import bind_trace_id, clear_trace_id, get_logger
 from mnq.observability.metrics import (
+    orders_cancelled_total,
     orders_filled_total,
     orders_rejected_total,
     orders_submitted_total,
@@ -67,7 +68,7 @@ class OrderError(Exception):
     pass
 
 
-class OrderBlocked(OrderError):
+class OrderBlocked(OrderError):  # noqa: N818 -- legacy public API; renaming breaks call sites
     """Raised when the pre-trade gate chain denies an order.
 
     Carries the denying gate name and reason so callers can journal
@@ -172,6 +173,21 @@ class OrderBook:
                 legacy (ungated) behavior — every existing test case
                 stays green. Production wiring flips this on via
                 ``mnq.risk.build_default_chain()``.
+
+                B3 partial closure (Red Team review 2026-04-25):
+                when ``MNQ_ENV=production`` and ``gate_chain is None``,
+                a runtime warning is logged. The full B3 closure
+                (making ``gate_chain`` a required positional, with an
+                explicit ``OrderBook.unsafe_no_gate_chain(journal)``
+                factory for tests) is a breaking API change deferred
+                to v0.2.x -- it requires updating every call site
+                across ``live_sim.py``, ``shadow_trader.py``, and the
+                test suite. Today's warning ensures a misconfigured
+                production deploy is at least noisy in the logs.
+                Lands when: every production OrderBook construction
+                passes a non-None gate_chain AND the test suite uses
+                the explicit unsafe factory AND a Phase-E sanity
+                stage in run_all_phases.py asserts the rule.
         """
         self.journal = journal
         self.logger = logger or get_logger(__name__)
@@ -179,6 +195,23 @@ class OrderBook:
         # Track seen fills by (client_order_id, venue_fill_id) for idempotency
         self._seen_fills: set[tuple[str, str]] = set()
         self._gate_chain = gate_chain
+        # B3 partial: warn loudly when production mode lacks a gate chain.
+        if gate_chain is None:
+            import os
+            env = os.environ.get("MNQ_ENV", "").strip().lower()
+            if env in {"production", "live", "prod"}:
+                self.logger.warning(
+                    "ORDERBOOK_UNSAFE_PRODUCTION",
+                    msg=(
+                        f"OrderBook constructed without gate_chain in "
+                        f"MNQ_ENV={env!r}. The 5-gate pre-trade chain "
+                        f"(heartbeat, pre_trade_pause, deadman, "
+                        f"correlation, governor) is DISABLED. This is "
+                        f"the B3 silent-disable bug from the Red Team "
+                        f"review 2026-04-25. Wire a chain via "
+                        f"build_default_chain() before submitting orders."
+                    ),
+                )
 
     def submit(
         self,
@@ -649,7 +682,7 @@ class OrderBook:
         self._orders[client_order_id] = updated
 
         # Emit metrics
-        orders_rejected_total.labels(reason=reason).inc()
+        orders_cancelled_total.labels(reason=reason).inc()
 
         # Emit structured log
         bind_trace_id(trace_id)
