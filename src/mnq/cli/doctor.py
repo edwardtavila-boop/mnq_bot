@@ -262,6 +262,96 @@ def _check_mcp_server() -> CheckResult:
     return CheckResult("mcp_server", "ok", "mnq.mcp.server importable")
 
 
+def _check_regime_evidence() -> CheckResult:
+    """v0.2.17: surface variant-fleet regime-edge state at doctor time.
+
+    Runs the v0.2.15 ``classify_variant`` against every variant in
+    ``strategy_v2.VARIANTS`` and returns a summary status:
+
+      ok    -- at least one variant is KEEP (real edge + thick sample)
+      warn  -- no KEEPs but at least one WATCH (thin-sample edge)
+      fail  -- every variant is PRUNE (no edge anywhere)
+
+    The check is read-only and cheap (~0.5s warm cache). It does NOT
+    re-run the backtest -- it just reads the cached_backtest +
+    classifier outputs that v0.2.13 + v0.2.15 already produce.
+    """
+    try:
+        # Add scripts/ to sys.path lazily so doctor stays importable
+        # when scripts/ isn't on the path (e.g. CI smoke).
+        from pathlib import Path as _Path
+        repo_root = _Path(__file__).resolve().parents[3]
+        scripts = repo_root / "scripts"
+        if str(scripts) not in sys.path:
+            sys.path.insert(0, str(scripts))
+        # importlib.util.spec_from_file_location is the canonical way
+        # to load a non-package script module without polluting
+        # sys.modules with the wrong name.
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_doctor_variant_pruner",
+            scripts / "variant_pruner.py",
+        )
+        if spec is None or spec.loader is None:
+            return CheckResult(
+                "regime_evidence", "warn",
+                "variant_pruner.py not found",
+            )
+        pruner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pruner)
+    except Exception as e:  # noqa: BLE001 -- diagnostic; never crash doctor
+        return CheckResult(
+            "regime_evidence", "warn",
+            f"variant_pruner not loadable: {type(e).__name__}: {e}",
+        )
+
+    try:
+        rows = pruner._build_classified()  # noqa: SLF001 -- internal API
+    except Exception as e:  # noqa: BLE001
+        return CheckResult(
+            "regime_evidence", "warn",
+            f"classifier raised: {type(e).__name__}: {e}",
+        )
+
+    if not rows:
+        return CheckResult(
+            "regime_evidence", "warn",
+            "no variants found in strategy_v2.VARIANTS",
+        )
+
+    n = len(rows)
+    n_keep = sum(1 for r in rows if r["bucket"] == pruner.KEEP)
+    n_watch = sum(1 for r in rows if r["bucket"] == pruner.WATCH)
+    n_prune = sum(1 for r in rows if r["bucket"] == pruner.PRUNE)
+
+    summary = (
+        f"variants={n} KEEP={n_keep} WATCH={n_watch} PRUNE={n_prune}"
+    )
+    if n_keep > 0:
+        return CheckResult("regime_evidence", "ok", summary)
+    if n_watch > 0:
+        return CheckResult(
+            "regime_evidence", "warn",
+            summary + " -- no calibrated edge yet, but WATCH variants "
+            "may thicken with more sample. Run scripts/regime_report.py "
+            "for per-variant detail.",
+        )
+    # All variants are PRUNE. This is a real signal but NOT a structural
+    # block on operations (paper-soak is the path to thicken the sample).
+    # Status stays "warn" so doctor still exits 0 -- the operator gets
+    # the prominent diagnostic without preventing every action.
+    # The 9-gate promotion check is the actual structural gate for going
+    # live; this is the upstream "are we even pointing at the right
+    # search space?" signal.
+    return CheckResult(
+        "regime_evidence", "warn",
+        summary + " -- no variant has positive expectancy in any "
+        "regime under the current cached backtest. Run "
+        "scripts/variant_pruner.py for the deletion candidate list, "
+        "or extend the backtest sample to thicken evidence.",
+    )
+
+
 def run_all_checks(*, strict: bool = False) -> list[CheckResult]:
     return [
         _check_python(),
@@ -272,6 +362,7 @@ def run_all_checks(*, strict: bool = False) -> list[CheckResult]:
         _check_generators(),
         _check_mcp_server(),
         _check_broker_dormancy(),
+        _check_regime_evidence(),
     ]
 
 
