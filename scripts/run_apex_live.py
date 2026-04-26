@@ -174,6 +174,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Disable per-bar Firm review (B4 closure). The runtime "
              "still consumes the tape and exercises the safety stack.",
     )
+    p.add_argument(
+        "--inspect", action="store_true",
+        help="Diagnostic mode: print boot guards + spec_payload + the "
+             "Firm verdict for one tape bar, then exit. Does NOT enter "
+             "the tick loop. Useful for paper-soak debugging.",
+    )
     return p.parse_args(argv)
 
 
@@ -189,6 +195,7 @@ class RuntimeConfig:
     tape_path: Path | None
     firm_review_every: int
     firm_review_enabled: bool
+    inspect: bool = False
 
     @property
     def dry_run(self) -> bool:
@@ -218,6 +225,7 @@ def build_config(args: argparse.Namespace) -> RuntimeConfig:
         tape_path=tape_path,
         firm_review_every=review_every,
         firm_review_enabled=not bool(args.no_firm_review),
+        inspect=bool(args.inspect),
     )
 
 
@@ -741,12 +749,64 @@ async def _amain(argv: list[str] | None = None) -> int:
     )
     print("=" * 64)
 
+    # --inspect mode: dump full spec + one Firm verdict, then exit. No
+    # tick loop, no order routing. Useful for paper-soak debugging
+    # ("what is the runtime ACTUALLY going to send to the Firm?").
+    if cfg.inspect:
+        return _run_inspect(runtime, spec_payload)
+
     try:
         rc = await runtime.run()
     except Exception:  # noqa: BLE001 -- final-safety net; logged
         logger.exception("runtime crashed")
         return EX_RUNTIME_ERROR
     return rc
+
+
+def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
+    """Diagnostic mode: print full spec + first-bar Firm verdict.
+
+    Does NOT enter the tick loop, place orders, or modify journal /
+    rollout state. Pulls one bar from the tape (if any), runs the
+    Firm review against it via ``runtime._run_firm_review``, prints
+    both as JSON, and returns. Helps the operator answer "what is the
+    runtime actually going to send to the Firm and what verdict comes
+    back?" without a full paper run.
+    """
+    print("\n--- spec_payload (full) ---")
+    print(json.dumps(spec_payload, indent=2, default=str))
+    bar = runtime._next_bar()  # noqa: SLF001 -- diagnostic access
+    if bar is None:
+        print("\n--- bar: none (no tape configured or tape empty) ---")
+        return EX_OK
+    print("\n--- bar (most recent tape entry) ---")
+    print(json.dumps({
+        "ts": bar.ts.isoformat(),
+        "open": float(bar.open),
+        "high": float(bar.high),
+        "low": float(bar.low),
+        "close": float(bar.close),
+        "volume": int(bar.volume),
+    }, indent=2))
+    if not runtime.cfg.firm_review_enabled:
+        print("\n--- firm review: DISABLED (--no-firm-review) ---")
+        return EX_OK
+    review = runtime._run_firm_review(bar, 0)  # noqa: SLF001
+    if review is None:
+        print(
+            "\n--- firm review: shim unavailable -- per-bar review "
+            "would be SKIPPED at runtime (fail-open) ---",
+        )
+        return EX_OK
+    print("\n--- firm verdict (PM stage) ---")
+    print(json.dumps({
+        "verdict": review.verdict,
+        "pm_probability": review.pm_probability,
+        "is_reject": review.is_reject,
+        "reasoning": review.reasoning,
+        "primary_driver": review.primary_driver,
+    }, indent=2))
+    return EX_OK
 
 
 def main() -> int:
