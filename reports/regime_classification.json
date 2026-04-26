@@ -1,0 +1,41 @@
+{
+  "variant": "r5_real_wide_target",
+  "regimes_seen": [
+    "high-vol-range",
+    "low-vol-range",
+    "low-vol-reversal"
+  ],
+  "regimes_winning": [
+    "low-vol-reversal"
+  ],
+  "losing_regimes": [
+    "high-vol-range",
+    "low-vol-range"
+  ],
+  "regime_expectancy": {
+    "low-vol-range": {
+      "n_days": 10.0,
+      "total_pnl": 0.0,
+      "pnl_per_day": 0.0,
+      "expectancy_r": 0.0
+    },
+    "high-vol-range": {
+      "n_days": 2.0,
+      "total_pnl": 0.0,
+      "pnl_per_day": 0.0,
+      "expectancy_r": 0.0
+    },
+    "low-vol-reversal": {
+      "n_days": 3.0,
+      "total_pnl": 20.0,
+      "pnl_per_day": 6.666666666666667,
+      "expectancy_r": 0.16666666666666669
+    }
+  },
+  "_threshold_r": 0.0,
+  "provenance": [
+    "variant_cfg",
+    "baseline_yaml",
+    "cached_backtest"
+  ]
+}
