@@ -431,6 +431,7 @@ class ApexRuntime:
     breaker: CircuitBreaker
     rollout: TieredRollout
     tape: Any = None  # Iterator[Bar] | None -- annotated Any to avoid heavy generic import
+    spec_payload: dict[str, Any] | None = None  # v0.2.7: precomputed real spec
     _stop: asyncio.Event = field(default_factory=asyncio.Event)
     stats: TickStats = field(default_factory=TickStats)
     _firm_shim_unavailable: bool = False  # Latched after first ImportError; logged once.
@@ -561,23 +562,24 @@ class ApexRuntime:
             self._firm_shim_unavailable = True
             return None
 
-        spec_payload = {
-            "strategy_id": self.cfg.variant,
-            # Stub spec so the Firm agents have something to evaluate. The
-            # v0.2.7 closure replaces these with the variant's actual yaml
-            # spec; for v0.2.6 the contract is "review fires, verdict comes
-            # back, runtime gates on it" -- not "agents produce calibrated
-            # verdicts on this exact strategy".
-            "sample_size": 100,
-            "expected_expectancy_r": 0.5,
-            "oos_degradation_pct": 20.0,
-            "entry_logic": f"variant={self.cfg.variant}",
-            "stop_logic": "10-tick hard stop",
-            "target_logic": "2R fixed",
-            "dd_kill_switch_r": 12.0,
-            "regimes_approved": ["normal_vol_trend"],
-            "approved_sessions": ["RTH"],
-        }
+        # v0.2.7: use precomputed real spec_payload if wired in; fall back to
+        # a minimal stub if not (e.g. test path that didn't pass spec_payload).
+        if self.spec_payload is not None:
+            spec_payload = dict(self.spec_payload)  # shallow copy per-bar
+        else:
+            spec_payload = {
+                "strategy_id": self.cfg.variant,
+                "sample_size": 100,
+                "expected_expectancy_r": 0.5,
+                "oos_degradation_pct": 20.0,
+                "entry_logic": f"variant={self.cfg.variant}",
+                "stop_logic": "10-tick hard stop",
+                "target_logic": "2R fixed",
+                "dd_kill_switch_r": 12.0,
+                "regimes_approved": ["normal_vol_trend"],
+                "approved_sessions": ["RTH"],
+                "provenance": ["stub"],
+            }
         confluence = compute_confluence(
             internals={},
             volatility={},
@@ -710,6 +712,11 @@ async def _amain(argv: list[str] | None = None) -> int:
             logger.error("tape source missing: %s", exc)
             return EX_BOOT_REFUSED
 
+    # v0.2.7: precompute the variant's real spec_payload from yaml +
+    # cached backtest stats. Once at startup, then reused per-bar.
+    from mnq.spec.runtime_payload import build_spec_payload
+    spec_payload = build_spec_payload(cfg.variant)
+
     runtime = ApexRuntime(
         cfg=cfg,
         journal=journal,
@@ -717,6 +724,7 @@ async def _amain(argv: list[str] | None = None) -> int:
         breaker=breaker,
         rollout=rollout,
         tape=tape_iter,
+        spec_payload=spec_payload,
     )
     _install_signal_handlers(runtime)
 
@@ -724,6 +732,12 @@ async def _amain(argv: list[str] | None = None) -> int:
         f"safety        : OrderBook+chain={book._gate_chain is not None} "  # noqa: SLF001
         f"breaker.kill={kill_switch.path.name} "
         f"rollout={rollout.state.value}/T{rollout.tier}/qty={rollout.allowed_qty()}",
+    )
+    print(
+        f"spec_payload  : provenance={spec_payload.get('provenance')} "
+        f"n={spec_payload.get('sample_size')} "
+        f"E={spec_payload.get('expected_expectancy_r'):.3f}R "
+        f"oos={spec_payload.get('oos_degradation_pct'):.1f}%",
     )
     print("=" * 64)
 
