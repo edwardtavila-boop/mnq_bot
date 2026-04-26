@@ -35,10 +35,11 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
 from mnq.storage.journal import EventJournal  # noqa: E402
 from mnq.storage.schema import FILL_REALIZED  # noqa: E402
 
-DEFAULT_JOURNAL = Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite")
+DEFAULT_JOURNAL = LIVE_SIM_JOURNAL
 DEFAULT_OUTPUT = REPO_ROOT / "reports" / "bayesian_expectancy.md"
 
 

@@ -31,12 +31,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Journal lives in the session workspace, not the repo — see _trade_utils.
-_CANDIDATE_JOURNALS = [
-    Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite"),
-    REPO_ROOT / "data" / "live_sim" / "journal.sqlite",
-]
-JOURNAL = next((p for p in _CANDIDATE_JOURNALS if p.exists()), _CANDIDATE_JOURNALS[0])
+# B2 closure (v0.2.2): canonical journal path resolves via mnq.core.paths
+# (env override + REPO_ROOT default). Replaces the historical sandbox-prefix
+# fallback list. Operator can still point at a sandbox via MNQ_LIVE_SIM_JOURNAL.
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
+
+JOURNAL = LIVE_SIM_JOURNAL
 BACKTEST_REPORT = REPO_ROOT / "reports" / "pnl_report.md"
 OUTPUT = REPO_ROOT / "reports" / "parity.md"
 

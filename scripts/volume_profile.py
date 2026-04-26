@@ -18,7 +18,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = REPO_ROOT / "reports" / "volume_profile.md"
-BARS_DIR = Path("/sessions/kind-keen-faraday/data/bars/databento")
+
+# B2 closure (v0.2.2): canonical bars path resolves via mnq.core.paths.
+# Operator override: MNQ_BARS_DATABENTO_DIR.
+from mnq.core.paths import BARS_DATABENTO_DIR  # noqa: E402
+
+BARS_DIR = BARS_DATABENTO_DIR
 
 
 def _read_parquet(path: Path):
@@ -56,7 +61,7 @@ def main() -> int:
     lo, hi = min(prices), max(prices)
     bin_w = (hi - lo) / args.bins if hi > lo else 1
     buckets: dict = defaultdict(int)
-    for p_, v in zip(prices, vols):
+    for p_, v in zip(prices, vols, strict=True):
         idx = min(args.bins - 1, int((p_ - lo) / bin_w)) if bin_w else 0
         buckets[idx] += v
     total = sum(buckets.values()) or 1

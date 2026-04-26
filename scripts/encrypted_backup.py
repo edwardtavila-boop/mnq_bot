@@ -19,10 +19,12 @@ import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+from mnq.core.paths import LIVE_SIM_JOURNAL
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKUP_DIR = REPO_ROOT / "backups"
 REPORT_PATH = REPO_ROOT / "reports" / "encrypted_backup.md"
-JOURNAL = Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite")
+JOURNAL = LIVE_SIM_JOURNAL
 REPORTS_DIR = REPO_ROOT / "reports"
 
 
@@ -42,8 +44,9 @@ def _pack(out: Path) -> int:
 
 def _encrypt(in_path: Path, out_path: Path, password: str) -> None:
     try:
-        from cryptography.fernet import Fernet  # type: ignore
         import base64
+
+        from cryptography.fernet import Fernet  # type: ignore
     except ImportError:
         out_path.write_bytes(in_path.read_bytes())
         return

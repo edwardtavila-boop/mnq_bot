@@ -44,7 +44,9 @@ from ml_scorer import (  # noqa: E402
     train_scorer,
 )
 
-DEFAULT_JOURNAL = Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite")
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
+
+DEFAULT_JOURNAL = LIVE_SIM_JOURNAL
 DEFAULT_MODEL = REPO_ROOT / "models" / "scorer.pkl"
 DEFAULT_OUTPUT = REPO_ROOT / "reports" / "calibration.md"
 

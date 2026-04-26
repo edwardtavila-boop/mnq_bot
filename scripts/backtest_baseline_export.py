@@ -26,11 +26,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-_CANDIDATE_JOURNALS = [
-    Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite"),
-    REPO_ROOT / "data" / "live_sim" / "journal.sqlite",
-]
-JOURNAL = next((p for p in _CANDIDATE_JOURNALS if p.exists()), _CANDIDATE_JOURNALS[0])
+# B2 closure (v0.2.2): canonical journal path resolves via mnq.core.paths.
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
+
+JOURNAL = LIVE_SIM_JOURNAL
 PNL_REPORT = REPO_ROOT / "reports" / "pnl_report.md"
 FILLS_JSONL = REPO_ROOT / "data" / "backtest_fills.jsonl"
 

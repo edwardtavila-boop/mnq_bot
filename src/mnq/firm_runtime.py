@@ -15,7 +15,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-_FIRM_PACKAGE_PARENT = Path('C:\\Users\\edwar\\OneDrive\\The_Firm\\the_firm_complete\\desktop_app')
+# H2 closure (Red Team review 2026-04-25): firm package moved out of
+# OneDrive. The OneDrive path used to truncate the firm_runtime.py shim
+# unpredictably, which is why _shim_guard.py exists. Copy lives at
+# ``C:/Users/edwar/projects/firm/`` (sibling to mnq_bot). Falls back to
+# the OneDrive path if the projects copy is missing -- e.g. on a fresh
+# machine that hasn't run the migration yet.
+_FIRM_PACKAGE_PARENT = Path('C:\\Users\\edwar\\projects')
+_FIRM_PACKAGE_FALLBACK = Path('C:\\Users\\edwar\\OneDrive\\The_Firm\\the_firm_complete\\desktop_app')
+if not (_FIRM_PACKAGE_PARENT / 'firm').exists() and (_FIRM_PACKAGE_FALLBACK / 'firm').exists():
+    _FIRM_PACKAGE_PARENT = _FIRM_PACKAGE_FALLBACK
 if str(_FIRM_PACKAGE_PARENT) not in sys.path:
     sys.path.insert(0, str(_FIRM_PACKAGE_PARENT))
 

@@ -43,10 +43,11 @@ if str(SRC) not in sys.path:
 
 import polars as pl  # noqa: E402
 
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
 from mnq.storage.journal import EventJournal  # noqa: E402
 from mnq.storage.schema import FILL_REALIZED  # noqa: E402
 
-DEFAULT_JOURNAL = Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite")
+DEFAULT_JOURNAL = LIVE_SIM_JOURNAL
 DEFAULT_MODEL_PATH = REPO_ROOT / "models" / "scorer.pkl"
 
 

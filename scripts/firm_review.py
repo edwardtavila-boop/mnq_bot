@@ -54,6 +54,7 @@ from strategy_ab import (  # noqa: E402
 )
 from strategy_v2 import VARIANTS  # noqa: E402
 
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
 from mnq.spec.loader import load_spec  # noqa: E402
 
 BASELINE = REPO_ROOT / "specs" / "strategies" / "v0_1_baseline.yaml"
@@ -66,7 +67,7 @@ REPORTS_DIR = REPO_ROOT / "reports" / "firm_reviews"
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_JOURNAL = Path("/sessions/kind-keen-faraday/data/live_sim/journal.sqlite")
+DEFAULT_JOURNAL = LIVE_SIM_JOURNAL
 
 
 @dataclass

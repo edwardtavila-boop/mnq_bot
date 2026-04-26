@@ -55,8 +55,21 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FIRM_PATH_ENV = "FIRM_CODE_PATH"
-DEFAULT_FIRM_PATH = Path(
-    "C:/Users/edwar/OneDrive/The_Firm/the_firm_complete/desktop_app/firm"
+# H2 closure (Red Team review 2026-04-25): firm package was historically
+# at OneDrive/The_Firm/the_firm_complete/desktop_app/firm but OneDrive's
+# sync layer was truncating the firm_runtime.py shim unpredictably (the
+# reason _shim_guard.py exists). The package is now mirrored at
+# C:/Users/edwar/projects/firm (sibling to mnq_bot, no OneDrive). The
+# bridge prefers the projects/ location and falls back to OneDrive only
+# when projects/ is missing -- supports a fresh machine that hasn't run
+# the migration yet. Operator override via FIRM_CODE_PATH env var.
+_DEFAULT_FIRM_CANDIDATES = (
+    Path("C:/Users/edwar/projects/firm"),
+    Path("C:/Users/edwar/OneDrive/The_Firm/the_firm_complete/desktop_app/firm"),
+)
+DEFAULT_FIRM_PATH = next(
+    (p for p in _DEFAULT_FIRM_CANDIDATES if p.exists()),
+    _DEFAULT_FIRM_CANDIDATES[0],  # honest first choice if neither exists
 )
 REPORT_PATH = REPO_ROOT / "reports" / "firm_integration.md"
 STATUS_JSON_PATH = REPO_ROOT / "reports" / "firm_integration.json"
@@ -296,12 +309,47 @@ def _safe_asdict(obj: Any) -> Any:
     return obj
 
 
+def compute_confluence(
+    *,
+    internals: dict[str, Any] | None = None,
+    volatility: dict[str, Any] | None = None,
+    cross_asset: dict[str, Any] | None = None,
+    session: dict[str, Any] | None = None,
+    micro: dict[str, Any] | None = None,
+    calendar: dict[str, Any] | None = None,
+    eta_v3: dict[str, Any] | None = None,
+    regime: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Compute an 8-axis confluence snapshot.
+
+    Fail-open stub: the upstream ``firm`` package does not yet expose a
+    canonical ``compute_confluence``. This stub aggregates the inputs and
+    returns a serializable dict so callers (e.g. ``firm_live_review``) can
+    continue to operate and forward the snapshot to ``run_six_stage_review``
+    without ImportError. When the real implementation lands upstream,
+    regenerate the shim and this stub is superseded.
+    """
+    return {{
+        "internals": dict(internals or {{}}),
+        "volatility": dict(volatility or {{}}),
+        "cross_asset": dict(cross_asset or {{}}),
+        "session": dict(session or {{}}),
+        "micro": dict(micro or {{}}),
+        "calendar": dict(calendar or {{}}),
+        "eta_v3": dict(eta_v3 or {{}}),
+        "regime": dict(regime or {{}}),
+        "_stub": True,
+    }}
+
+
 def run_six_stage_review(
     *,
     strategy_id: str,
     decision_context: str,
     payload: dict[str, Any],
     regime_snapshot: dict[str, Any] | None = None,
+    confluence_result: dict[str, Any] | None = None,
+    **_extra: Any,
 ) -> dict[str, Any]:
     """Run the six-stage adversarial review; return a serializable dict.
 
@@ -309,6 +357,13 @@ def run_six_stage_review(
     The PM stage additionally receives ``agent_outputs`` (raw AgentOutput
     objects) inside its payload, which is the contract its evaluate()
     method expects for dissent-tally + synthesis.
+
+    ``confluence_result`` (optional): an 8-axis confluence dict produced by
+    ``compute_confluence``. Currently folded into each stage's payload as
+    ``confluence`` so agents can consult it; ignored if None.
+    ``**_extra``: reserved for forward-compat — any future kwarg passed by
+    the caller is silently accepted (and logged into payload as
+    ``_extra_kwargs``) rather than raising TypeError.
     """
     prior: Any = None
     raw_outputs: dict[str, Any] = {{}}
@@ -316,6 +371,10 @@ def run_six_stage_review(
     for stage_name, cls in _STAGES:
         agent = cls()
         stage_payload = dict(payload)
+        if confluence_result is not None:
+            stage_payload["confluence"] = confluence_result
+        if _extra:
+            stage_payload["_extra_kwargs"] = dict(_extra)
         if stage_name == "pm":
             stage_payload["agent_outputs"] = raw_outputs
         in_ = _AgentInput(

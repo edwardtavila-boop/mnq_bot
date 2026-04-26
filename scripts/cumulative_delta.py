@@ -19,7 +19,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = REPO_ROOT / "reports" / "cumulative_delta.md"
-BARS_DIR = Path("/sessions/kind-keen-faraday/data/bars/databento")
+
+# B2 closure (v0.2.2): canonical bars path resolves via mnq.core.paths.
+# Operator override: MNQ_BARS_DATABENTO_DIR.
+from mnq.core.paths import BARS_DATABENTO_DIR  # noqa: E402
+
+BARS_DIR = BARS_DATABENTO_DIR
 
 
 def _read_parquet(path: Path):
@@ -33,7 +38,7 @@ def _read_parquet(path: Path):
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--date", default=(datetime.now(UTC) - timedelta(days=1)).date().isoformat())
-    args = p.parse_args()
+    p.parse_args()  # parsed for --help / validation only; no fields used downstream
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     files = sorted(BARS_DIR.glob("*.parquet")) if BARS_DIR.exists() else []

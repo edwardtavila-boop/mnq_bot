@@ -42,6 +42,7 @@ except ImportError:
 
 import pandas as pd  # noqa: E402
 
+from mnq.core.paths import LIVE_SIM_JOURNAL  # noqa: E402
 from mnq.storage.journal import EventJournal  # noqa: E402
 from mnq.storage.schema import (  # noqa: E402
     DRIFT_ALERT,
@@ -52,7 +53,7 @@ from mnq.storage.schema import (  # noqa: E402
     POSITION_UPDATE,
 )
 
-DEFAULT_JOURNAL = "/sessions/kind-keen-faraday/data/live_sim/journal.sqlite"
+DEFAULT_JOURNAL = str(LIVE_SIM_JOURNAL)
 
 st.set_page_config(page_title="EVOLUTIONARY TRADING ALGO // Paper Sim Dashboard", layout="wide")
 
