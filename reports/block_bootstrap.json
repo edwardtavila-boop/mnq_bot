@@ -1,0 +1,10 @@
+{
+  "n_trades": 0,
+  "k": 1000,
+  "block_size": 5,
+  "mean": 0.0,
+  "ci95_low": 0.0,
+  "ci95_high": 0.0,
+  "p_above_paper_gate": 0.0,
+  "paper_gate_r": 0.05
+}
