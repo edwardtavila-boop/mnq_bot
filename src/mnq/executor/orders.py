@@ -41,6 +41,10 @@ from mnq.storage.schema import (
     ORDER_SUBMITTED,
     ORDER_WORKING,
 )
+from mnq.venues.repo_scope import (
+    WrongRepoSymbolError,
+    assert_symbol_in_repo_scope,
+)
 
 
 class OrderState(str, Enum):
@@ -278,6 +282,36 @@ class OrderBook:
             raise OrderError(f"qty must be > 0, got {qty}")
 
         trace_id = trace_id or str(uuid4())
+
+        # Repo-scope guard (v0.2.8): refuse layer-3 symbols (MBT/MET/
+        # spot crypto) that belong to eta_engine. Catches drift
+        # where someone tries to route MBT through mnq_bot's order
+        # path. Journal the rejection for forensics, then re-raise.
+        try:
+            assert_symbol_in_repo_scope(symbol)
+        except WrongRepoSymbolError as exc:
+            self.journal.append(
+                ORDER_REJECTED,
+                {
+                    "symbol": symbol,
+                    "side": side.value,
+                    "qty": qty,
+                    "order_type": order_type.value,
+                    "wrong_repo_symbol": True,
+                    "reason": str(exc),
+                },
+                trace_id=trace_id,
+            )
+            bind_trace_id(trace_id)
+            self.logger.error(
+                "order_rejected_wrong_repo",
+                symbol=symbol,
+                side=side.value,
+                qty=qty,
+                redirect="eta_engine/venues/cme_micro_crypto.py",
+            )
+            clear_trace_id()
+            raise
 
         # Pre-trade gate chain: if configured, evaluate before journaling.
         # A DENY is logged + journaled via ORDER_REJECTED with a
