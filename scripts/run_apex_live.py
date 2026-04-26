@@ -798,6 +798,39 @@ def _format_regime_table(regime_expectancy: dict) -> str:
     return "\n".join(lines)
 
 
+def _format_drift_summary(spec_payload: dict) -> str:
+    """Render a one-line drift indicator from expected vs recency-weighted
+    expectancy_r (v0.2.19).
+
+    Returns "" when either field is None (no signal). Otherwise:
+
+      "EDGE STEADY  : E=+0.150R | recency=+0.155R | delta=+0.005R"
+      "EDGE FADING  : E=+0.500R | recency=+0.100R | delta=-0.400R"
+      "EDGE GROWING : E=+0.100R | recency=+0.500R | delta=+0.400R"
+
+    Tags:
+      EDGE STEADY  -- |delta| < 0.05R (essentially the same)
+      EDGE FADING  -- recency < expected by >= 0.05R
+      EDGE GROWING -- recency > expected by >= 0.05R
+    """
+    expected = spec_payload.get("expected_expectancy_r")
+    recency = spec_payload.get("recency_weighted_expectancy_r")
+    if expected is None or recency is None:
+        return ""
+    delta = recency - expected
+    threshold = 0.05
+    if abs(delta) < threshold:
+        tag = "EDGE STEADY "
+    elif delta < 0:
+        tag = "EDGE FADING "
+    else:
+        tag = "EDGE GROWING"
+    return (
+        f"{tag} : E={expected:+.3f}R | "
+        f"recency={recency:+.3f}R | delta={delta:+.3f}R"
+    )
+
+
 def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
     """Diagnostic mode: print full spec + first-bar Firm verdict.
 
@@ -810,6 +843,12 @@ def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
     """
     print("\n--- spec_payload (full) ---")
     print(json.dumps(spec_payload, indent=2, default=str))
+
+    # v0.2.19: drift indicator (E vs recency-weighted E)
+    drift = _format_drift_summary(spec_payload)
+    if drift:
+        print("\n--- drift indicator (v0.2.18 recency vs unweighted) ---")
+        print(drift)
 
     # v0.2.16: per-regime expectancy as a markdown table for human
     # readability. Skipped when regime_expectancy is empty (e.g. stub

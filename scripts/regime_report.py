@@ -85,14 +85,33 @@ def _render_markdown(rows: list[dict[str, Any]]) -> str:
         "",
     ]
     # Header
-    cols = ["variant", "n_total", "E_total", "provenance", *REGIME_COLUMNS]
+    # v0.2.19: include E_recency column (v0.2.18 recency-weighted) so
+    # the operator can spot drift at a glance.
+    cols = ["variant", "n_total", "E_total", "E_recency", "drift",
+            "provenance", *REGIME_COLUMNS]
     lines.append("| " + " | ".join(cols) + " |")
     lines.append("|" + "|".join(["---"] * len(cols)) + "|")
     for row in rows:
+        e_total = row.get("expected_expectancy_r", 0.0)
+        e_recency = row.get("recency_weighted_expectancy_r")
+        if e_recency is None:
+            e_recency_cell = "-"
+            drift_cell = "-"
+        else:
+            e_recency_cell = f"{e_recency:+.3f}R"
+            delta = e_recency - e_total
+            if abs(delta) < 0.05:
+                drift_cell = "STEADY"
+            elif delta < 0:
+                drift_cell = f"FADING ({delta:+.3f}R)"
+            else:
+                drift_cell = f"GROWING ({delta:+.3f}R)"
         cells = [
             row["variant"],
             str(row["sample_size"]),
-            f"{row['expected_expectancy_r']:+.3f}R",
+            f"{e_total:+.3f}R",
+            e_recency_cell,
+            drift_cell,
             ",".join(row["provenance"]) or "-",
         ]
         per_regime = row.get("regime_expectancy", {})
@@ -139,6 +158,9 @@ def _build_rows(variant_filter: list[str] | None) -> list[dict[str, Any]]:
             "variant": cfg.name,
             "sample_size": payload.get("sample_size", 0),
             "expected_expectancy_r": payload.get("expected_expectancy_r", 0.0),
+            "recency_weighted_expectancy_r": (
+                payload.get("recency_weighted_expectancy_r")
+            ),
             "regimes_approved": payload.get("regimes_approved", []),
             "regime_expectancy": payload.get("regime_expectancy", {}),
             "provenance": payload.get("provenance", ["stub"]),

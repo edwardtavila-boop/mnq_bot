@@ -11,11 +11,11 @@ evidence weight. A variant with E=+1.0R but n=1 is a single
 lucky day, not edge. A variant with E=+0.1R and n=30 is 
 calibrated edge.
 
-| variant | n_total | E_total | provenance | low-vol-trend | low-vol-range | low-vol-reversal | high-vol-trend | high-vol-range | high-vol-reversal | crash | euphoria | dead-zone | transition |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| r0_real_baseline | 1665 | -0.000R | variant_cfg,baseline_yaml,cached_backtest | - | n=10/E=+0.000R | n=3/E=-0.003R | - | n=2/E=+0.000R | - | - | - | - | - |
-| r4_real_orderflow | 1665 | -0.000R | variant_cfg,baseline_yaml,cached_backtest | - | n=10/E=-0.001R | n=3/E=+0.002R | - | n=2/E=+0.000R | - | - | - | - | - |
-| r5_real_wide_target | 1665 | +0.001R | variant_cfg,baseline_yaml,cached_backtest | - | n=10/E=+0.000R | n=3/E=+0.003R | - | n=2/E=+0.000R | - | - | - | - | - |
+| variant | n_total | E_total | E_recency | drift | provenance | low-vol-trend | low-vol-range | low-vol-reversal | high-vol-trend | high-vol-range | high-vol-reversal | crash | euphoria | dead-zone | transition |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| r0_real_baseline | 1665 | -0.000R | -0.000R | STEADY | variant_cfg,baseline_yaml,cached_backtest | - | n=10/E=+0.000R | n=3/E=-0.003R | - | n=2/E=+0.000R | - | - | - | - | - |
+| r4_real_orderflow | 1665 | -0.000R | -0.000R | STEADY | variant_cfg,baseline_yaml,cached_backtest | - | n=10/E=-0.001R | n=3/E=+0.002R | - | n=2/E=+0.000R | - | - | - | - | - |
+| r5_real_wide_target | 1665 | +0.001R | +0.001R | STEADY | variant_cfg,baseline_yaml,cached_backtest | - | n=10/E=+0.000R | n=3/E=+0.003R | - | n=2/E=+0.000R | - | - | - | - | - |
 
 ## Summary
 
