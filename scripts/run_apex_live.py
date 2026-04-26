@@ -36,8 +36,9 @@ Every live order placement goes through:
   * :class:`TieredRollout.allowed_qty()` -- enforces tier sizing;
     HALT -> 0 contracts
   * Per-bar :func:`firm_runtime.run_six_stage_review` -- B4 closure
-    (NOT shipped in the v0.2.5 commit that creates this file; lands
-    in v0.2.6 once the Firm runtime tape interface is stable).
+    (v0.2.6). Each bar consumed from the real-tape adapter triggers a
+    six-stage adversarial review; PM REJECT verdicts increment
+    ``orders_blocked`` and skip the (placeholder) order intent.
 
 Modes
 -----
@@ -90,12 +91,14 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from mnq.core.paths import LIVE_SIM_JOURNAL, STATE_DIR  # noqa: E402
+from mnq.core.types import Bar  # noqa: E402
 from mnq.executor.orders import OrderBook  # noqa: E402
 from mnq.executor.safety import CircuitBreaker, KillSwitchFile  # noqa: E402
 from mnq.risk.gate_chain import build_default_chain  # noqa: E402
 from mnq.risk.rollout_store import RolloutStore  # noqa: E402
 from mnq.risk.tiered_rollout import TieredRollout  # noqa: E402
 from mnq.storage.journal import EventJournal  # noqa: E402
+from mnq.tape import DEFAULT_DATABENTO_5M, iter_databento_bars  # noqa: E402
 from mnq.venues.dormancy import DormantBrokerError, assert_broker_active  # noqa: E402
 
 logger = logging.getLogger("mnq.runtime")
@@ -149,6 +152,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip the 9-gate promotion check (DRY-RUN ONLY -- ignored "
              "in --live mode).",
     )
+    p.add_argument(
+        "--tape", type=Path, default=None,
+        help=f"Path to a Databento-format CSV tape (replays historical "
+             f"bars one per tick for paper-mode soak). "
+             f"Default: {DEFAULT_DATABENTO_5M.name} if it exists, "
+             f"else no tape (rollout/breaker-only ticks).",
+    )
+    p.add_argument(
+        "--no-tape", action="store_true",
+        help="Disable tape replay even if the default tape exists "
+             "(useful for unit-style smoke tests of the safety wiring).",
+    )
+    p.add_argument(
+        "--firm-review-every", type=int, default=1,
+        help="Run the six-stage Firm review once every N bars. "
+             "Default 1 (every bar). Set higher for fast soak runs.",
+    )
+    p.add_argument(
+        "--no-firm-review", action="store_true",
+        help="Disable per-bar Firm review (B4 closure). The runtime "
+             "still consumes the tape and exercises the safety stack.",
+    )
     return p.parse_args(argv)
 
 
@@ -161,6 +186,9 @@ class RuntimeConfig:
     state_dir: Path
     journal_path: Path
     skip_promotion_gate: bool
+    tape_path: Path | None
+    firm_review_every: int
+    firm_review_enabled: bool
 
     @property
     def dry_run(self) -> bool:
@@ -168,6 +196,17 @@ class RuntimeConfig:
 
 
 def build_config(args: argparse.Namespace) -> RuntimeConfig:
+    # Resolve tape source: explicit --tape > default if it exists > None.
+    tape_path: Path | None
+    if args.no_tape:
+        tape_path = None
+    elif args.tape is not None:
+        tape_path = args.tape
+    elif DEFAULT_DATABENTO_5M.exists():
+        tape_path = DEFAULT_DATABENTO_5M
+    else:
+        tape_path = None
+    review_every = max(1, int(args.firm_review_every))
     return RuntimeConfig(
         live=args.live,
         max_bars=int(args.max_bars),
@@ -176,6 +215,9 @@ def build_config(args: argparse.Namespace) -> RuntimeConfig:
         state_dir=args.state_dir or STATE_DIR,
         journal_path=args.journal or LIVE_SIM_JOURNAL,
         skip_promotion_gate=bool(args.skip_promotion_gate),
+        tape_path=tape_path,
+        firm_review_every=review_every,
+        firm_review_enabled=not bool(args.no_firm_review),
     )
 
 
@@ -352,6 +394,26 @@ class TickStats:
     orders_submitted: int = 0
     orders_blocked: int = 0
     errors: int = 0
+    firm_reviews_run: int = 0
+    firm_approved: int = 0
+    firm_rejected: int = 0
+
+
+@dataclass
+class FirmReviewResult:
+    """Trimmed PM-stage view used by the runtime to gate orders."""
+
+    verdict: str
+    pm_probability: float
+    reasoning: str
+    primary_driver: str = ""
+
+    @property
+    def is_reject(self) -> bool:
+        # PM verdicts are typically APPROVE / SCALED / REJECT / KILL.
+        # Treat anything starting with REJ or KILL as a block.
+        v = (self.verdict or "").upper()
+        return v.startswith(("REJ", "KILL", "BLOCK"))
 
 
 @dataclass
@@ -368,8 +430,10 @@ class ApexRuntime:
     book: OrderBook
     breaker: CircuitBreaker
     rollout: TieredRollout
+    tape: Any = None  # Iterator[Bar] | None -- annotated Any to avoid heavy generic import
     _stop: asyncio.Event = field(default_factory=asyncio.Event)
     stats: TickStats = field(default_factory=TickStats)
+    _firm_shim_unavailable: bool = False  # Latched after first ImportError; logged once.
 
     def request_stop(self) -> None:
         self._stop.set()
@@ -382,7 +446,9 @@ class ApexRuntime:
                 if self.cfg.max_bars and bar_i >= self.cfg.max_bars:
                     break
                 try:
-                    await self._tick(bar_i)
+                    cont = await self._tick(bar_i)
+                    if cont is False:
+                        break
                 except Exception as exc:  # noqa: BLE001 -- defensive
                     self.stats.errors += 1
                     logger.exception("tick %d raised: %s", bar_i, exc)
@@ -395,43 +461,164 @@ class ApexRuntime:
                         )
         finally:
             logger.info(
-                "drain complete: bars=%d signals=%d orders=%d blocked=%d errors=%d",
+                "drain complete: bars=%d signals=%d orders=%d "
+                "blocked=%d errors=%d firm_reviews=%d "
+                "firm_approved=%d firm_rejected=%d",
                 self.stats.bars_processed, self.stats.signals_seen,
                 self.stats.orders_submitted, self.stats.orders_blocked,
-                self.stats.errors,
+                self.stats.errors, self.stats.firm_reviews_run,
+                self.stats.firm_approved, self.stats.firm_rejected,
             )
         return EX_OK
 
-    async def _tick(self, bar_i: int) -> None:
-        """One iteration. Currently a placeholder; B4 wires per-bar Firm review.
+    async def _tick(self, bar_i: int) -> bool:
+        """One iteration. Returns False to signal end-of-tape (drain).
 
-        Today: increments stats, evaluates kill-switch + circuit
-        breaker + rollout, and would-place a synthetic order to
-        exercise the gate chain in dry-run mode. Real signal-source
-        integration (TradingView webhook, polling) lands when the
-        operator picks a signal-source disposition.
+        Sequence:
+          1. Pull next bar from tape (if any). End-of-tape -> drain.
+          2. Increment bars_processed.
+          3. Check rollout (HALT / qty=0 -> skip).
+          4. Check circuit breaker (kill switch / drawdown -> block).
+          5. Run Firm review on this bar (B4) -- REJECT verdict blocks
+             the placeholder order.
+          6. Log. (Real order placement lands in v0.2.7+ when the signal
+             generator is wired.)
         """
-        from datetime import UTC, datetime
+        from datetime import UTC
+        from datetime import datetime as _dt
+        bar = self._next_bar()
+        if self.tape is not None and bar is None:
+            logger.info("tick %d: tape exhausted, draining", bar_i)
+            return False
         self.stats.bars_processed += 1
-        # Surface tier-rollout state (cheap query)
+
         qty = self.rollout.allowed_qty()
         if qty == 0:
-            # Halt -- no new entries.
-            return
-        # Circuit-breaker decision (kill-switch + manual halt + drawdown)
-        decision = self.breaker.allow_trade(now_utc=datetime.now(UTC))
+            return True
+        decision = self.breaker.allow_trade(now=_dt.now(UTC))
         if not decision.allowed:
             self.stats.orders_blocked += 1
             logger.info(
                 "tick %d: trade refused by circuit breaker: %s (%s)",
                 bar_i, decision.reason, decision.detail,
             )
-            return
-        # Placeholder for real signal source. In dry-run, log the would-be
-        # order; in live, this is where VenueRouter + B4 Firm review wire in.
+            return True
+
+        # B4: per-bar Firm review (interval-throttled). REJECT -> block.
+        if (
+            bar is not None
+            and self.cfg.firm_review_enabled
+            and not self._firm_shim_unavailable
+            and bar_i % self.cfg.firm_review_every == 0
+        ):
+            review = self._run_firm_review(bar, bar_i)
+            if review is not None:
+                self.stats.firm_reviews_run += 1
+                if review.is_reject:
+                    self.stats.firm_rejected += 1
+                    self.stats.orders_blocked += 1
+                    logger.info(
+                        "tick %d: firm REJECT (%s, p=%.2f) -- %s",
+                        bar_i, review.verdict, review.pm_probability,
+                        (review.reasoning or "")[:80],
+                    )
+                    return True
+                self.stats.firm_approved += 1
+                logger.debug(
+                    "tick %d: firm %s (p=%.2f)",
+                    bar_i, review.verdict, review.pm_probability,
+                )
+
         logger.debug(
             "tick %d: rollout=%s tier=%d allowed_qty=%d circuit=ok",
             bar_i, self.rollout.state.value, self.rollout.tier, qty,
+        )
+        return True
+
+    def _next_bar(self) -> Bar | None:
+        """Pull the next bar from the tape, or None if no tape / exhausted."""
+        if self.tape is None:
+            return None
+        try:
+            return next(self.tape)
+        except StopIteration:
+            return None
+
+    def _run_firm_review(self, bar: Bar, bar_i: int) -> FirmReviewResult | None:
+        """Invoke ``firm_runtime.run_six_stage_review`` for this bar.
+
+        Fail-open: if the shim is unavailable or the review raises, log
+        and continue (latch _firm_shim_unavailable on ImportError so
+        we don't keep spamming warnings).
+        """
+        try:
+            from mnq.firm_runtime import compute_confluence, run_six_stage_review
+        except ImportError as exc:
+            logger.warning(
+                "firm_runtime shim unavailable -- per-bar review disabled "
+                "for the rest of this run (fail-open): %s", exc,
+            )
+            self._firm_shim_unavailable = True
+            return None
+
+        spec_payload = {
+            "strategy_id": self.cfg.variant,
+            # Stub spec so the Firm agents have something to evaluate. The
+            # v0.2.7 closure replaces these with the variant's actual yaml
+            # spec; for v0.2.6 the contract is "review fires, verdict comes
+            # back, runtime gates on it" -- not "agents produce calibrated
+            # verdicts on this exact strategy".
+            "sample_size": 100,
+            "expected_expectancy_r": 0.5,
+            "oos_degradation_pct": 20.0,
+            "entry_logic": f"variant={self.cfg.variant}",
+            "stop_logic": "10-tick hard stop",
+            "target_logic": "2R fixed",
+            "dd_kill_switch_r": 12.0,
+            "regimes_approved": ["normal_vol_trend"],
+            "approved_sessions": ["RTH"],
+        }
+        confluence = compute_confluence(
+            internals={},
+            volatility={},
+            cross_asset={},
+            session={"phase": "RTH", "is_rth": True},
+            micro={"spread_ticks": 1.0},
+            calendar={},
+            eta_v3={},
+            regime={"canonical": "normal_vol_trend", "persistence_bars": 40},
+        )
+        bar_payload = {
+            "ts": bar.ts.isoformat(),
+            "open": float(bar.open),
+            "high": float(bar.high),
+            "low": float(bar.low),
+            "close": float(bar.close),
+            "volume": int(bar.volume),
+        }
+        try:
+            stages = run_six_stage_review(
+                strategy_id=self.cfg.variant,
+                decision_context=(
+                    f"live tick {bar_i} bar_ts={bar_payload['ts']} "
+                    f"c={bar_payload['close']}"
+                ),
+                payload={"spec": spec_payload, "bar": bar_payload},
+                regime_snapshot={
+                    "regimes_approved": spec_payload["regimes_approved"],
+                },
+                confluence_result=confluence,
+            )
+        except Exception:  # noqa: BLE001 -- defensive; review must never crash runtime
+            logger.exception("tick %d: firm review raised; skipping", bar_i)
+            return None
+
+        pm = stages.get("pm", {}) if isinstance(stages, dict) else {}
+        return FirmReviewResult(
+            verdict=str(pm.get("verdict", "?")),
+            pm_probability=float(pm.get("probability", 0.0)),
+            reasoning=str(pm.get("reasoning", "")),
+            primary_driver=str(pm.get("primary_driver", "")),
         )
 
 
@@ -467,6 +654,9 @@ async def _amain(argv: list[str] | None = None) -> int:
 
     # Refuse-to-boot guards
     checks = evaluate_boot_guards(cfg)
+    tape_label = (
+        cfg.tape_path.name if cfg.tape_path is not None else "(none)"
+    )
     print("MNQ_BOT // run_eta_live")
     print("=" * 64)
     print(f"mode          : {'LIVE' if cfg.live else 'DRY-RUN'}")
@@ -475,6 +665,11 @@ async def _amain(argv: list[str] | None = None) -> int:
     print(f"tick_interval : {cfg.tick_interval_s}s")
     print(f"state_dir     : {cfg.state_dir}")
     print(f"journal       : {cfg.journal_path}")
+    print(f"tape          : {tape_label}")
+    print(
+        f"firm_review   : {'ON' if cfg.firm_review_enabled else 'OFF'} "
+        f"(every {cfg.firm_review_every} bar{'s' if cfg.firm_review_every != 1 else ''})",
+    )
     print("-" * 64)
     print("BOOT GUARDS")
     for c in checks:
@@ -503,12 +698,25 @@ async def _amain(argv: list[str] | None = None) -> int:
     else:
         rollout = TieredRollout.initial(cfg.variant)
 
+    # Tape source (B4): real-tape adapter for per-bar Firm review.
+    tape_iter = None
+    if cfg.tape_path is not None:
+        try:
+            tape_iter = iter_databento_bars(
+                cfg.tape_path,
+                max_bars=cfg.max_bars or None,
+            )
+        except FileNotFoundError as exc:
+            logger.error("tape source missing: %s", exc)
+            return EX_BOOT_REFUSED
+
     runtime = ApexRuntime(
         cfg=cfg,
         journal=journal,
         book=book,
         breaker=breaker,
         rollout=rollout,
+        tape=tape_iter,
     )
     _install_signal_handlers(runtime)
 
