@@ -389,6 +389,73 @@ def run_six_stage_review(
         outputs[stage_name] = _safe_asdict(out)
         prior = out
     return outputs
+
+
+def record_trade_outcome(
+    *,
+    pnl_r: float,
+    regime: str,
+    **_extra: Any,
+) -> dict[str, Any]:
+    """Record a closed-trade outcome for the adaptive learner.
+
+    B4 partial closure (Red Team review 2026-04-25). Without this
+    symbol the import in ``scripts/live_sim.py:337`` silently
+    failed (it is wrapped in
+    ``except (ImportError, Exception): pass``), so the
+    adaptive-learner integration was a no-op for every closed
+    trade -- "learner integrated" reports were lying.
+
+    The full B4 closure (per-bar Firm review on real tape, plus
+    moving the firm package out of OneDrive) remains a v0.2.x
+    design call. This stub:
+
+      * makes the import succeed so the silent-fail stops happening,
+      * appends the outcome to ``data/learner_journal.jsonl`` so
+        the operator has a paper trail,
+      * returns a dict the caller can log if it wants to.
+
+    The stub does NOT call the real Firm package's adaptive learner
+    -- that integration is M2-shaped and gated on the same H1
+    calibration empirics that gate KillVerdict-on-drift synthesis.
+    Until then this is observation-only; every record is flagged
+    ``_stub: True`` so the operator can grep when the real
+    integration lands.
+
+    NOTE: this stub lives in the SHIM_TEMPLATE in
+    ``scripts/firm_bridge.py``. Editing the generated
+    ``src/mnq/firm_runtime.py`` directly does NOT survive the next
+    bridge regen -- the template is the source of truth.
+    """
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    record: dict[str, Any] = {{
+        "ts_utc": datetime.now(UTC).isoformat(),
+        "pnl_r": float(pnl_r),
+        "regime": str(regime),
+        "_stub": True,
+    }}
+    if _extra:
+        record["_extra"] = dict(_extra)
+
+    try:
+        from mnq.core.paths import REPO_ROOT  # type: ignore[import-not-found]
+        journal_path = Path(REPO_ROOT) / "data" / "learner_journal.jsonl"
+    except ImportError:
+        journal_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "data" / "learner_journal.jsonl"
+        )
+    journal_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        import json
+        with journal_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record) + "\\n")
+    except OSError:
+        # Fail open: an unwriteable journal must not break the caller.
+        pass
+    return record
 '''
 
 

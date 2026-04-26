@@ -4,8 +4,8 @@ Do not edit by hand. This is the ONLY module in mnq_bot that imports the
 external `firm` package; every other consumer goes through
 ``run_six_stage_review``. If the Firm code changes shape, rerun the bridge.
 
-Generated at: 2026-04-26T00:22:35.167229+00:00
-Bridge probe checksum: 86ef94ad82b1dc1c
+Generated at: 2026-04-26T04:23:59.481653+00:00
+Bridge probe checksum: bf88d73c1a4a4e2f
 """
 from __future__ import annotations
 
@@ -15,16 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# H2 closure (Red Team review 2026-04-25): firm package moved out of
-# OneDrive. The OneDrive path used to truncate the firm_runtime.py shim
-# unpredictably, which is why _shim_guard.py exists. Copy lives at
-# ``C:/Users/edwar/projects/firm/`` (sibling to mnq_bot). Falls back to
-# the OneDrive path if the projects copy is missing -- e.g. on a fresh
-# machine that hasn't run the migration yet.
 _FIRM_PACKAGE_PARENT = Path('C:\\Users\\edwar\\projects')
-_FIRM_PACKAGE_FALLBACK = Path('C:\\Users\\edwar\\OneDrive\\The_Firm\\the_firm_complete\\desktop_app')
-if not (_FIRM_PACKAGE_PARENT / 'firm').exists() and (_FIRM_PACKAGE_FALLBACK / 'firm').exists():
-    _FIRM_PACKAGE_PARENT = _FIRM_PACKAGE_FALLBACK
 if str(_FIRM_PACKAGE_PARENT) not in sys.path:
     sys.path.insert(0, str(_FIRM_PACKAGE_PARENT))
 
@@ -152,49 +143,21 @@ def record_trade_outcome(
 ) -> dict[str, Any]:
     """Record a closed-trade outcome for the adaptive learner.
 
-    B4 partial closure (Red Team review 2026-04-25). The Red Team
-    found that ``scripts/live_sim.py:337`` imports this name and the
-    import was silently failing (``except (ImportError, Exception):
-    pass``), so the adaptive-learner integration was a no-op for
-    every closed trade -- "learner integrated" reports were lying.
-
-    The full B4 closure (per-bar Firm review on real tape, plus
-    moving the firm package out of OneDrive) is a v0.2.x design
-    call. This stub:
-
-      * makes the import succeed so the silent-fail stops happening,
-      * appends the outcome to ``data/learner_journal.jsonl`` so
-        the operator has a paper trail,
-      * returns a dict the caller can log if it wants to.
-
-    The stub does NOT call the real Firm package's adaptive learner
-    -- that integration is M2-shaped and gated on the same H1
-    calibration empirics that gate KillVerdict-on-drift synthesis.
-    Until then this is observation-only.
-
-    Lands when: the Firm package's adaptive learner is reachable
-    via firm_bridge AND a per-trade learner-update path is wired,
-    AND a test asserts the journal entry triggers a learner
-    state-change.
+    B4 partial closure -- see scripts/firm_bridge.py SHIM_TEMPLATE
+    for the canonical version. Editing this file directly does
+    NOT survive the next bridge regen.
     """
-    from datetime import UTC, datetime
-    from pathlib import Path
-
+    from datetime import UTC
     record: dict[str, Any] = {
         "ts_utc": datetime.now(UTC).isoformat(),
         "pnl_r": float(pnl_r),
         "regime": str(regime),
-        "_stub": True,  # remove when real learner is wired
+        "_stub": True,
     }
     if _extra:
         record["_extra"] = dict(_extra)
-
-    # Append to a journal file alongside the existing event-source
-    # journal. Use the canonical mnq.core.paths location when
-    # available; otherwise fall back to a repo-relative path that the
-    # operator can grep.
     try:
-        from mnq.core.paths import REPO_ROOT  # type: ignore[import-not-found]
+        from mnq.core.paths import REPO_ROOT
         journal_path = Path(REPO_ROOT) / "data" / "learner_journal.jsonl"
     except ImportError:
         journal_path = (
@@ -207,9 +170,5 @@ def record_trade_outcome(
         with journal_path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
     except OSError:
-        # Fail open: an unwriteable journal must not break the
-        # caller. The Red Team finding is "silent failure"; this
-        # stub at minimum returns a structured record the caller
-        # can log to its own observability layer.
         pass
     return record
