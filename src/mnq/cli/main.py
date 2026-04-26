@@ -9,6 +9,7 @@ import typer
 
 from mnq.cli import doctor as doctor_cli
 from mnq.cli import mcp as mcp_cli
+from mnq.cli import morning as morning_cli
 from mnq.cli import parity as parity_cli
 from mnq.cli import spec as spec_cli
 from mnq.cli import venue as venue_cli
@@ -25,6 +26,10 @@ app.add_typer(spec_cli.app, name="spec", help="Strategy spec operations.")
 app.add_typer(mcp_cli.app, name="mcp", help="MCP server operations.")
 app.add_typer(doctor_cli.app, name="doctor", help="Environment & wiring health check.")
 app.add_typer(parity_cli.app, name="parity", help="Paper-vs-live parity dashboard.")
+app.add_typer(
+    morning_cli.app, name="morning",
+    help="Consolidated daily operator status (doctor + variants + drift).",
+)
 
 
 @app.command()
