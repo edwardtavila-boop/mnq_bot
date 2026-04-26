@@ -42,7 +42,7 @@ class TestOrderSubmit:
 
     def test_submit_creates_pending_order(self, tmp_journal: EventJournal) -> None:
         """Submit creates an order in PENDING state with a unique client_order_id."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         order = book.submit(
             symbol="MNQ",
@@ -60,7 +60,7 @@ class TestOrderSubmit:
 
     def test_submit_qty_validation(self, tmp_journal: EventJournal) -> None:
         """Submit raises OrderError if qty <= 0."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         with pytest.raises(OrderError, match="qty must be > 0"):
             book.submit(
@@ -82,7 +82,7 @@ class TestOrderSubmit:
 
     def test_submit_generates_unique_ids(self, tmp_journal: EventJournal) -> None:
         """Multiple submissions generate unique client_order_ids."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         order1 = book.submit(
             symbol="MNQ",
@@ -102,7 +102,7 @@ class TestOrderSubmit:
 
     def test_submit_journaled(self, tmp_journal: EventJournal) -> None:
         """Submit writes ORDER_SUBMITTED event to journal."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         order = book.submit(
             symbol="MNQ",
@@ -124,7 +124,7 @@ class TestOrderAck:
 
     def test_ack_pending_order(self, tmp_journal: EventJournal) -> None:
         """Ack transitions PENDING → WORKING."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -139,7 +139,7 @@ class TestOrderAck:
 
     def test_ack_non_pending_raises(self, tmp_journal: EventJournal) -> None:
         """Ack raises if order is not PENDING."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -153,7 +153,7 @@ class TestOrderAck:
 
     def test_ack_terminal_order_raises(self, tmp_journal: EventJournal) -> None:
         """Ack raises if order is terminal."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -171,7 +171,7 @@ class TestOrderFill:
 
     def test_apply_partial_fill(self, tmp_journal: EventJournal) -> None:
         """Partial fill updates filled_qty and state."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -198,7 +198,7 @@ class TestOrderFill:
 
     def test_apply_full_fill(self, tmp_journal: EventJournal) -> None:
         """Fill matching qty transitions to FILLED."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -225,7 +225,7 @@ class TestOrderFill:
 
     def test_apply_vwap_calculation(self, tmp_journal: EventJournal) -> None:
         """VWAP is correctly calculated over multiple fills."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -288,7 +288,7 @@ class TestOrderFill:
 
     def test_duplicate_fill_idempotent(self, tmp_journal: EventJournal) -> None:
         """Duplicate venue_fill_id is a no-op (idempotent)."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -326,7 +326,7 @@ class TestOrderFill:
 
     def test_fill_overfull_raises(self, tmp_journal: EventJournal) -> None:
         """Fill that exceeds order qty raises OrderError."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -349,7 +349,7 @@ class TestOrderFill:
 
     def test_fill_terminal_order_raises(self, tmp_journal: EventJournal) -> None:
         """Fill on rejected/cancelled order raises OrderError."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -376,7 +376,7 @@ class TestOrderReject:
 
     def test_reject_pending_order(self, tmp_journal: EventJournal) -> None:
         """Reject transitions PENDING → REJECTED."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -391,7 +391,7 @@ class TestOrderReject:
 
     def test_reject_terminal_order_raises(self, tmp_journal: EventJournal) -> None:
         """Reject raises if order is already terminal."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -409,7 +409,7 @@ class TestOrderCancel:
 
     def test_cancel_working_order(self, tmp_journal: EventJournal) -> None:
         """Cancel transitions WORKING → CANCELLED."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -425,7 +425,7 @@ class TestOrderCancel:
 
     def test_cancel_partial_order(self, tmp_journal: EventJournal) -> None:
         """Cancel transitions PARTIAL → CANCELLED."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -451,7 +451,7 @@ class TestOrderCancel:
 
     def test_cancel_terminal_order_raises(self, tmp_journal: EventJournal) -> None:
         """Cancel raises if order is already terminal."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -469,7 +469,7 @@ class TestOrderBookQueries:
 
     def test_get_order(self, tmp_journal: EventJournal) -> None:
         """Get retrieves an order by client_order_id."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -484,7 +484,7 @@ class TestOrderBookQueries:
 
     def test_get_nonexistent_order(self, tmp_journal: EventJournal) -> None:
         """Get returns None for nonexistent order."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         result = book.get("nonexistent-id")
 
@@ -492,7 +492,7 @@ class TestOrderBookQueries:
 
     def test_open_orders_filters_terminal(self, tmp_journal: EventJournal) -> None:
         """open_orders() excludes terminal orders."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         order1 = book.submit(
             symbol="MNQ",
@@ -527,7 +527,7 @@ class TestOrderBookQueries:
 
     def test_all_orders(self, tmp_journal: EventJournal) -> None:
         """all_orders() returns all orders."""
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         book.submit(
             symbol="MNQ",
@@ -555,7 +555,7 @@ class TestOrderBookJournalReplay:
     def test_replay_submit_ack_partial_fill(self, tmp_journal: EventJournal) -> None:
         """Replay reconstructs order through multiple state transitions."""
         # Build a sequence: submit → ack → partial fill
-        book1 = OrderBook(tmp_journal)
+        book1 = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book1.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -587,7 +587,7 @@ class TestOrderBookJournalReplay:
 
     def test_replay_full_sequence(self, tmp_journal: EventJournal) -> None:
         """Replay reconstructs full lifecycle: submit → ack → 2 fills → filled."""
-        book1 = OrderBook(tmp_journal)
+        book1 = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book1.submit(
             symbol="MNQ",
             side=Side.SHORT,
@@ -627,7 +627,7 @@ class TestOrderBookJournalReplay:
 
     def test_replay_multiple_orders(self, tmp_journal: EventJournal) -> None:
         """Replay correctly reconstructs multiple independent orders."""
-        book1 = OrderBook(tmp_journal)
+        book1 = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         order1 = book1.submit(
             symbol="MNQ",
@@ -666,7 +666,7 @@ class TestOrderBookMetrics:
         """Submit increments orders_submitted_total metric."""
         from mnq.observability.metrics import orders_submitted_total
 
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
 
         book.submit(
             symbol="MNQ",
@@ -689,7 +689,7 @@ class TestOrderBookMetrics:
         """Full fill increments orders_filled_total metric."""
         from mnq.observability.metrics import orders_filled_total
 
-        book = OrderBook(tmp_journal)
+        book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.SHORT,

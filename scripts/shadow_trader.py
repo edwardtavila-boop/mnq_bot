@@ -40,21 +40,17 @@ import logging
 import os
 import signal
 import sys
-import time
-from datetime import UTC, datetime, timedelta
-from decimal import Decimal
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from mnq.core.types import Side
-from mnq.executor.orders import OrderBook, OrderType
-from mnq.executor.venue_router import VenueRouter
-from mnq.risk.gate_chain import build_default_chain
-from mnq.risk.heat_budget import CanonicalRegime, HeatBudget, Position
-from mnq.storage.journal import EventJournal
-from mnq.venues.ninjatrader import NTConfig, NinjaTraderVenue
+from mnq.executor.orders import OrderBook  # noqa: E402
+from mnq.executor.venue_router import VenueRouter  # noqa: E402
+from mnq.risk.heat_budget import CanonicalRegime, HeatBudget  # noqa: E402
+from mnq.storage.journal import EventJournal  # noqa: E402
+from mnq.venues.ninjatrader import NinjaTraderVenue, NTConfig  # noqa: E402
 
 logger = logging.getLogger("shadow_trader")
 
@@ -173,10 +169,18 @@ class ShadowTrader:
         }
 
         # Initialize components
+        # B3 closure (v0.2.3): shadow mode mirrors live; use the full
+        # 5-gate chain so the shadow run sees the same gates production
+        # would. Operator can set MNQ_SHADOW_NO_GATES=1 to bypass for
+        # debugging (then explicitly use the unsafe factory).
+        from mnq.risk.gate_chain import build_default_chain
         journal = EventJournal(SHADOW_JOURNAL_PATH)
-        order_book = OrderBook(journal=journal)
+        if os.environ.get("MNQ_SHADOW_NO_GATES") == "1":
+            order_book = OrderBook.unsafe_no_gate_chain(journal)
+        else:
+            order_book = OrderBook(journal, build_default_chain())
         venue = NinjaTraderVenue(self.nt_config)
-        heat_budget = HeatBudget(regime=CanonicalRegime.TRANSITION)
+        heat_budget = HeatBudget(regime=CanonicalRegime.TRANSITION)  # noqa: F841 -- reserved for v0.2.x heat-budget gate
 
         try:
             await venue.connect()
@@ -305,12 +309,11 @@ async def async_main(args: argparse.Namespace) -> int:
         logger.info("Shutdown signal received")
         trader.stop()
 
+    import contextlib
     for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
+        # Windows doesn't support add_signal_handler -- skip cleanly.
+        with contextlib.suppress(NotImplementedError):
             loop.add_signal_handler(sig, _stop)
-        except NotImplementedError:
-            # Windows doesn't support add_signal_handler
-            pass
 
     logger.info(
         "Starting shadow trading session (day %d/%d)",

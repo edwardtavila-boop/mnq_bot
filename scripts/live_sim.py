@@ -362,7 +362,13 @@ def run_live_sim(
     _ = hash_spec(spec)  # just to prove the spec loaded cleanly
 
     stats = RunStats()
-    book = OrderBook(journal)
+    # B3 closure (v0.2.3): live_sim mirrors live execution -- it MUST
+    # use the same 5-gate pre-trade chain that production uses, so the
+    # same governor (daily-trade-cap, loss-streak, daily-loss) limits
+    # bind paper too. Without this, paper sim produces optimistic
+    # numbers that won't survive live promotion.
+    from mnq.risk.gate_chain import build_default_chain
+    book = OrderBook(journal, build_default_chain())
     breaker = CircuitBreaker(
         max_consecutive_losses=5,
         daily_max_drawdown_usd=Decimal("-500.00"),

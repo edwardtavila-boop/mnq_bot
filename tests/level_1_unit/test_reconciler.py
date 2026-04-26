@@ -70,7 +70,7 @@ class TestComputeDiffs:
 
     def test_empty_both_sides(self, temp_journal: EventJournal) -> None:
         """Empty local and venue: no diffs."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         diffs = reconciler.compute_diffs(
@@ -84,7 +84,7 @@ class TestComputeDiffs:
 
     def test_position_qty_mismatch(self, temp_journal: EventJournal) -> None:
         """Local qty != venue qty: critical diff."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         diffs = reconciler.compute_diffs(
@@ -104,7 +104,7 @@ class TestComputeDiffs:
 
     def test_position_long_local_short_venue(self, temp_journal: EventJournal) -> None:
         """Local long 2, venue short 2: critical (magnitude AND sign)."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         diffs = reconciler.compute_diffs(
@@ -121,7 +121,7 @@ class TestComputeDiffs:
 
     def test_position_missing_local(self, temp_journal: EventJournal) -> None:
         """Venue has position, local doesn't: critical diff."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         diffs = reconciler.compute_diffs(
@@ -140,7 +140,7 @@ class TestComputeDiffs:
 
     def test_position_missing_venue(self, temp_journal: EventJournal) -> None:
         """Local has position, venue doesn't: critical diff."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         diffs = reconciler.compute_diffs(
@@ -159,7 +159,7 @@ class TestComputeDiffs:
 
     def test_order_missing_local(self, temp_journal: EventJournal) -> None:
         """Order on venue but not in local book (zombie): critical."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         venue_order = VenueOrder(
@@ -186,7 +186,7 @@ class TestComputeDiffs:
 
     def test_order_missing_local_no_cid(self, temp_journal: EventJournal) -> None:
         """Order on venue with no client_order_id: critical."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         venue_order = VenueOrder(
@@ -213,7 +213,7 @@ class TestComputeDiffs:
 
     def test_order_state_mismatch(self, temp_journal: EventJournal) -> None:
         """Local order WORKING, venue order CANCELLED: warn."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -249,7 +249,7 @@ class TestComputeDiffs:
 
     def test_order_fills_mismatch(self, temp_journal: EventJournal) -> None:
         """Local filled_qty != venue filled_qty: critical."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -298,7 +298,7 @@ class TestComputeDiffs:
 
     def test_multiple_symbols(self, temp_journal: EventJournal) -> None:
         """Multiple symbols handled correctly."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         diffs = reconciler.compute_diffs(
@@ -323,7 +323,7 @@ class TestReconcile:
     @pytest.mark.asyncio
     async def test_reconcile_empty_ok(self, temp_journal: EventJournal) -> None:
         """Empty state: reconciliation succeeds."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
         fetcher = FakeVenueFetcher(positions=[], orders=[])
 
@@ -343,7 +343,7 @@ class TestReconcile:
     @pytest.mark.asyncio
     async def test_reconcile_critical_halts_breaker(self, temp_journal: EventJournal) -> None:
         """Critical diff halts the breaker."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         breaker = CircuitBreaker()
         reconciler = PositionReconciler(book, temp_journal, breaker=breaker)
 
@@ -363,7 +363,7 @@ class TestReconcile:
     @pytest.mark.asyncio
     async def test_reconcile_warn_no_halt(self, temp_journal: EventJournal) -> None:
         """Warn-only diffs do NOT halt the breaker."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -399,7 +399,7 @@ class TestReconcile:
     @pytest.mark.asyncio
     async def test_reconcile_journals_diffs(self, temp_journal: EventJournal) -> None:
         """Each diff is journaled with appropriate detail."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         fetcher = FakeVenueFetcher(
@@ -419,7 +419,7 @@ class TestReconcile:
     @pytest.mark.asyncio
     async def test_reconcile_journals_halt(self, temp_journal: EventJournal) -> None:
         """Critical diffs journal RECONCILE_HALT."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         breaker = CircuitBreaker()
         reconciler = PositionReconciler(book, temp_journal, breaker=breaker)
 
@@ -520,7 +520,7 @@ class TestPeriodicReconciler:
 
     def test_due_on_startup(self, temp_journal: EventJournal) -> None:
         """due() returns True initially if on_startup=True."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
         periodic = PeriodicReconciler(reconciler, interval_s=60, on_startup=True)
 
@@ -529,7 +529,7 @@ class TestPeriodicReconciler:
 
     def test_due_no_startup(self, temp_journal: EventJournal) -> None:
         """due() returns False initially if on_startup=False."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
         periodic = PeriodicReconciler(reconciler, interval_s=60, on_startup=False)
 
@@ -539,7 +539,7 @@ class TestPeriodicReconciler:
     @pytest.mark.asyncio
     async def test_tick_updates_last_run(self, temp_journal: EventJournal) -> None:
         """tick() updates last_run."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
         periodic = PeriodicReconciler(reconciler, interval_s=60, on_startup=True)
 
@@ -552,7 +552,7 @@ class TestPeriodicReconciler:
 
     def test_due_after_interval(self, temp_journal: EventJournal) -> None:
         """due() returns True after interval_s has elapsed."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
         periodic = PeriodicReconciler(reconciler, interval_s=60, on_startup=True)
 
@@ -570,7 +570,7 @@ class TestPeriodicReconciler:
     @pytest.mark.asyncio
     async def test_periodic_integration(self, temp_journal: EventJournal) -> None:
         """Full periodic reconciliation flow."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
         periodic = PeriodicReconciler(reconciler, interval_s=60, on_startup=True)
 
@@ -602,7 +602,7 @@ class TestNetPositionsFromJournal:
 
     def test_single_long_fill(self, temp_journal: EventJournal) -> None:
         """Single long fill contributes to position."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -625,7 +625,7 @@ class TestNetPositionsFromJournal:
 
     def test_single_short_fill(self, temp_journal: EventJournal) -> None:
         """Single short fill is negative."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         order = book.submit(
             symbol="MNQ",
             side=Side.SHORT,
@@ -648,7 +648,7 @@ class TestNetPositionsFromJournal:
 
     def test_mixed_long_short(self, temp_journal: EventJournal) -> None:
         """Long + short fills net correctly."""
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
 
         # Long 2
         order1 = book.submit(
@@ -699,7 +699,7 @@ class TestMetricsTracking:
         # Reset metrics
         reset_metrics_for_tests()
 
-        book = OrderBook(temp_journal)
+        book = OrderBook.unsafe_no_gate_chain(temp_journal)
         reconciler = PositionReconciler(book, temp_journal)
 
         fetcher = FakeVenueFetcher(

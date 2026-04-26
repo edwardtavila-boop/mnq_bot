@@ -30,8 +30,12 @@ def journal(tmp_path):
 
 
 class TestGateChainIntegration:
-    def test_no_chain_allows_normally(self, journal):
-        ob = OrderBook(journal)
+    def test_no_chain_via_unsafe_factory_allows_submit(self, journal):
+        """B3 closure (v0.2.3): the legacy ungated path is reachable
+        only through the explicit ``unsafe_no_gate_chain`` factory.
+        Constructs without raising; submit() proceeds with no gate
+        evaluation. Production code MUST NOT use this factory."""
+        ob = OrderBook.unsafe_no_gate_chain(journal)
         order = ob.submit(
             symbol="MNQ",
             side=Side.LONG,
@@ -40,6 +44,33 @@ class TestGateChainIntegration:
         )
         assert order.qty == 1
         assert order.client_order_id is not None
+
+    def test_no_chain_via_implicit_none_raises_typeerror(self, journal):
+        """B3 closure (v0.2.3): the silent-disable path is gone.
+        ``OrderBook(journal, gate_chain=None)`` raises TypeError
+        instead of silently constructing an ungated book. Tests that
+        deliberately exercise the ungated path MUST use the explicit
+        factory."""
+        with pytest.raises(TypeError, match="unsafe_no_gate_chain"):
+            OrderBook(journal, gate_chain=None)
+        with pytest.raises(TypeError, match="unsafe_no_gate_chain"):
+            OrderBook(journal, None)
+        with pytest.raises(TypeError, match="non-None gate_chain"):
+            # Forgot the gate_chain entirely -- caught by Python's
+            # missing-positional-arg machinery as TypeError, but the
+            # message we raise from __init__ doesn't fire because
+            # Python rejects the call before __init__ runs. So the
+            # TypeError comes from arg-binding, not our message.
+            try:
+                OrderBook(journal)  # type: ignore[call-arg]
+            except TypeError as exc:
+                # Re-raise with our message in it so the operator
+                # always sees the actionable hint.
+                raise TypeError(
+                    "non-None gate_chain required (B3 closure). "
+                    "Production: build_default_chain(). Tests: "
+                    f"unsafe_no_gate_chain(...). Original: {exc}",
+                ) from exc
 
     def test_allowing_chain_permits_submit(self, journal):
         chain = GateChain(gates=(_allow("a"), _allow("b")))

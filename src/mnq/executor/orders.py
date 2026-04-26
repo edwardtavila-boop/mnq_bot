@@ -157,61 +157,91 @@ class OrderBook:
     def __init__(
         self,
         journal: EventJournal,
+        gate_chain: Any,
         *,
         logger: Any = None,
-        gate_chain: Any = None,
     ) -> None:
         """Initialize OrderBook.
 
         Args:
             journal: EventJournal instance for persistence.
-            logger: Optional structlog logger. If None, creates one.
-            gate_chain: Optional :class:`mnq.risk.GateChain`. When set,
+            gate_chain: REQUIRED. :class:`mnq.risk.GateChain` instance.
                 :meth:`submit` evaluates the chain and raises
                 :class:`OrderBlocked` on any DENY before journaling
-                ``ORDER_SUBMITTED``. Default ``None`` preserves
-                legacy (ungated) behavior — every existing test case
-                stays green. Production wiring flips this on via
-                ``mnq.risk.build_default_chain()``.
+                ``ORDER_SUBMITTED``. Production wiring builds the
+                chain via ``mnq.risk.build_default_chain()``.
+            logger: Optional structlog logger. If None, creates one.
 
-                B3 partial closure (Red Team review 2026-04-25):
-                when ``MNQ_ENV=production`` and ``gate_chain is None``,
-                a runtime warning is logged. The full B3 closure
-                (making ``gate_chain`` a required positional, with an
-                explicit ``OrderBook.unsafe_no_gate_chain(journal)``
-                factory for tests) is a breaking API change deferred
-                to v0.2.x -- it requires updating every call site
-                across ``live_sim.py``, ``shadow_trader.py``, and the
-                test suite. Today's warning ensures a misconfigured
-                production deploy is at least noisy in the logs.
-                Lands when: every production OrderBook construction
-                passes a non-None gate_chain AND the test suite uses
-                the explicit unsafe factory AND a Phase-E sanity
-                stage in run_all_phases.py asserts the rule.
+        Raises:
+            TypeError: when ``gate_chain`` is None. Test code that
+                deliberately wants the ungated path MUST use the
+                explicit :meth:`unsafe_no_gate_chain` classmethod
+                factory -- silent-disable was the B3 BLOCKER from
+                the 2026-04-25 Red Team review.
+
+        B3 closure (v0.2.3): the v0.2.1 partial closure logged a
+        production-mode warning when ``gate_chain=None``; that was
+        too soft -- a misconfigured deploy could still ship orders
+        with the warning buried in logs. v0.2.3 promotes the warning
+        to a hard ``TypeError`` at construction. Tests that need the
+        ungated path opt in explicitly via
+        ``OrderBook.unsafe_no_gate_chain(...)``.
         """
+        if gate_chain is None:
+            msg = (
+                "OrderBook(journal, gate_chain) requires a non-None "
+                "gate_chain (B3 closure). For production: "
+                "build_default_chain() from mnq.risk. For tests that "
+                "deliberately exercise the ungated path: "
+                "OrderBook.unsafe_no_gate_chain(journal)."
+            )
+            raise TypeError(msg)
         self.journal = journal
         self.logger = logger or get_logger(__name__)
         self._orders: dict[str, Order] = {}
         # Track seen fills by (client_order_id, venue_fill_id) for idempotency
         self._seen_fills: set[tuple[str, str]] = set()
         self._gate_chain = gate_chain
-        # B3 partial: warn loudly when production mode lacks a gate chain.
-        if gate_chain is None:
-            import os
-            env = os.environ.get("MNQ_ENV", "").strip().lower()
-            if env in {"production", "live", "prod"}:
-                self.logger.warning(
-                    "ORDERBOOK_UNSAFE_PRODUCTION",
-                    msg=(
-                        f"OrderBook constructed without gate_chain in "
-                        f"MNQ_ENV={env!r}. The 5-gate pre-trade chain "
-                        f"(heartbeat, pre_trade_pause, deadman, "
-                        f"correlation, governor) is DISABLED. This is "
-                        f"the B3 silent-disable bug from the Red Team "
-                        f"review 2026-04-25. Wire a chain via "
-                        f"build_default_chain() before submitting orders."
-                    ),
-                )
+
+    @classmethod
+    def unsafe_no_gate_chain(
+        cls,
+        journal: EventJournal,
+        *,
+        logger: Any = None,
+    ) -> OrderBook:
+        """Test-only factory for the legacy ungated path.
+
+        B3 closure (v0.2.3): production code MUST NOT call this. The
+        method name is intentionally alarming so a code-review can
+        spot misuse without reading the docstring. Every call site is
+        an explicit acknowledgement that the 5-gate pre-trade chain
+        (heartbeat, pre_trade_pause, deadman, correlation, governor)
+        is disabled for the constructed instance.
+
+        The factory bypasses ``__init__``'s gate_chain validation by
+        constructing the instance manually. ``submit()`` will still
+        run -- it just doesn't evaluate any gates.
+
+        Examples
+        --------
+        Test that exercises the no-chain path:
+
+            book = OrderBook.unsafe_no_gate_chain(temp_journal)
+            book.submit(...)  # no gate evaluation
+
+        Production -- DO NOT DO THIS:
+
+            book = OrderBook.unsafe_no_gate_chain(journal)  # WRONG
+            # ... use OrderBook(journal, build_default_chain()) instead.
+        """
+        instance = cls.__new__(cls)
+        instance.journal = journal
+        instance.logger = logger or get_logger(__name__)
+        instance._orders = {}
+        instance._seen_fills = set()
+        instance._gate_chain = None
+        return instance
 
     def submit(
         self,
@@ -735,9 +765,14 @@ class OrderBook:
             journal: EventJournal instance to replay.
 
         Returns:
-            Reconstructed OrderBook.
+            Reconstructed OrderBook (gate_chain disabled -- replay is
+            an offline read, no order submission happens).
         """
-        book = cls(journal)
+        # B3 closure (v0.2.3): from_journal is a read-only reconstruction
+        # path. No submit() calls fire, so the gate_chain never runs.
+        # Use unsafe_no_gate_chain so __init__'s validation doesn't
+        # demand a chain that would never be consulted.
+        book = cls.unsafe_no_gate_chain(journal)
 
         for entry in journal.replay():
             if entry.event_type == ORDER_SUBMITTED:
