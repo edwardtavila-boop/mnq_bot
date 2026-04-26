@@ -50,6 +50,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -87,6 +88,16 @@ def _resolve_python() -> str:
 
 
 PYTHON = _resolve_python()
+
+
+# Windows consoles default to cp1252 which chokes on the ✓/×/→ symbols
+# used in progress prints. Force UTF-8 so the orchestrator never dies on
+# a print. Safe no-op on POSIX where stdout is already UTF-8.
+import contextlib  # noqa: E402 -- intentionally placed after sys.stdout setup
+
+for _stream in (sys.stdout, sys.stderr):
+    with contextlib.suppress(Exception):
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 
 
 @dataclass
@@ -213,6 +224,79 @@ _PHASE_12_STAGES: list[Stage] = [
 ]
 
 
+# H4 closure (Red Team review 2026-04-25): 9-gate promotion enforcement.
+# The Red Team observed that run_all_phases.py was non-blocking on every
+# gate -- "70/9-fail" runs returned rc=1 but the operator's
+# is_paper_promoted check could read past it. These 9 stages encode the
+# concrete pass criteria from docs/next_data_checkpoint.md and
+# docs/OPERATOR_BRIEFING_2026_04_25.md.
+#
+# Each individual gate is non-blocking (so all 9 produce diagnostics
+# even when one fails). The final promotion_verdict stage IS blocking:
+# it aggregates and returns rc != 0 unless ALL 9 are PASS. That single
+# gate is what flips "paper-eligible" to "live-eligible" in the
+# operator's promotion workflow.
+#
+# NO_DATA counts as HOLD -- gates whose underlying artifact does not
+# exist yet are treated as failed promotion gates, not skipped ones.
+_PHASE_PROMOTION_STAGES: list[Stage] = [
+    Stage(
+        "promotion_walk_forward_ci_low",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "walk_forward_ci_low"],
+    ),
+    Stage(
+        "promotion_block_bootstrap_ci_low",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "block_bootstrap_ci_low"],
+    ),
+    Stage(
+        "promotion_dsr_search",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "dsr_search"],
+    ),
+    Stage(
+        "promotion_psr_deployment",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "psr_deployment"],
+    ),
+    Stage(
+        "promotion_n_trades_min",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "n_trades_min"],
+    ),
+    Stage(
+        "promotion_regime_stability",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "regime_stability"],
+    ),
+    Stage(
+        "promotion_dow_filter_placebo",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "dow_filter_placebo"],
+    ),
+    Stage(
+        "promotion_knob_wf_sensitivity",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "knob_wf_sensitivity"],
+    ),
+    Stage(
+        "promotion_paper_soak_min_weeks",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--gate", "paper_soak_min_weeks"],
+    ),
+    # Final aggregator -- blocks the run when ANY of the 9 above did
+    # not PASS. This is the single switch that flips "is the strategy
+    # promotion-eligible?" from false to true.
+    Stage(
+        "promotion_verdict",
+        "Phase Promotion",
+        [PYTHON, "scripts/_promotion_gate.py", "--all"],
+        blocking=True,
+    ),
+]
+
+
 def _stages(skip: set[str], only: set[str] | None) -> list[Stage]:
     all_stages: list[Stage] = [
         Stage(
@@ -282,23 +366,17 @@ def _stages(skip: set[str], only: set[str] | None) -> list[Stage]:
             "Phase 8",
             [PYTHON, "scripts/shadow_parity.py"],
         ),
-        Stage(
-            "gauntlet_shadow",
-            "Phase 8",
-            [PYTHON, "scripts/shadow_trader.py", "--gauntlet",
-             "--output", "reports/shadow_venue_gated.md"],
-        ),
-        Stage(
-            "gauntlet_stats",
-            "Phase 8",
-            [PYTHON, "scripts/gauntlet_stats.py"],
-        ),
-        Stage(
-            "shadow_v16",
-            "Phase 8",
-            [PYTHON, "scripts/shadow_trader.py", "--v16",
-             "--output", "reports/shadow_venue_v16.md"],
-        ),
+        # RETIRED 2026-04-24: shadow_trader.py CLI was simplified. The
+        # --gauntlet, --v16, --output flags no longer exist. gauntlet_stats
+        # imports DaySummary/GauntletTradeResult/run_shadow which were
+        # removed from shadow_trader in the same refactor. The existing
+        # reports (shadow_venue_gated.md, shadow_venue_v16.md,
+        # gauntlet_stats.md) are preserved as historical artifacts. If this
+        # pipeline is needed again, rebuild against the current ShadowTrader
+        # class API (scripts/shadow_trader.py:146).
+        # Stage("gauntlet_shadow", ...) — retired
+        # Stage("gauntlet_stats", ...) — retired
+        # Stage("shadow_v16", ...) — retired
         Stage(
             "gauntlet_weight_sweep",
             "Phase 8",
@@ -379,6 +457,10 @@ def _stages(skip: set[str], only: set[str] | None) -> list[Stage]:
     all_stages.extend(_PHASE_E_STAGES)
     all_stages.extend(_PHASE_F_STAGES)
     all_stages.extend(_PHASE_12_STAGES)
+    # H4 closure: the 9 promotion gates run last so they evaluate
+    # everything the prior phases produced. The final verdict stage is
+    # blocking -- the orchestrator returns rc != 0 unless all 9 PASS.
+    all_stages.extend(_PHASE_PROMOTION_STAGES)
 
     if only:
         all_stages = [s for s in all_stages if s.name in only]
@@ -389,12 +471,21 @@ def _stages(skip: set[str], only: set[str] | None) -> list[Stage]:
 
 def _run(stage: Stage) -> StageResult:
     t0 = time.monotonic()
+    # Force UTF-8 for subprocess stdout/stderr. Fixes 37/79 stages that
+    # emit Unicode (→, −, ✓) and crash on Windows' default cp1252 codec.
+    # Added 2026-04-24 by firm-daily-orchestrator scheduled task.
+    env = dict(os.environ)
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    env.setdefault("PYTHONUTF8", "1")
     proc = subprocess.run(
         stage.cmd,
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
         check=False,
+        env=env,
+        encoding="utf-8",
+        errors="replace",
     )
     dur = time.monotonic() - t0
     stdout_tail = "\n".join(proc.stdout.splitlines()[-10:])
@@ -565,7 +656,7 @@ def main(argv: list[str] | None = None) -> int:
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     report = _render(results)
-    REPORT_PATH.write_text(report)
+    REPORT_PATH.write_text(report, encoding="utf-8")
     print(f"\nreport: {REPORT_PATH}", flush=True)
 
     n_ok = sum(1 for r in results if r.ok)
