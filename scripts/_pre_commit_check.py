@@ -127,24 +127,74 @@ def main(argv: list[str] | None = None) -> int:
     if rc != 0:
         return 1
 
+    skip_pytest = args.quick or args.no_pytest
     if args.quick:
         print("[pre-commit] --quick -> skipping pytest (ruff passed)", file=sys.stderr)
-        return 0
-    if args.no_pytest:
+    elif args.no_pytest:
         print(
             "[pre-commit] --no-pytest -> WARNING: skipping pytest, "
             "you are committing untested code",
             file=sys.stderr,
         )
-        return 0
+    else:
+        print("[pre-commit] running pytest...", file=sys.stderr)
+        rc = _pytest_check(root=ROOT)
+        if rc != 0:
+            return 2
 
-    print("[pre-commit] running pytest...", file=sys.stderr)
-    rc = _pytest_check(root=ROOT)
-    if rc != 0:
-        return 2
+    # Advisory audits -- mirrors eta_engine's pre-commit pattern.
+    # Audit failures do NOT block the commit; they print summaries
+    # inline so the operator sees drift at commit time. Audits run
+    # even in --quick / --no-pytest mode (cheap, sub-second). To
+    # promote any audit to a hard gate, change the call site to
+    # inspect the return code and return non-zero.
+    _ = skip_pytest  # documentation marker for the comment above
+    _advisory_audits(root=ROOT)
 
     print("[pre-commit] OK -- commit may proceed", file=sys.stderr)
     return 0
+
+
+def _advisory_audits(*, root: Path) -> None:
+    """Run audit scripts in advisory mode and surface results.
+
+    Failures here do NOT block the commit. They print to stderr so
+    the operator sees them inline. Mirrors
+    eta_engine/scripts/_pre_commit_check.py::_advisory_audits.
+    """
+    audits = [
+        ("spec-vs-code", "scripts/_audit_spec_vs_code.py"),
+        ("deferral-criteria", "scripts/_audit_deferral_criteria.py"),
+    ]
+    for label, script in audits:
+        path = root / script
+        if not path.exists():
+            print(
+                f"[pre-commit] advisory: {label} -- {script} missing, skipping",
+                file=sys.stderr,
+            )
+            continue
+        print(f"[pre-commit] advisory: {label}...", file=sys.stderr)
+        result = subprocess.run(
+            ["python", str(path)],
+            cwd=root, capture_output=True, text=True, check=False,
+        )
+        if result.returncode != 0:
+            tail = result.stdout.rstrip().splitlines()[-15:]
+            print(
+                f"[pre-commit] advisory: {label} reports issues "
+                f"(rc={result.returncode}, NOT blocking):",
+                file=sys.stderr,
+            )
+            for line in tail:
+                print(f"[pre-commit]   {line}", file=sys.stderr)
+        else:
+            lines = [
+                ln for ln in result.stdout.rstrip().splitlines()
+                if ln.strip()
+            ]
+            if lines:
+                print(f"[pre-commit]   {lines[-1]}", file=sys.stderr)
 
 
 if __name__ == "__main__":

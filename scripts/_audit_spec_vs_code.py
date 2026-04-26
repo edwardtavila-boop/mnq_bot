@@ -201,6 +201,11 @@ def main(argv: list[str] | None = None) -> int:
                 "then the parent_hash chain that detects "
                 "config-vs-code drift is broken for these variants."
             )
+            print()
+            print(
+                f"FAIL -- {len(unbacked)} StrategyConfig variant(s) "
+                f"in scripts/strategy_v2.py have no spec backing.",
+            )
         else:
             print("OK -- every operationally-active StrategyConfig has spec backing.")
 
