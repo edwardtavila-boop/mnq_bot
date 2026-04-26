@@ -44,6 +44,8 @@ data/fills/
 data/burn_in/
 data/live_sim/
 data/shadow/
+# Disk caches built from local data (regime classifier, etc.)
+data/cache/
 
 # Backups dir is machine-local snapshots
 backups/

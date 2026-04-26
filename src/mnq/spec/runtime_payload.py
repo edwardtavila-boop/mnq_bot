@@ -203,22 +203,110 @@ def _derive_sample_stats(
 # Module-level cache for the (expensive) per-day regime classification.
 # Each Python process pays the tape-load + classification cost ONCE
 # (~30-60s for the full 7-year MNQ 5m tape) and reuses the result for
-# every subsequent build_spec_payload call. The cache is invalidated
-# when the process exits.
+# every subsequent build_spec_payload call.
 _CLASSIFY_CACHE: dict[str, dict[str, str]] = {}
+
+# Disk-backed cache (v0.2.13): the classification map is persisted to
+# ``data/cache/regime_per_day.json`` so subsequent Python invocations
+# don't pay the 30s warm-up. The cache is keyed by the tape file's
+# (size, mtime) -- if either changes the cache is rebuilt. This makes
+# the cache safe across tape updates (databento refreshes) without
+# requiring a manual invalidation step.
+
+
+def _disk_cache_path() -> Path:
+    """Resolve the disk cache file location."""
+    return REPO_ROOT / "data" / "cache" / "regime_per_day.json"
+
+
+def _tape_signature() -> tuple[int, int] | None:
+    """``(size_bytes, mtime_ns)`` of the canonical tape, or None on missing."""
+    try:
+        from mnq.tape.databento_tape import DEFAULT_DATABENTO_5M
+    except ImportError:
+        return None
+    if not DEFAULT_DATABENTO_5M.exists():
+        return None
+    st = DEFAULT_DATABENTO_5M.stat()
+    return (st.st_size, st.st_mtime_ns)
+
+
+def _try_load_disk_cache() -> dict[str, str] | None:
+    """Read the disk cache. Returns None on missing / stale / unreadable.
+
+    A cache is "stale" if the tape's (size, mtime) has changed since
+    the cache was written. Stale caches are silently ignored (the
+    in-memory cache will be rebuilt and re-persisted).
+    """
+    cache_path = _disk_cache_path()
+    if not cache_path.exists():
+        return None
+    try:
+        data = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    sig = _tape_signature()
+    cached_sig = data.get("tape_signature")
+    if sig is None or cached_sig is None:
+        return None
+    if list(cached_sig) != list(sig):
+        return None
+    per_day = data.get("per_day")
+    if not isinstance(per_day, dict):
+        return None
+    # Coerce values to str (they came from json -- safe but explicit)
+    return {str(k): str(v) for k, v in per_day.items()}
+
+
+def _persist_disk_cache(per_day: dict[str, str]) -> None:
+    """Persist the classification map atomically (tmpfile + replace).
+
+    Errors are swallowed: persistence is a perf optimization, not a
+    correctness requirement. A failed persist just means the next
+    process re-pays the warm-up cost.
+    """
+    cache_path = _disk_cache_path()
+    sig = _tape_signature()
+    if sig is None:
+        return
+    payload = {
+        "tape_signature": list(sig),
+        "n_days": len(per_day),
+        "per_day": per_day,
+    }
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = cache_path.with_suffix(cache_path.suffix + ".tmp")
+        tmp.write_text(
+            json.dumps(payload, indent=2, default=str),
+            encoding="utf-8",
+        )
+        tmp.replace(cache_path)
+    except OSError:
+        pass
 
 
 def _per_day_regime_map() -> dict[str, str] | None:
     """Lazily-cached per-day regime map for the canonical 5m tape.
 
+    Resolution order:
+      1. In-memory cache for the current process (fastest)
+      2. Disk cache (validated against tape signature)
+      3. Re-classify the full tape and persist to disk
+
     Returns ``{date_iso: regime_label}`` or None on tape load failure.
-    Cached at module level to avoid re-reading the 490k-row tape
-    on every spec_payload call (e.g. during the test suite where
-    ~10 callers hit it).
     """
     cache_key = "default"
     if cache_key in _CLASSIFY_CACHE:
         return _CLASSIFY_CACHE[cache_key]
+    # Try disk cache first (cheap)
+    disk = _try_load_disk_cache()
+    if disk is not None:
+        _CLASSIFY_CACHE[cache_key] = disk
+        return disk
+    # Cold path: re-classify and persist
     try:
         from mnq.regime import classify_per_day
         from mnq.tape import iter_databento_bars
@@ -232,6 +320,7 @@ def _per_day_regime_map() -> dict[str, str] | None:
         return None
     per_day = {k: v.value for k, v in classify_per_day(all_bars).items()}
     _CLASSIFY_CACHE[cache_key] = per_day
+    _persist_disk_cache(per_day)
     return per_day
 
 
@@ -284,6 +373,72 @@ def _approved_regimes(daily_pnl: dict[str, float] | None) -> list[str]:
     if pos_days:
         return ["normal_vol_trend"]
     return []
+
+
+def _regime_expectancy_stats(
+    cfg: Any,
+    daily_pnl: dict[str, float] | None,
+) -> dict[str, dict[str, float]]:
+    """Per-regime aggregate stats for the variant's day-by-day results.
+
+    For each regime where the variant has at least one trading day,
+    returns:
+      n_days       -- count of days the variant traded in this regime
+      total_pnl    -- sum of P&L (in dollars) across those days
+      pnl_per_day  -- mean P&L per day
+      expectancy_r -- pnl_per_day / risk_dollars / trades_per_day
+                      (per-trade R, same units as the top-level
+                      ``expected_expectancy_r``)
+
+    The Firm MacroAgent reads this dict to answer "does the variant
+    actually have edge in regime X, or is regime X just rare in the
+    sample?" If a regime shows up in ``regimes_approved`` but its
+    n_days is 1 of 15, the answer is "regime is rare, evidence is
+    thin" -- a verdict the agent can't reach from
+    ``regimes_approved`` alone.
+
+    Returns ``{}`` (empty dict) when daily_pnl is None or the
+    classifier is unavailable. Empty maps to "no per-regime evidence"
+    in the Firm payload, distinct from a regime with n_days=0 (which
+    means "we know the regime exists but the strategy never traded it").
+    """
+    if not daily_pnl:
+        return {}
+    per_day = _per_day_regime_map()
+    if per_day is None:
+        return {}
+    # Group dates by classified regime
+    by_regime: dict[str, list[float]] = {}
+    for date, pnl in daily_pnl.items():
+        regime = per_day.get(date)
+        if regime is None:
+            continue
+        by_regime.setdefault(regime, []).append(pnl)
+    if not by_regime:
+        return {}
+    # Compute stats
+    risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
+    risk_dollars = (
+        risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)
+    ) if risk_ticks > 0 else 0.0
+    rate = _journal_trades_per_day() or float(TRADES_PER_DAY_PROXY)
+    out: dict[str, dict[str, float]] = {}
+    for regime, pnls in by_regime.items():
+        n = len(pnls)
+        total = sum(pnls)
+        pnl_per_day = total / n if n else 0.0
+        # expectancy_r per trade: pnl_per_day / (rate * risk_dollars)
+        expectancy_r = (
+            pnl_per_day / (rate * risk_dollars)
+            if risk_dollars > 0 and rate > 0 else 0.0
+        )
+        out[regime] = {
+            "n_days": float(n),
+            "total_pnl": float(total),
+            "pnl_per_day": float(pnl_per_day),
+            "expectancy_r": float(expectancy_r),
+        }
+    return out
 
 
 def _entry_logic_str(cfg: Any) -> str:
@@ -410,6 +565,10 @@ def build_spec_payload(variant_name: str) -> dict[str, Any]:
         "target_logic": _target_logic_str(cfg),
         "dd_kill_switch_r": _dd_kill_switch_r(cfg, spec),
         "regimes_approved": _approved_regimes(daily),
+        # v0.2.13: per-regime expectancy + n_days. Lets the Firm
+        # MacroAgent see "regime X passed BUT n_days=1 of 15" -- a
+        # verdict the agent can't reach from regimes_approved alone.
+        "regime_expectancy": _regime_expectancy_stats(cfg, daily),
         "approved_sessions": _approved_sessions(spec),
         "provenance": provenance,
     }
