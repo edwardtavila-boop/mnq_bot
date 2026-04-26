@@ -200,15 +200,86 @@ def _derive_sample_stats(
     return sample_size, float(expectancy_r), float(oos_deg)
 
 
-def _approved_regimes(daily_pnl: dict[str, float] | None) -> list[str]:
-    """Approved regimes proxy: bin days by P&L sign.
+# Module-level cache for the (expensive) per-day regime classification.
+# Each Python process pays the tape-load + classification cost ONCE
+# (~30-60s for the full 7-year MNQ 5m tape) and reuses the result for
+# every subsequent build_spec_payload call. The cache is invalidated
+# when the process exits.
+_CLASSIFY_CACHE: dict[str, dict[str, str]] = {}
 
-    Without a per-bar regime tag we can't do better than a coarse split.
-    Days with positive P&L map to ``normal_vol_trend`` (the strategy's
-    sweet spot); negative-P&L days don't get an approval label.
+
+def _per_day_regime_map() -> dict[str, str] | None:
+    """Lazily-cached per-day regime map for the canonical 5m tape.
+
+    Returns ``{date_iso: regime_label}`` or None on tape load failure.
+    Cached at module level to avoid re-reading the 490k-row tape
+    on every spec_payload call (e.g. during the test suite where
+    ~10 callers hit it).
+    """
+    cache_key = "default"
+    if cache_key in _CLASSIFY_CACHE:
+        return _CLASSIFY_CACHE[cache_key]
+    try:
+        from mnq.regime import classify_per_day
+        from mnq.tape import iter_databento_bars
+    except ImportError:
+        return None
+    try:
+        all_bars: list[Any] = list(iter_databento_bars())
+    except (FileNotFoundError, OSError):
+        return None
+    if not all_bars:
+        return None
+    per_day = {k: v.value for k, v in classify_per_day(all_bars).items()}
+    _CLASSIFY_CACHE[cache_key] = per_day
+    return per_day
+
+
+def _approved_regimes_from_tape(
+    daily_pnl: dict[str, float],
+) -> list[str] | None:
+    """Use the real-tape per-day regime classifier to derive
+    ``regimes_approved`` from positive-PnL days.
+
+    Returns ``None`` if the tape isn't available or the classifier
+    can't be loaded -- caller falls back to the legacy stub. Returns
+    a sorted list of unique regime labels otherwise.
+
+    v0.2.12: replaces the v0.2.7 stub ("any positive-PnL day ->
+    normal_vol_trend") with a real per-day classification. The Firm
+    MacroAgent uses ``regimes_approved`` to decide whether the
+    strategy's wins came in conditions that *could happen again*; a
+    real classification beats the stub for that decision.
+    """
+    pos_days = {d for d, v in daily_pnl.items() if v > 0}
+    if not pos_days:
+        return []
+    per_day = _per_day_regime_map()
+    if per_day is None:
+        return None
+    regimes = {
+        per_day[day]
+        for day in pos_days
+        if day in per_day
+    }
+    if not regimes:
+        return None
+    return sorted(regimes)
+
+
+def _approved_regimes(daily_pnl: dict[str, float] | None) -> list[str]:
+    """Approved regimes: prefer real classification, fall back to stub.
+
+    v0.2.12: tries the real per-day classifier first. Falls back to
+    the v0.2.7 coarse stub ("any positive-PnL day -> normal_vol_trend")
+    when the tape or classifier is unavailable so existing variants
+    don't regress.
     """
     if not daily_pnl:
         return []
+    real = _approved_regimes_from_tape(daily_pnl)
+    if real is not None:
+        return real
     pos_days = [d for d, v in daily_pnl.items() if v > 0]
     if pos_days:
         return ["normal_vol_trend"]
