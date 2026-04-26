@@ -138,7 +138,8 @@ def test_synthetic_backtest_data_drives_sample_size(
     monkeypatch, tmp_path: Path,
 ) -> None:
     """A hand-crafted backtest file with N positive-PnL days should
-    produce sample_size = N * TRADES_PER_DAY_PROXY."""
+    produce sample_size = N * TRADES_PER_DAY_PROXY (when no journal
+    rate is available)."""
     fake_path = tmp_path / "fake_daily.json"
     fake_path.write_text(
         json.dumps({
@@ -154,6 +155,14 @@ def test_synthetic_backtest_data_drives_sample_size(
     )
     monkeypatch.setattr(
         "mnq.spec.runtime_payload.BACKTEST_DAILY_JSON", fake_path,
+    )
+    # v0.2.10: pin journal rate to None so the test exercises the
+    # TRADES_PER_DAY_PROXY fallback path. Without this patch the
+    # actual live_sim journal might have fills that override the
+    # proxy and break the deterministic assertion.
+    monkeypatch.setattr(
+        "mnq.spec.runtime_payload._journal_trades_per_day",
+        lambda: None,
     )
     payload = build_spec_payload("r5_real_wide_target")
     assert payload["sample_size"] == 5 * TRADES_PER_DAY_PROXY

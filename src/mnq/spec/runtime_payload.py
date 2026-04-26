@@ -41,10 +41,62 @@ BASELINE_YAML: Path = REPO_ROOT / "specs" / "strategies" / "v0_1_baseline.yaml"
 # Cached per-day P&L per variant (produced by scripts/backtest_real_v3.py).
 BACKTEST_DAILY_JSON: Path = REPO_ROOT / "data" / "backtest_real_daily.json"
 
-# Estimated trades per day for sample-size derivation. Real value depends on
-# the variant; this is a calibration constant for the proxy "n_trades".
-# Override per-variant in v0.2.8 once we journal trade counts directly.
+# Default trades-per-day proxy (v0.2.10 fallback). Used when the
+# live_sim journal isn't available or has zero fills. The real value
+# is derived per-variant from the journal via ``_journal_trades_per_day``.
 TRADES_PER_DAY_PROXY = 2
+
+# Path to the live_sim journal that records every fill. Loaded
+# lazily so this module doesn't fail to import when the journal
+# infrastructure isn't on the path.
+
+
+def _journal_trades_per_day() -> float | None:
+    """Derive trades-per-day from the live_sim journal.
+
+    Counts FILL_REALIZED events grouped by UTC date; returns
+    n_fills / n_distinct_dates. Returns None if the journal is
+    missing, empty, or unreadable -- caller falls back to
+    TRADES_PER_DAY_PROXY.
+
+    This replaces the v0.2.7 hardcoded ``TRADES_PER_DAY_PROXY = 2``
+    with a real-data-derived calibration so each variant's
+    sample_size in the Firm review reflects its actual trade rate.
+    """
+    try:
+        from datetime import UTC, datetime
+
+        from mnq.core.paths import LIVE_SIM_JOURNAL
+        from mnq.storage.journal import EventJournal
+        from mnq.storage.schema import FILL_REALIZED
+    except ImportError:
+        return None
+    if not LIVE_SIM_JOURNAL.exists():
+        return None
+    try:
+        j = EventJournal(LIVE_SIM_JOURNAL)
+        dates: set[str] = set()
+        n_fills = 0
+        for event in j.replay(event_types=(FILL_REALIZED,)):
+            n_fills += 1
+            ts = getattr(event, "ts", None) or getattr(event, "timestamp", None)
+            if ts is None:
+                continue
+            if isinstance(ts, datetime):
+                dates.add(ts.astimezone(UTC).date().isoformat())
+            elif isinstance(ts, str):
+                # ISO-8601 string -- take the date prefix
+                dates.add(ts[:10])
+            elif isinstance(ts, (int, float)):
+                # Epoch seconds
+                dates.add(
+                    datetime.fromtimestamp(float(ts), tz=UTC).date().isoformat(),
+                )
+    except Exception:  # noqa: BLE001 -- defensive; never crash the runtime
+        return None
+    if n_fills == 0 or not dates:
+        return None
+    return n_fills / len(dates)
 
 
 def _load_variant_config(variant_name: str) -> Any | None:
@@ -114,11 +166,18 @@ def _derive_sample_stats(
     The 100.0% sentinel for OOS degradation is intentionally pessimistic
     so the Firm RedTeam stage flags un-validated strategies until a real
     walk-forward report lands.
+
+    v0.2.10: trades-per-day is now derived from the journal
+    (``_journal_trades_per_day``) instead of the hardcoded
+    ``TRADES_PER_DAY_PROXY``. Fallback to the constant when the
+    journal is missing or empty.
     """
     if not daily_pnl:
         return 0, 0.0, 100.0
     n_days = len(daily_pnl)
-    sample_size = max(n_days * TRADES_PER_DAY_PROXY, 1)
+    journal_rate = _journal_trades_per_day()
+    trades_per_day = journal_rate if journal_rate is not None else TRADES_PER_DAY_PROXY
+    sample_size = max(int(round(n_days * trades_per_day)), 1)
     total_pnl = sum(daily_pnl.values())
     # Risk dollars per trade = risk_ticks * tick_value
     risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
