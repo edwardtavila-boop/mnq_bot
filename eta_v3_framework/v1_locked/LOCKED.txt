@@ -1,1 +1,2 @@
 V1 LOCKED Wed Apr 15 23:29:59 UTC 2026
+V1 RE-LOCKED Mon Apr 27 04:30:00 UTC 2026 (post-rebrand: identifier renames only, behavior unchanged)
