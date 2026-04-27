@@ -22,7 +22,7 @@ This skill generates a React (.jsx) artifact that serves as the elite command ce
 If the user wants fresh data, run the orchestrator first:
 
 ```bash
-cd /path/to/mnq_bot && .venv/bin/python scripts/run_all_phases.py
+cd C:/EvolutionaryTradingAlgo/mnq_bot && .venv/Scripts/python.exe scripts/run_all_phases.py
 ```
 
 If the user just wants to view existing data, skip this step.

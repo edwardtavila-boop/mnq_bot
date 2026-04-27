@@ -59,12 +59,12 @@ DEFAULT_FIRM_PATH_ENV = "FIRM_CODE_PATH"
 # H2 closure (Red Team review 2026-04-25): firm package was historically
 # at OneDrive/The_Firm/the_firm_complete/desktop_app/firm but OneDrive's
 # sync layer was truncating the firm_runtime.py shim unpredictably (the
-# reason _shim_guard.py exists). The package is now mirrored at
-# C:/Users/edwar/projects/firm (sibling to mnq_bot, no OneDrive). The
-# bridge prefers the projects/ location and falls back to OneDrive only
-# when projects/ is missing -- supports a fresh machine that hasn't run
-# the migration yet. Operator override via FIRM_CODE_PATH env var.
+# reason _shim_guard.py exists). After the 2026-04-26 consolidation the
+# canonical location is C:/EvolutionaryTradingAlgo/firm; older sibling
+# layouts are kept as fallbacks for fresh machines mid-migration.
+# Operator override via FIRM_CODE_PATH env var.
 _DEFAULT_FIRM_CANDIDATES = (
+    Path("C:/EvolutionaryTradingAlgo/firm"),
     Path("C:/Users/edwar/projects/firm"),
     Path("C:/Users/edwar/OneDrive/The_Firm/the_firm_complete/desktop_app/firm"),
 )
