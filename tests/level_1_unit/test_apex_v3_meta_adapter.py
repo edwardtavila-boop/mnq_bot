@@ -9,6 +9,7 @@ orchestrator reads. These tests lock in:
   - defensive casting for malformed MetaDecisions
   - strategy-param override shape
 """
+
 from __future__ import annotations
 
 from mnq.eta_v3 import (
@@ -43,6 +44,7 @@ def _fake_snapshot(**overrides) -> MetaSnapshot:
 # Probe
 # ─────────────────────────────────────────────────────────────────────────
 
+
 class TestProbe:
     def test_probe_returns_dict_with_available_key(self):
         r = probe_meta_firm_engine()
@@ -60,6 +62,7 @@ class TestProbe:
 # ─────────────────────────────────────────────────────────────────────────
 # build_meta_context / run_meta_evaluation
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class TestBuildContext:
     def test_build_without_framework_returns_none_gracefully(self):
@@ -95,6 +98,7 @@ class TestRunEvaluation:
 # ─────────────────────────────────────────────────────────────────────────
 # Payload enrichment
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class TestPayloadEnrichment:
     def test_none_snapshot_returns_base_unchanged_copy(self):
@@ -157,6 +161,7 @@ class TestPayloadEnrichment:
 # Strategy-param override
 # ─────────────────────────────────────────────────────────────────────────
 
+
 class TestApplyOverrides:
     def test_none_snapshot_returns_base_copy(self):
         base = {"pm_gate": 40.0, "size_multiplier": 1.0}
@@ -165,8 +170,7 @@ class TestApplyOverrides:
         assert out is not base
 
     def test_snapshot_overrides_pm_gate(self):
-        out = apply_meta_overrides({"pm_gate": 40.0},
-                                   _fake_snapshot(pm_threshold=25.0))
+        out = apply_meta_overrides({"pm_gate": 40.0}, _fake_snapshot(pm_threshold=25.0))
         assert out["pm_gate"] == 25.0
 
     def test_snapshot_overrides_size_and_budget(self):
@@ -188,10 +192,9 @@ class TestApplyOverrides:
         # When the meta-firm pauses the day, we still want the caller
         # to see the override dict populated for telemetry — the
         # honouring of trade_allowed is the caller's responsibility.
-        out = apply_meta_overrides({},
-                                   _fake_snapshot(trade_allowed=False,
-                                                  pm_threshold=50.0,
-                                                  size_multiplier=0.0))
+        out = apply_meta_overrides(
+            {}, _fake_snapshot(trade_allowed=False, pm_threshold=50.0, size_multiplier=0.0)
+        )
         assert out["trade_allowed"] is False
         assert out["pm_gate"] == 50.0
         assert out["size_multiplier"] == 0.0
@@ -200,6 +203,7 @@ class TestApplyOverrides:
 # ─────────────────────────────────────────────────────────────────────────
 # Summarise
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class TestSummarize:
     def test_none_returns_unavailable_label(self):
@@ -227,6 +231,7 @@ class TestSummarize:
 # ─────────────────────────────────────────────────────────────────────────
 # Integration: per-trade adapter + meta adapter compose cleanly
 # ─────────────────────────────────────────────────────────────────────────
+
 
 class TestComposition:
     def test_per_trade_and_meta_both_enrich_same_payload(self):

@@ -23,6 +23,7 @@ Each gate is intentionally self-contained and returns its own
 numeric score in ``detail["score"]`` so the 15-voice engine in
 ``eta_v3_framework`` can aggregate them later.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -34,7 +35,7 @@ from datetime import UTC, datetime, time
 class GateVerdict:
     name: str
     pass_: bool
-    score: float          # 0.0–1.0 confidence
+    score: float  # 0.0–1.0 confidence
     detail: dict[str, object] = field(default_factory=dict)
 
 
@@ -47,27 +48,28 @@ class GauntletContext:
     partial data (e.g. no live CVD feed) without blocking the whole
     chain.
     """
+
     now: datetime
-    bar_index: int = 0                # 0-based index within day
-    side: str = "long"                # "long" | "short"
-    closes: list[float] = field(default_factory=list)   # recent 1m closes
-    highs:  list[float] = field(default_factory=list)
-    lows:   list[float] = field(default_factory=list)
-    volumes: list[int]  = field(default_factory=list)
+    bar_index: int = 0  # 0-based index within day
+    side: str = "long"  # "long" | "short"
+    closes: list[float] = field(default_factory=list)  # recent 1m closes
+    highs: list[float] = field(default_factory=list)
+    lows: list[float] = field(default_factory=list)
+    volumes: list[int] = field(default_factory=list)
     ema_fast: float | None = None
     ema_slow: float | None = None
     ema_fast_prev: float | None = None
     ema_slow_prev: float | None = None
     loss_streak: int = 0
     high_impact_events_minutes: list[int] = field(default_factory=list)
-    regime: str | None = None          # "trend_up" | "trend_down" | "chop" | ...
-    intermarket_corr: float | None = None   # e.g. ES correlation
+    regime: str | None = None  # "trend_up" | "trend_down" | "chop" | ...
+    intermarket_corr: float | None = None  # e.g. ES correlation
     spread_ticks: float | None = None
     # Order flow features (Batch 7A — from orderflow.py)
-    cvd: float | None = None               # cumulative volume delta
-    bar_delta: float | None = None          # single-bar volume delta
-    imbalance: float | None = None          # bid/ask imbalance [-1, +1]
-    absorption_score: float | None = None   # range/body proxy [0, 1]
+    cvd: float | None = None  # cumulative volume delta
+    bar_delta: float | None = None  # single-bar volume delta
+    imbalance: float | None = None  # bid/ask imbalance [-1, +1]
+    absorption_score: float | None = None  # range/body proxy [0, 1]
     buy_aggressor_pct: float | None = None  # buyer aggression [0, 1]
     # Intermarket correlation data (Batch 7B)
     es_closes: list[float] = field(default_factory=list)  # ES 1m closes (parallel to MNQ)
@@ -77,10 +79,10 @@ class GauntletContext:
 # Individual gates
 # ---------------------------------------------------------------------------
 
-RTH_START = time(13, 30)      # 09:30 ET → 13:30 UTC
-RTH_END   = time(20, 0)       # 16:00 ET → 20:00 UTC
+RTH_START = time(13, 30)  # 09:30 ET → 13:30 UTC
+RTH_END = time(20, 0)  # 16:00 ET → 20:00 UTC
 LUNCH_START = time(16, 0)
-LUNCH_END   = time(17, 30)
+LUNCH_END = time(17, 30)
 
 
 def gate_session(ctx: GauntletContext) -> GateVerdict:
@@ -88,14 +90,21 @@ def gate_session(ctx: GauntletContext) -> GateVerdict:
     in_rth = RTH_START <= t <= RTH_END
     in_lunch = LUNCH_START <= t <= LUNCH_END
     ok = in_rth and not in_lunch
-    return GateVerdict("session", ok, 1.0 if ok else 0.0, {"time": t.isoformat(), "in_lunch": in_lunch})
+    return GateVerdict(
+        "session", ok, 1.0 if ok else 0.0, {"time": t.isoformat(), "in_lunch": in_lunch}
+    )
 
 
 # Rough expectancy bucket from time_heatmap learnings. Green = best.
 _HOUR_BUCKETS = {
-    13: "yellow", 14: "green", 15: "green",   # 9-11 ET
-    16: "yellow", 17: "red",                  # lunch transition
-    18: "green", 19: "green", 20: "yellow",   # 2-4 ET
+    13: "yellow",
+    14: "green",
+    15: "green",  # 9-11 ET
+    16: "yellow",
+    17: "red",  # lunch transition
+    18: "green",
+    19: "green",
+    20: "yellow",  # 2-4 ET
 }
 
 
@@ -113,7 +122,7 @@ def _stdev(xs: Iterable[float]) -> float:
         return 0.0
     m = sum(xs) / len(xs)
     var = sum((x - m) ** 2 for x in xs) / (len(xs) - 1)
-    return var ** 0.5
+    return var**0.5
 
 
 def gate_vol_band(ctx: GauntletContext, *, band: tuple[float, float] = (3.0, 40.0)) -> GateVerdict:
@@ -138,8 +147,9 @@ def gate_trend_align(ctx: GauntletContext) -> GateVerdict:
     else:
         ok = d_fast < 0 and d_slow <= 0 and fast < slow
     score = 1.0 if ok else 0.0
-    return GateVerdict("trend_align", ok, score,
-                       {"d_fast": d_fast, "d_slow": d_slow, "fast": fast, "slow": slow})
+    return GateVerdict(
+        "trend_align", ok, score, {"d_fast": d_fast, "d_slow": d_slow, "fast": fast, "slow": slow}
+    )
 
 
 def gate_cross_mag(ctx: GauntletContext, *, min_mag: float = 1.5) -> GateVerdict:
@@ -183,15 +193,21 @@ def gate_orderflow(ctx: GauntletContext) -> GateVerdict:
 
         # Aggressor alignment (0.10 weight)
         agg = ctx.buy_aggressor_pct
-        agg_ok = (agg is not None and agg > 0.6) if wants_positive else (agg is not None and agg < 0.4)
+        agg_ok = (
+            (agg is not None and agg > 0.6) if wants_positive else (agg is not None and agg < 0.4)
+        )
         agg_score = 0.10 if agg_ok else 0.0
 
         score = cvd_score + imb_score + abs_score + agg_score
         ok = score >= 0.5
         detail = {
-            "mode": "orderflow_tracker", "cvd": ctx.cvd,
-            "imbalance": ctx.imbalance, "absorption": ctx.absorption_score,
-            "buy_agg": ctx.buy_aggressor_pct, "cvd_ok": cvd_ok, "imb_ok": imb_ok,
+            "mode": "orderflow_tracker",
+            "cvd": ctx.cvd,
+            "imbalance": ctx.imbalance,
+            "absorption": ctx.absorption_score,
+            "buy_agg": ctx.buy_aggressor_pct,
+            "cvd_ok": cvd_ok,
+            "imb_ok": imb_ok,
         }
         return GateVerdict("orderflow", ok, score, detail)
 
@@ -227,8 +243,12 @@ def gate_volume_confirm(ctx: GauntletContext, *, factor: float = 1.0) -> GateVer
 
 def gate_streak(ctx: GauntletContext, *, max_streak: int = 3) -> GateVerdict:
     ok = ctx.loss_streak < max_streak
-    return GateVerdict("streak", ok, 1.0 - (ctx.loss_streak / max_streak),
-                       {"loss_streak": ctx.loss_streak, "max": max_streak})
+    return GateVerdict(
+        "streak",
+        ok,
+        1.0 - (ctx.loss_streak / max_streak),
+        {"loss_streak": ctx.loss_streak, "max": max_streak},
+    )
 
 
 def gate_news_window(ctx: GauntletContext, *, window_min: int = 30) -> GateVerdict:
@@ -256,7 +276,12 @@ def gate_regime(ctx: GauntletContext) -> GateVerdict:
         score = 0.0
     else:
         score = 0.0
-    return GateVerdict("regime", score > 0.0, score, {"regime": ctx.regime, "side": ctx.side})
+    # Gate threshold: require a *confident* regime match. A bare >0.0 allowed
+    # ``chop`` (score 0.3) through, which contradicts the scoring intent that
+    # chop days should be penalized rather than silently passed. Lifting the
+    # bar to >=0.5 blocks chop while still admitting aligned trend regimes
+    # (score 1.0) and leaving the stub path (0.5) as a soft pass.
+    return GateVerdict("regime", score >= 0.5, score, {"regime": ctx.regime, "side": ctx.side})
 
 
 def gate_correlation(ctx: GauntletContext, *, min_corr: float = 0.0) -> GateVerdict:
@@ -274,25 +299,31 @@ def gate_correlation(ctx: GauntletContext, *, min_corr: float = 0.0) -> GateVerd
     if ctx.intermarket_corr is not None:
         ok = ctx.intermarket_corr >= min_corr
         score = max(0.0, min(1.0, ctx.intermarket_corr))
-        return GateVerdict("correlation", ok, score,
-                           {"mode": "precomputed", "corr": ctx.intermarket_corr})
+        return GateVerdict(
+            "correlation", ok, score, {"mode": "precomputed", "corr": ctx.intermarket_corr}
+        )
 
     # Mode 2: compute from ES closes
     if ctx.es_closes and len(ctx.es_closes) >= 20 and len(ctx.closes) >= 20:
         n = min(len(ctx.closes), len(ctx.es_closes), 20)
         mnq = ctx.closes[-n:]
         es = ctx.es_closes[-n:]
-        # Pearson correlation
+        # Pearson correlation — sample estimator with Bessel correction.
+        # Population form (denominator n) biases std downward on small
+        # windows; with n==20 the bias is ~5%. numpy.corrcoef and pandas
+        # .corr() both use (n-1), so this keeps our outputs comparable.
         m_mnq = sum(mnq) / n
         m_es = sum(es) / n
-        cov = sum((a - m_mnq) * (b - m_es) for a, b in zip(mnq, es, strict=True)) / n
-        std_mnq = (sum((a - m_mnq) ** 2 for a in mnq) / n) ** 0.5
-        std_es = (sum((b - m_es) ** 2 for b in es) / n) ** 0.5
+        denom = n - 1
+        cov = sum((a - m_mnq) * (b - m_es) for a, b in zip(mnq, es, strict=True)) / denom
+        std_mnq = (sum((a - m_mnq) ** 2 for a in mnq) / denom) ** 0.5
+        std_es = (sum((b - m_es) ** 2 for b in es) / denom) ** 0.5
         corr = cov / (std_mnq * std_es) if std_mnq > 0 and std_es > 0 else 0.0
         ok = corr >= min_corr
         score = max(0.0, min(1.0, corr))
-        return GateVerdict("correlation", ok, score,
-                           {"mode": "computed", "corr": round(corr, 4), "n_bars": n})
+        return GateVerdict(
+            "correlation", ok, score, {"mode": "computed", "corr": round(corr, 4), "n_bars": n}
+        )
 
     # Mode 3: stub
     return GateVerdict("correlation", True, 0.5, {"mode": "stub", "reason": "no intermarket"})

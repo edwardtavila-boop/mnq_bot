@@ -22,15 +22,14 @@ Usage:
         # gate chain will auto-block via pre_trade_gate.json
         pass
 """
+
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-
-import numpy as np
 
 from mnq.observability.parity import (
     ParityReport,
@@ -197,9 +196,7 @@ class ToleranceHarness:
         self.gate_path = gate_path or (repo_root / "data" / "pre_trade_gate.json")
         self.state = HarnessState.load(self.state_path)
 
-    def _classify(
-        self, metric: str, value: float, warn: float, crit: float
-    ) -> ToleranceAlert:
+    def _classify(self, metric: str, value: float, warn: float, crit: float) -> ToleranceAlert:
         """Classify a single metric against warning/critical thresholds."""
         abs_val = abs(value)
         if abs_val >= crit:
@@ -261,12 +258,8 @@ class ToleranceHarness:
         th = self.thresholds
 
         # Summarize both environments
-        paper_summary = summarize_env(
-            paper_journal, env_label="paper", since=since, until=until
-        )
-        live_summary = summarize_env(
-            live_journal, env_label="live", since=since, until=until
-        )
+        paper_summary = summarize_env(paper_journal, env_label="paper", since=since, until=until)
+        live_summary = summarize_env(live_journal, env_label="live", since=since, until=until)
 
         n_paper = paper_summary.n_trades
         n_live = live_summary.n_trades
@@ -302,15 +295,11 @@ class ToleranceHarness:
 
         # PnL divergence
         pnl_diff = report.trade_pnl_diff_ci.point
-        alerts.append(
-            self._classify("pnl_per_trade", pnl_diff, th.pnl_warning, th.pnl_critical)
-        )
+        alerts.append(self._classify("pnl_per_trade", pnl_diff, th.pnl_warning, th.pnl_critical))
 
         # Win-rate divergence
         alerts.append(
-            self._classify(
-                "win_rate", report.win_rate_diff, th.wr_warning, th.wr_critical
-            )
+            self._classify("win_rate", report.win_rate_diff, th.wr_warning, th.wr_critical)
         )
 
         # Slippage divergence
@@ -325,8 +314,16 @@ class ToleranceHarness:
 
         # Fill-rate divergence (computed from rejected counts)
         if n_paper > 0 and n_live > 0:
-            paper_fill = n_paper / (n_paper + paper_summary.n_rejected) if (n_paper + paper_summary.n_rejected) > 0 else 1.0
-            live_fill = n_live / (n_live + live_summary.n_rejected) if (n_live + live_summary.n_rejected) > 0 else 1.0
+            paper_fill = (
+                n_paper / (n_paper + paper_summary.n_rejected)
+                if (n_paper + paper_summary.n_rejected) > 0
+                else 1.0
+            )
+            live_fill = (
+                n_live / (n_live + live_summary.n_rejected)
+                if (n_live + live_summary.n_rejected) > 0
+                else 1.0
+            )
             fill_diff = live_fill - paper_fill
             alerts.append(
                 self._classify(

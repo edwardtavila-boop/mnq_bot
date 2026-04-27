@@ -19,6 +19,7 @@ Risk-manager integration is deliberately hook-shaped, not owned here —
 the executor wraps `StrategyBase` and enforces the spec's risk caps
 before any signal reaches the venue.
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -281,8 +282,10 @@ class StrategyBase:
 
     def _build_signal(self, side: Side, ctx: BarCtx) -> Signal:
         stop_ticks = int(self._compute_stop_ticks(ctx))
-        stop_ticks = max(self.spec.exit.initial_stop.min_ticks,
-                         min(self.spec.exit.initial_stop.max_ticks, stop_ticks))
+        stop_ticks = max(
+            self.spec.exit.initial_stop.min_ticks,
+            min(self.spec.exit.initial_stop.max_ticks, stop_ticks),
+        )
         tp_ticks = self._compute_tp_ticks(stop_ticks)
 
         ref = quantize_to_tick(ctx.bar.close, self._tick)
@@ -346,7 +349,9 @@ class StrategyBase:
             qty = int(ps.fixed_contracts or 1)
         else:
             risk_usd = float(ps.risk_per_trade_usd or 0)
-            tick_value = float(self.spec.instrument.tick_size) * float(self.spec.instrument.point_value)
+            tick_value = float(self.spec.instrument.tick_size) * float(
+                self.spec.instrument.point_value
+            )
             per_ct_risk = stop_ticks * tick_value
             if per_ct_risk <= 0:
                 qty = int(ps.min_contracts)
@@ -387,7 +392,7 @@ class StrategyBase:
 
     # ---- hooks (overridden by generated subclass) ----
 
-    def _eval_long(self, ctx: BarCtx) -> bool:   # pragma: no cover
+    def _eval_long(self, ctx: BarCtx) -> bool:  # pragma: no cover
         raise NotImplementedError
 
     def _eval_short(self, ctx: BarCtx) -> bool:  # pragma: no cover

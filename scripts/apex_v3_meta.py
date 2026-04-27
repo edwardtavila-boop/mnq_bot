@@ -18,6 +18,7 @@ Writes ``reports/eta_v3_meta.md`` with:
 
 Always exits 0 — observational. Fail-open on every branch.
 """
+
 from __future__ import annotations
 
 import json
@@ -123,9 +124,7 @@ def main() -> int:
         "allowed_setups": ["ORB", "EMA PB", "SWEEP"],
     }
     overridden = apply_meta_overrides(base_strategy_params, snapshot)
-    strat_diff = sorted(
-        k for k, v in overridden.items() if base_strategy_params.get(k) != v
-    )
+    strat_diff = sorted(k for k, v in overridden.items() if base_strategy_params.get(k) != v)
 
     lines: list[str] = [
         f"# Apex V3 Meta-Firm — {now}",
@@ -135,15 +134,9 @@ def main() -> int:
         "",
     ]
     if probe.get("available"):
-        lines.append(
-            f"- Meta-voices exposed: **{probe.get('voices_found', 0)}**"
-        )
-        lines.append(
-            f"- `run_meta_firm` callable: **{probe.get('has_run_meta_firm')}**"
-        )
-        lines.append(
-            f"- `MetaContext` dataclass: **{probe.get('has_meta_context')}**"
-        )
+        lines.append(f"- Meta-voices exposed: **{probe.get('voices_found', 0)}**")
+        lines.append(f"- `run_meta_firm` callable: **{probe.get('has_run_meta_firm')}**")
+        lines.append(f"- `MetaContext` dataclass: **{probe.get('has_meta_context')}**")
         lines.append("")
         lines.append("## Meta-voice names")
         lines.append("")
@@ -154,67 +147,69 @@ def main() -> int:
     else:
         lines.append(f"- Reason: `{probe.get('reason', 'unknown')}`")
         lines.append("")
-        lines.append(
-            "The adapter's contract is fail-open: with the engine unavailable,"
-        )
-        lines.append(
-            "``meta_to_firm_payload(base, None)`` returns the base unchanged."
-        )
+        lines.append("The adapter's contract is fail-open: with the engine unavailable,")
+        lines.append("``meta_to_firm_payload(base, None)`` returns the base unchanged.")
         lines.append("")
 
-    lines.extend([
-        "## Single-line summary",
-        "",
-        "```",
-        summarize_meta(snapshot),
-        "```",
-        "",
-        "## Payload enrichment",
-        "",
-        "Base payload:",
-        "",
-        "```json",
-        json.dumps(base_payload, indent=2, sort_keys=True),
-        "```",
-        "",
-        "Enriched keys (`eta_v3_meta*`):",
-        "",
-        "```json",
-        json.dumps(
-            {k: enriched[k] for k in added} or {"_note": "no enrichment"},
-            indent=2, default=str, sort_keys=True,
-        ),
-        "```",
-        "",
-        "## Strategy-param overrides",
-        "",
-        "Base params:",
-        "",
-        "```json",
-        json.dumps(base_strategy_params, indent=2, sort_keys=True),
-        "```",
-        "",
-        "Overridden params (changed vs base):",
-        "",
-        "```json",
-        json.dumps(
-            {k: overridden[k] for k in strat_diff}
-            or {"_note": "no overrides (engine unavailable)"},
-            indent=2, default=str, sort_keys=True,
-        ),
-        "```",
-        "",
-        "## Full MetaSnapshot",
-        "",
-        "```json",
-        json.dumps(snapshot.as_dict(), indent=2, default=str, sort_keys=True),
-        "```",
-        "",
-        "This reporter is read-only. The overrides surface in",
-        "`scripts/firm_live_review.py` as an additional payload fragment",
-        "and, where the orchestrator honours them, a per-run override",
-        "of PM gate, size multiplier, and daily loss cap.",
-    ])
+    lines.extend(
+        [
+            "## Single-line summary",
+            "",
+            "```",
+            summarize_meta(snapshot),
+            "```",
+            "",
+            "## Payload enrichment",
+            "",
+            "Base payload:",
+            "",
+            "```json",
+            json.dumps(base_payload, indent=2, sort_keys=True),
+            "```",
+            "",
+            "Enriched keys (`eta_v3_meta*`):",
+            "",
+            "```json",
+            json.dumps(
+                {k: enriched[k] for k in added} or {"_note": "no enrichment"},
+                indent=2,
+                default=str,
+                sort_keys=True,
+            ),
+            "```",
+            "",
+            "## Strategy-param overrides",
+            "",
+            "Base params:",
+            "",
+            "```json",
+            json.dumps(base_strategy_params, indent=2, sort_keys=True),
+            "```",
+            "",
+            "Overridden params (changed vs base):",
+            "",
+            "```json",
+            json.dumps(
+                {k: overridden[k] for k in strat_diff}
+                or {"_note": "no overrides (engine unavailable)"},
+                indent=2,
+                default=str,
+                sort_keys=True,
+            ),
+            "```",
+            "",
+            "## Full MetaSnapshot",
+            "",
+            "```json",
+            json.dumps(snapshot.as_dict(), indent=2, default=str, sort_keys=True),
+            "```",
+            "",
+            "This reporter is read-only. The overrides surface in",
+            "`scripts/firm_live_review.py` as an additional payload fragment",
+            "and, where the orchestrator honours them, a per-run override",
+            "of PM gate, size multiplier, and daily loss cap.",
+        ]
+    )
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     # Force UTF-8 encoding — Windows' locale default is cp1252, which

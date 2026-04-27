@@ -1,4 +1,5 @@
 """Tests for mnq.gauntlet.scorer_bridge — gauntlet→V3 voice conversion."""
+
 from __future__ import annotations
 
 from mnq.gauntlet.gates.gauntlet12 import GateVerdict

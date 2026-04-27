@@ -1,4 +1,5 @@
 """Level-1 tests for mnq.generators.python_exec."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -143,7 +144,15 @@ class TestGeneratedOnSyntheticBars:
                 )
                 sig = inst.on_bar(bar)
                 if sig is not None:
-                    out.append((sig.side, int(sig.qty), str(sig.ref_price), str(sig.stop), str(sig.take_profit)))
+                    out.append(
+                        (
+                            sig.side,
+                            int(sig.qty),
+                            str(sig.ref_price),
+                            str(sig.stop),
+                            str(sig.take_profit),
+                        )
+                    )
             return out
 
         a = run()

@@ -3,6 +3,7 @@
 Exercises the fill loader and report renderer against a synthetic
 SQLite journal. Keeps the test isolated from live_sim's real journal.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -47,10 +48,25 @@ def synth_journal(tmp_path):
     """)
     t0 = datetime(2026, 4, 16, 14, 30, tzinfo=UTC)
     entries = [
-        (t0,                      "order.filled", "t1", {"side": "long",  "fill_qty": 1, "fill_price": 21000.0}),
-        (t0 + timedelta(minutes=5),  "order.filled", "t1", {"side": "long",  "fill_qty": 1, "fill_price": 21010.0}),
-        (t0 + timedelta(minutes=10), "order.filled", "t2", {"side": "short", "fill_qty": 1, "fill_price": 21008.0}),
-        (t0 + timedelta(minutes=15), "order.filled", "t2", {"side": "short", "fill_qty": 1, "fill_price": 21002.0}),
+        (t0, "order.filled", "t1", {"side": "long", "fill_qty": 1, "fill_price": 21000.0}),
+        (
+            t0 + timedelta(minutes=5),
+            "order.filled",
+            "t1",
+            {"side": "long", "fill_qty": 1, "fill_price": 21010.0},
+        ),
+        (
+            t0 + timedelta(minutes=10),
+            "order.filled",
+            "t2",
+            {"side": "short", "fill_qty": 1, "fill_price": 21008.0},
+        ),
+        (
+            t0 + timedelta(minutes=15),
+            "order.filled",
+            "t2",
+            {"side": "short", "fill_qty": 1, "fill_price": 21002.0},
+        ),
     ]
     for ts, et, tid, p in entries:
         conn.execute(
@@ -120,5 +136,13 @@ class TestJsonlExport:
         assert len(lines) == len(trades)
         for line in lines:
             rec = json.loads(line)
-            assert {"seq", "entry_ts", "exit_ts", "side", "qty",
-                    "entry_px", "exit_px", "pnl"}.issubset(rec.keys())
+            assert {
+                "seq",
+                "entry_ts",
+                "exit_ts",
+                "side",
+                "qty",
+                "entry_px",
+                "exit_px",
+                "pnl",
+            }.issubset(rec.keys())

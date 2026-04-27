@@ -14,6 +14,7 @@ If a future PR adds MBT/MET handling here, either:
   (b) the operator deliberately removes the guard, in which case this
       test fails loudly and forces a CLAUDE.md update + PR review.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -43,12 +44,8 @@ def test_eta_engine_symbols_includes_quarterly_roll_codes() -> None:
     adds a new code, this test fails and forces the guard to update."""
     months = ("H", "M", "U", "Z")
     for code in months:
-        assert f"MBT{code}" in ETA_ENGINE_SYMBOLS, (
-            f"missing MBT{code} (month {code})"
-        )
-        assert f"MET{code}" in ETA_ENGINE_SYMBOLS, (
-            f"missing MET{code} (month {code})"
-        )
+        assert f"MBT{code}" in ETA_ENGINE_SYMBOLS, f"missing MBT{code} (month {code})"
+        assert f"MET{code}" in ETA_ENGINE_SYMBOLS, f"missing MET{code} (month {code})"
 
 
 def test_eta_engine_symbols_includes_spot_crypto() -> None:

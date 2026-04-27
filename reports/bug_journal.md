@@ -1,18 +1,49 @@
 # Bug Journal
 
-Last updated: 2026-04-16
+Last updated: 2026-04-24
 
 Known bugs, workarounds, and resolutions. Ordered newest-first.
 
 ## Active
 
-### BUG-004: V16 weight sweep flat across all samples
-- **Discovered**: 2026-04-15 (Batch 5D), confirmed 2026-04-16 (Batch 8A)
-- **Symptom**: All weights 0.00→0.40 produce identical PnL on both 15-day and 200-day samples.
-- **Root cause**: PM base delta for GO verdicts is always positive (~+0.05 to +0.15). The gauntlet blend at max weight shifts delta by at most ±0.06 (`0.40 × gauntlet_delta × 0.15`). This never pushes a GO verdict's delta below the skip threshold (−0.10) or reduce threshold (−0.05). The gauntlet weight path is mathematically disconnected from the gate thresholds.
-- **Impact**: MEDIUM — the V16 voice injection architecture works but has no filtering power. The gauntlet's value must come from a different integration point (direct gate pass/fail, not delta blending).
-- **Workaround**: Keep weight at 0.15 (zero risk). Future: add a gauntlet hard-gate that independently blocks trades when pass_rate < threshold, bypassing the delta blend entirely.
-- **Status**: Confirmed by design. Next action: Batch 9+ add gauntlet hard-gate parallel to apex_gate.
+### BUG-010: `shadow_trader.py` arg parser rejects `--gauntlet`, `--v16`, `--output`
+- **Discovered**: 2026-04-24 (firm-daily-orchestrator run).
+- **Symptom**: Stages `gauntlet_shadow` (rc=2) and `shadow_v16` (rc=2) exit with `error: unrecognized arguments: --gauntlet --output reports/...`.
+- **Root cause**: Orchestrator invokes `shadow_trader.py` with flags the current script's argparse doesn't define. Either the flags were renamed/removed or the orchestrator `cmd` list is stale vs. the script.
+- **Impact**: MEDIUM — 2 Phase 8 shadow stages missing from daily run; shadow-venue parity checks blind.
+- **Next action**: Align argparse definition in `scripts/shadow_trader.py` with the orchestrator's expectations, or update `_PHASE_8_STAGES` in `run_all_phases.py` to use the current CLI surface.
+- **Status**: Open.
+
+### BUG-009: `gauntlet_stats` ImportError on `DaySummary`
+- **Discovered**: 2026-04-24 (firm-daily-orchestrator run).
+- **Symptom**: `ImportError: cannot import name 'DaySummary' from 'shadow_trader'`.
+- **Root cause**: `DaySummary` (and siblings it imports alongside) were removed/renamed in `shadow_trader.py`; `gauntlet_stats.py` still imports the old symbol.
+- **Impact**: MEDIUM — Phase 8 gauntlet stats blind.
+- **Next action**: Restore `DaySummary` symbol in `shadow_trader.py` OR refactor `gauntlet_stats.py` to pull the new equivalent.
+- **Status**: Open.
+
+### BUG-008: Orchestrator stages hit `FileNotFoundError` on missing Databento CSV
+- **Discovered**: 2026-04-24 (firm-daily-orchestrator run).
+- **Symptom**: 6 stages (`gauntlet_weight_sweep_full`, `hard_gate_sweep`, `hard_gate_attribution`, `gate_pnl_attribution`, `ow_validation`, `backtest_real`) raise `FileNotFoundError: Databento CSV not found: C:\mnq_data\databento\mnq1_1m.csv`.
+- **Root cause**: Scripts use `real_bars.load_databento_days()` which raises hard when the cache is absent. Databento pulls are CANCELLED & DORMANT by operator mandate (2026-04-23); missing cache is the canonical state, not an error.
+- **Impact**: LOW — by design; but surfaces as stage failures every day and pollutes the failure totals.
+- **Fix required**: Make the orchestrator treat a missing Databento cache as a *SKIP* status (not FAIL) or short-circuit these stages in `run_all_phases.py` when `C:\mnq_data\databento\mnq1_1m.csv` is absent. Do NOT attempt to pull Databento.
+- **Status**: Open.
+
+### BUG-007: `walk_forward` stage needs ≥11 days, has 1
+- **Discovered**: 2026-04-24 (firm-daily-orchestrator run).
+- **Symptom**: `RuntimeError: not enough days: have 1, need >= 11` in `walk_forward.py:97`.
+- **Root cause**: Walk-forward requires 10-day train + 1-day test window but the only source currently producing bars in the daily run yields 1 day.
+- **Impact**: LOW — walk-forward is an optional cross-check; primary pipeline unaffected.
+- **Next action**: Either widen source or gate walk_forward on `len(days) >= train_window+test_window` and mark as SKIP otherwise.
+- **Status**: Open.
+
+### BUG-006: 37 stages crash on Windows cp1252 codec
+- **Discovered**: 2026-04-24 (firm-daily-orchestrator run).
+- **Symptom**: `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` (or `\u2212`, etc.) when stages print Unicode glyphs (→, −, ✓, ×) to stdout.
+- **Root cause**: `subprocess.run` inherited parent env; Windows python defaults stdout to cp1252 which cannot encode common Unicode chars. 37 of 79 stages were affected — dominant failure class.
+- **Fix (2026-04-24)**: `scripts/run_all_phases.py::_run` now injects `PYTHONIOENCODING=utf-8` + `PYTHONUTF8=1` into the subprocess env and sets `encoding='utf-8', errors='replace'` on the subprocess.run call itself. Single-point fix; next orchestrator run should reclaim ~37 passes.
+- **Status**: Resolved pending re-run verification.
 
 ### BUG-003: Shadow parity −$1.74/trade in realistic mode
 - **Discovered**: 2026-04-14 (Batch 4C)
@@ -23,6 +54,13 @@ Known bugs, workarounds, and resolutions. Ordered newest-first.
 - **Status**: By design. Not a bug, but documented here for visibility.
 
 ## Resolved
+
+### BUG-004: V16 weight sweep flat across all samples
+- **Discovered**: 2026-04-15 (Batch 5D), confirmed 2026-04-16 (Batch 8A)
+- **Symptom**: All weights 0.00→0.40 produced identical PnL on both 15-day and 200-day samples.
+- **Root cause**: PM base delta for GO verdicts is always positive (~+0.05 to +0.15). The gauntlet blend at max weight shifts delta by at most ±0.06 (`0.40 × gauntlet_delta × 0.15`). This never pushed a GO verdict's delta below the skip threshold (−0.10) or reduce threshold (−0.05). The gauntlet weight path was mathematically disconnected from the gate thresholds.
+- **Fix (Batch 9A + 10A/B/C)**: Added `src/mnq/gauntlet/hard_gate.py` — independent gauntlet hard-gate that blocks trades by pass_rate, bypassing delta blending entirely. `combine_gates()` takes the stricter of `apex_gate` + `gauntlet_hard_gate`. Batch 10A/B/C layered outcome-weighted recalibration on top (`src/mnq/gauntlet/outcome_weights.py`) so the hard-gate uses gates that empirically correlate with PnL. V16 delta-blend weight remains at 0.15 (cosmetic) — the gauntlet's actual filtering power now flows through the hard-gate.
+- **Status**: Resolved. Hard-gate shipped + outcome weights at `data/outcome_gate_weights.json`.
 
 ### BUG-005: Gauntlet gates anti-correlated with profitability
 - **Discovered**: 2026-04-16 (Batch 9B)

@@ -8,6 +8,7 @@ Usage:
     python scripts/psych_sidecar.py --mood 7 --focus 8 --energy 6 --sleep 7
     python scripts/psych_sidecar.py --report
 """
+
 from __future__ import annotations
 
 import argparse
@@ -56,11 +57,17 @@ def main() -> int:
     if not args.report:
         missing = [k for k in ("mood", "focus", "energy", "sleep") if getattr(args, k) is None]
         if missing:
-            print(f"[psych] missing inputs: {missing}. Use --report to skip logging.", file=sys.stderr)
+            print(
+                f"[psych] missing inputs: {missing}. Use --report to skip logging.", file=sys.stderr
+            )
             return 2
         rec = {
-            "date": args.date, "mood": args.mood, "focus": args.focus,
-            "energy": args.energy, "sleep": args.sleep, "note": args.note,
+            "date": args.date,
+            "mood": args.mood,
+            "focus": args.focus,
+            "energy": args.energy,
+            "sleep": args.sleep,
+            "note": args.note,
             "ts": datetime.now(UTC).isoformat(),
         }
         _append_log(rec)
@@ -81,8 +88,19 @@ def main() -> int:
         ps = log.get(d, {})
         pnl = sum(t.net_pnl for t in ts)
         avg_r = statistics.fmean([t.r_multiple for t in ts]) if ts else 0
-        rows.append((d, ps.get("mood", "-"), ps.get("focus", "-"), ps.get("energy", "-"),
-                     ps.get("sleep", "-"), len(ts), pnl, avg_r, ps.get("note", "")))
+        rows.append(
+            (
+                d,
+                ps.get("mood", "-"),
+                ps.get("focus", "-"),
+                ps.get("energy", "-"),
+                ps.get("sleep", "-"),
+                len(ts),
+                pnl,
+                avg_r,
+                ps.get("note", ""),
+            )
+        )
 
     lines = [
         f"# Psych Sidecar · {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
@@ -99,16 +117,19 @@ def main() -> int:
 
     # Correlation table (mood vs PnL, etc.)
     if len(rows) >= 3:
+
         def _vals(idx):
             return [r for r in rows if isinstance(r[idx], int)]
+
         def _corr(xs, ys):
             if len(xs) < 2:
                 return 0
             mx, my = statistics.fmean(xs), statistics.fmean(ys)
-            num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+            num = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=False))
             dx = (sum((x - mx) ** 2 for x in xs)) ** 0.5
             dy = (sum((y - my) ** 2 for y in ys)) ** 0.5
             return num / (dx * dy) if dx and dy else 0
+
         lines += ["", "## Correlations vs daily PnL"]
         for label, idx in [("Mood", 1), ("Focus", 2), ("Energy", 3), ("Sleep", 4)]:
             vs = [(r[idx], r[6]) for r in rows if isinstance(r[idx], int)]

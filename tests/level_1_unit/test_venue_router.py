@@ -1,25 +1,23 @@
 """Tests for mnq.executor.venue_router — venue-executor bridge."""
+
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
-from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from mnq.core.types import Side
-from mnq.executor.orders import OrderBook, OrderState, OrderType
+from mnq.executor.orders import OrderBook, OrderType
 from mnq.executor.venue_router import RouterStats, VenueRouter
 from mnq.venues.base import (
     ConnectionState,
     OrderAck,
-    VenueFill,
     VenueType,
 )
 
-
 # ── Fixtures ───────────────────────────────────────────────────────────
+
 
 class MockVenue:
     """Minimal mock venue for testing the router."""
@@ -44,6 +42,7 @@ class MockVenue:
     async def cancel_order(self, client_order_id, venue_order_id):
         self.cancelled.append(client_order_id)
         from mnq.venues.base import CancelAck
+
         return CancelAck(
             client_order_id=client_order_id,
             venue_order_id=venue_order_id,
@@ -67,10 +66,11 @@ def _make_order_book():
     """Create a minimal OrderBook with mocked journal."""
     journal = MagicMock()
     journal.append = MagicMock()
-    return OrderBook(journal=journal, gate_chain=None)
+    return OrderBook.unsafe_no_gate_chain(journal)
 
 
 # ── RouterStats ────────────────────────────────────────────────────────
+
 
 class TestRouterStats:
     def test_initial_zeros(self):
@@ -87,6 +87,7 @@ class TestRouterStats:
 
 # ── VenueRouter shadow mode ───────────────────────────────────────────
 
+
 class TestVenueRouterShadow:
     @pytest.mark.asyncio
     async def test_shadow_suppresses_venue_call(self):
@@ -94,7 +95,7 @@ class TestVenueRouterShadow:
         venue = MockVenue()
         router = VenueRouter(book, venue, shadow=True)
 
-        order = await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
+        await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
 
         assert router.is_shadow
         assert len(venue.submitted) == 0  # Never hit venue
@@ -107,13 +108,14 @@ class TestVenueRouterShadow:
         venue = MockVenue()
         router = VenueRouter(book, venue, shadow=True)
 
-        order = await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
+        await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
 
         # OrderBook.submit was called (journals the submission)
         assert book.journal.append.called
 
 
 # ── VenueRouter live mode ─────────────────────────────────────────────
+
 
 class TestVenueRouterLive:
     @pytest.mark.asyncio
@@ -122,7 +124,7 @@ class TestVenueRouterLive:
         venue = MockVenue()
         router = VenueRouter(book, venue, shadow=False)
 
-        order = await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
+        await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
 
         assert len(venue.submitted) == 1
         assert router.stats.orders_acked == 1
@@ -141,8 +143,9 @@ class TestVenueRouterLive:
                 reject_reason="insufficient margin",
                 ts=datetime.now(tz=UTC),
             )
+
         venue.submit_order = reject_order
         router = VenueRouter(book, venue, shadow=False)
 
-        order = await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
+        await router.submit_order("MNQ", Side.LONG, 1, OrderType.MARKET)
         assert router.stats.orders_rejected == 1

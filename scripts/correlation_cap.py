@@ -11,6 +11,7 @@ absent.
 Usage:
     python scripts/correlation_cap.py --max-beta 2.0
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,16 +27,24 @@ REPORT_PATH = REPO_ROOT / "reports" / "correlation_cap.md"
 
 # Canonical beta table vs NQ (index futures complex).
 BETAS = {
-    "MNQ": 1.0, "NQ": 1.0,
-    "MES": 0.78, "ES": 0.78,
-    "YM": 0.65, "MYM": 0.65,
-    "RTY": 0.72, "M2K": 0.72,
+    "MNQ": 1.0,
+    "NQ": 1.0,
+    "MES": 0.78,
+    "ES": 0.78,
+    "YM": 0.65,
+    "MYM": 0.65,
+    "RTY": 0.72,
+    "M2K": 0.72,
 }
 NOTIONAL = {
-    "MNQ": 2.0, "NQ": 20.0,
-    "MES": 5.0, "ES": 50.0,
-    "YM": 5.0, "MYM": 0.5,
-    "RTY": 5.0, "M2K": 0.5,
+    "MNQ": 2.0,
+    "NQ": 20.0,
+    "MES": 5.0,
+    "ES": 50.0,
+    "YM": 5.0,
+    "MYM": 0.5,
+    "RTY": 5.0,
+    "M2K": 0.5,
 }
 
 
@@ -46,9 +55,14 @@ def main() -> int:
 
     if not POS_PATH.exists():
         POS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        POS_PATH.write_text(json.dumps({
-            "MNQ": {"qty": 0, "price": 0},
-        }, indent=2))
+        POS_PATH.write_text(
+            json.dumps(
+                {
+                    "MNQ": {"qty": 0, "price": 0},
+                },
+                indent=2,
+            )
+        )
 
     positions = json.loads(POS_PATH.read_text())
     rows = []

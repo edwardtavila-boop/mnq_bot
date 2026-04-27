@@ -7,6 +7,7 @@ Newey-West (1994) data-driven bandwidth L = floor(4 * (N/100)^(2/9)).
 All inputs are float64 arrays of per-trade returns in USD per contract,
 aligned 1:1. See the original [CONTRACT] docstring for the full API.
 """
+
 from __future__ import annotations
 
 import math
@@ -121,8 +122,11 @@ def alpha_with_significance(
     n = len(strat)
     if n < _MIN_N:
         return AlphaResult(
-            alpha=float("nan"), alpha_se=float("nan"),
-            t_stat=float("nan"), p_value=float("nan"), n=n,
+            alpha=float("nan"),
+            alpha_se=float("nan"),
+            t_stat=float("nan"),
+            p_value=float("nan"),
+            n=n,
         )
 
     # If strategy is constant (zero variance), alpha degenerates.
@@ -184,9 +188,7 @@ def information_ratio(
     return float(ann * (res.alpha / res.alpha_se))
 
 
-def r_squared(
-    strategy_returns: np.ndarray, benchmark_returns: np.ndarray
-) -> float:
+def r_squared(strategy_returns: np.ndarray, benchmark_returns: np.ndarray) -> float:
     strat = _as_float(strategy_returns)
     bench = _as_float(benchmark_returns)
     _check_same_len(strat, bench)
@@ -225,15 +227,13 @@ def sortino(strategy_returns: np.ndarray, mar: float = 0.0) -> float:
         return float("nan")
     excess = strat - mar
     downside = np.minimum(0.0, excess)
-    denom = math.sqrt(float((downside ** 2).mean()))
+    denom = math.sqrt(float((downside**2).mean()))
     if denom <= 1e-12:
         return float("nan") if float(excess.mean()) <= 0.0 else float("inf")
     return float(excess.mean() / denom)
 
 
-def calmar(
-    strategy_returns: np.ndarray, equity_curve: np.ndarray
-) -> float:
+def calmar(strategy_returns: np.ndarray, equity_curve: np.ndarray) -> float:
     strat = _as_float(strategy_returns)
     eq = _as_float(equity_curve)
     if len(strat) < _MIN_N or len(eq) < 2:
@@ -281,9 +281,7 @@ def kappa4(strategy_returns: np.ndarray, mar: float = 0.0) -> float:
     return _kappa_n(strat, mar, 4)
 
 
-def downside_capture(
-    strategy_returns: np.ndarray, benchmark_returns: np.ndarray
-) -> float:
+def downside_capture(strategy_returns: np.ndarray, benchmark_returns: np.ndarray) -> float:
     strat = _as_float(strategy_returns)
     bench = _as_float(benchmark_returns)
     _check_same_len(strat, bench)
@@ -294,9 +292,7 @@ def downside_capture(
     return float(strat[mask].sum() / denom)
 
 
-def upside_capture(
-    strategy_returns: np.ndarray, benchmark_returns: np.ndarray
-) -> float:
+def upside_capture(strategy_returns: np.ndarray, benchmark_returns: np.ndarray) -> float:
     strat = _as_float(strategy_returns)
     bench = _as_float(benchmark_returns)
     _check_same_len(strat, bench)
@@ -318,13 +314,15 @@ def rolling_alpha_beta(
     n = len(strat)
     rows = []
     for end in range(window, n + 1):
-        s = strat[end - window:end]
-        b = bench[end - window:end]
+        s = strat[end - window : end]
+        b = bench[end - window : end]
         res = alpha_with_significance(s, b) if window >= _MIN_N else _NAN_RESULT
-        rows.append({
-            "trade_index_end": end - 1,
-            "alpha": res.alpha,
-            "alpha_se": res.alpha_se,
-            "beta": beta(s, b) if window >= _MIN_N else float("nan"),
-        })
+        rows.append(
+            {
+                "trade_index_end": end - 1,
+                "alpha": res.alpha,
+                "alpha_se": res.alpha_se,
+                "beta": beta(s, b) if window >= _MIN_N else float("nan"),
+            }
+        )
     return pl.DataFrame(rows)

@@ -7,6 +7,7 @@ next 24h.
 Usage:
     python scripts/event_calendar.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,8 +28,8 @@ def _load_events() -> list[dict]:
     now = datetime.now(UTC)
     return [
         {"ts": (now + timedelta(hours=18)).isoformat(), "name": "CPI (USD)", "impact": "HIGH"},
-        {"ts": (now + timedelta(days=2)).isoformat(),  "name": "FOMC Minutes", "impact": "HIGH"},
-        {"ts": (now + timedelta(days=4)).isoformat(),  "name": "NFP", "impact": "HIGH"},
+        {"ts": (now + timedelta(days=2)).isoformat(), "name": "FOMC Minutes", "impact": "HIGH"},
+        {"ts": (now + timedelta(days=4)).isoformat(), "name": "NFP", "impact": "HIGH"},
         {"ts": (now + timedelta(hours=32)).isoformat(), "name": "Retail Sales", "impact": "MEDIUM"},
     ]
 
@@ -40,15 +41,22 @@ def main() -> int:
     events = _load_events()
     now = datetime.now(UTC)
     upcoming = sorted(
-        [(datetime.fromisoformat(e["ts"]), e) for e in events
-         if datetime.fromisoformat(e["ts"]) > now],
+        [
+            (datetime.fromisoformat(e["ts"]), e)
+            for e in events
+            if datetime.fromisoformat(e["ts"]) > now
+        ],
         key=lambda x: x[0],
     )
     within_24h = [x for x in upcoming if x[0] - now < timedelta(hours=24)]
 
     trading_guidance = (
-        "🔴 PAUSE — high-impact event within 30min" if within_24h and (within_24h[0][0] - now) < timedelta(minutes=30) and within_24h[0][1]["impact"] == "HIGH"
-        else "🟡 CAUTION — high-impact within 24h" if within_24h and any(e["impact"] == "HIGH" for _, e in within_24h)
+        "🔴 PAUSE — high-impact event within 30min"
+        if within_24h
+        and (within_24h[0][0] - now) < timedelta(minutes=30)
+        and within_24h[0][1]["impact"] == "HIGH"
+        else "🟡 CAUTION — high-impact within 24h"
+        if within_24h and any(e["impact"] == "HIGH" for _, e in within_24h)
         else "🟢 CLEAR — no high-impact events near"
     )
 
@@ -63,7 +71,7 @@ def main() -> int:
     ]
     for ts, e in upcoming[:20]:
         delta = ts - now
-        rel = f"T+{int(delta.total_seconds()/3600)}h"
+        rel = f"T+{int(delta.total_seconds() / 3600)}h"
         lines.append(f"| {ts.strftime('%Y-%m-%d %H:%M')} ({rel}) | {e['name']} | {e['impact']} |")
 
     REPORT_PATH.write_text("\n".join(lines) + "\n")

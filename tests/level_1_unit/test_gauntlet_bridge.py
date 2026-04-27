@@ -1,4 +1,5 @@
 """Tests for mnq.gauntlet.bridge — context_from_bars."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -11,6 +12,7 @@ from mnq.gauntlet.gates.gauntlet12 import GauntletContext
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_bar(
     ts: datetime,
@@ -48,6 +50,7 @@ def _bar_series(n: int = 40, base_price: float = 20000.0) -> list[Bar]:
 # _ema helper
 # ---------------------------------------------------------------------------
 
+
 class TestEma:
     def test_short_input_returns_none(self) -> None:
         assert _ema([1.0, 2.0], span=5) is None
@@ -77,6 +80,7 @@ class TestEma:
 # ---------------------------------------------------------------------------
 # context_from_bars — basic construction
 # ---------------------------------------------------------------------------
+
 
 class TestContextFromBars:
     def test_returns_gauntlet_context(self) -> None:
@@ -146,6 +150,7 @@ class TestContextFromBars:
 # context_from_bars — external data passthrough
 # ---------------------------------------------------------------------------
 
+
 class TestExternalData:
     def test_loss_streak(self) -> None:
         bars = _bar_series(40)
@@ -185,6 +190,7 @@ class TestExternalData:
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases:
     def test_bar_idx_zero(self) -> None:
@@ -226,6 +232,7 @@ class TestEdgeCases:
 # ---------------------------------------------------------------------------
 # Regime label normalization (Batch 5B)
 # ---------------------------------------------------------------------------
+
 
 class TestNormalizeRegime:
     def test_none_passthrough(self) -> None:

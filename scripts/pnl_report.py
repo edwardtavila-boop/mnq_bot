@@ -12,6 +12,7 @@ Runs the baseline spec through:
 No external data — regimes (trend/chop/range) are generated synthetically
 with seeded RNG so the report is reproducible.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,19 +49,27 @@ BASELINE = REPO_ROOT / "specs" / "strategies" / "v0_1_baseline.yaml"
 @dataclass
 class Regime:
     name: str
-    drift_per_bar: float   # in MNQ points
-    osc_amp: float         # ± points
-    osc_period: int        # bars
-    noise_std: float       # Gaussian noise stdev in points
-    vol_base: int          # baseline contract volume
+    drift_per_bar: float  # in MNQ points
+    osc_amp: float  # ± points
+    osc_period: int  # bars
+    noise_std: float  # Gaussian noise stdev in points
+    vol_base: int  # baseline contract volume
 
 
 REGIMES: list[Regime] = [
-    Regime("trend_up",   drift_per_bar=+0.25, osc_amp=1.5, osc_period=30, noise_std=0.4, vol_base=280),
-    Regime("trend_down", drift_per_bar=-0.20, osc_amp=1.2, osc_period=25, noise_std=0.5, vol_base=260),
-    Regime("chop",       drift_per_bar= 0.0,  osc_amp=2.5, osc_period=18, noise_std=0.8, vol_base=220),
-    Regime("range_bound", drift_per_bar=0.0,  osc_amp=1.8, osc_period=40, noise_std=0.3, vol_base=200),
-    Regime("high_vol",   drift_per_bar=+0.05, osc_amp=4.0, osc_period=12, noise_std=1.5, vol_base=350),
+    Regime(
+        "trend_up", drift_per_bar=+0.25, osc_amp=1.5, osc_period=30, noise_std=0.4, vol_base=280
+    ),
+    Regime(
+        "trend_down", drift_per_bar=-0.20, osc_amp=1.2, osc_period=25, noise_std=0.5, vol_base=260
+    ),
+    Regime("chop", drift_per_bar=0.0, osc_amp=2.5, osc_period=18, noise_std=0.8, vol_base=220),
+    Regime(
+        "range_bound", drift_per_bar=0.0, osc_amp=1.8, osc_period=40, noise_std=0.3, vol_base=200
+    ),
+    Regime(
+        "high_vol", drift_per_bar=+0.05, osc_amp=4.0, osc_period=12, noise_std=1.5, vol_base=350
+    ),
 ]
 
 
@@ -122,8 +131,10 @@ def synth_day(
         drift = regime.drift_per_bar
         osc = regime.osc_amp * math.sin(2 * math.pi * (i % regime.osc_period) / regime.osc_period)
         osc_prev = (
-            0.0 if i == 0
-            else regime.osc_amp * math.sin(2 * math.pi * ((i - 1) % regime.osc_period) / regime.osc_period)
+            0.0
+            if i == 0
+            else regime.osc_amp
+            * math.sin(2 * math.pi * ((i - 1) % regime.osc_period) / regime.osc_period)
         )
         noise = rng.gauss(0.0, regime.noise_std)
 
@@ -148,7 +159,7 @@ def synth_day(
                     drive = dip_dir * 2.8 * envelope  # strong enough to flip EMA
                     vol_mult = 1.2 + 0.3 * envelope
                     break
-                elif rS < i <= rE:
+                if rS < i <= rE:
                     span = max(1, rE - rS)
                     phase = (i - rS) / span
                     envelope = math.sin(math.pi * phase)
@@ -288,6 +299,7 @@ class ScriptedStrategy:
 
     def _make_signal(self, bar: Bar, side: Side) -> Signal:
         from mnq.core.types import quantize_to_tick
+
         ref = quantize_to_tick(bar.close, self._tick)
         risk_pts = self._tick * self._risk_ticks
         reward_pts = risk_pts * Decimal(str(self._rr))
@@ -342,6 +354,7 @@ class DayResult:
 @dataclass
 class LegReport:
     """A full results block for one strategy "leg" (real or scripted)."""
+
     label: str
     total_trades: int
     total_gross_pnl: Decimal
@@ -373,7 +386,10 @@ def _wrap_trades_as_path(ledger: TradeLedger) -> Any:
     for t in ledger.trades:
         rows.append({"entry_ts": t.entry_ts, "exit_ts": t.exit_ts, "pnl": float(t.pnl_dollars)})
     if not rows:
-        df = pl.DataFrame({"entry_ts": [], "exit_ts": [], "pnl": []}, schema={"entry_ts": pl.Datetime, "exit_ts": pl.Datetime, "pnl": pl.Float64})
+        df = pl.DataFrame(
+            {"entry_ts": [], "exit_ts": [], "pnl": []},
+            schema={"entry_ts": pl.Datetime, "exit_ts": pl.Datetime, "pnl": pl.Float64},
+        )
     else:
         df = pl.DataFrame(rows)
 
@@ -412,7 +428,13 @@ def _build_leg(
     for r in results:
         b = per_regime.setdefault(
             r.regime,
-            {"n_days": 0, "n_trades": 0, "gross_pnl": Decimal(0), "net_pnl": Decimal(0), "commission": Decimal(0)},
+            {
+                "n_days": 0,
+                "n_trades": 0,
+                "gross_pnl": Decimal(0),
+                "net_pnl": Decimal(0),
+                "commission": Decimal(0),
+            },
         )
         b["n_days"] += 1
         b["n_trades"] += r.ledger.n_trades
@@ -449,7 +471,11 @@ def _build_leg(
     gate_result = run_gate_15(paths, config=TurnoverConfig(use_bootstrap_ci=True, n_boot=1000))
     gate_15: dict[str, Any] = {
         "passed": gate_result.passed,
-        "metric_values": {k: (float(v) if isinstance(v, (int, float)) else v) for k, v in gate_result.metric_values.items() if k != "per_path_rates"},
+        "metric_values": {
+            k: (float(v) if isinstance(v, (int, float)) else v)
+            for k, v in gate_result.metric_values.items()
+            if k != "per_path_rates"
+        },
         "per_path_rates": [float(x) for x in gate_result.metric_values.get("per_path_rates", [])],
         "failure_reason": gate_result.failure_reason,
     }
@@ -469,14 +495,16 @@ def _build_leg(
 
     per_day_rows: list[dict[str, Any]] = []
     for r in results:
-        per_day_rows.append({
-            "day": r.day_ix,
-            "regime": r.regime,
-            "n_trades": r.ledger.n_trades,
-            "gross_pnl": float(r.gross_pnl),
-            "commission": float(r.commission),
-            "net_pnl": float(r.pnl),
-        })
+        per_day_rows.append(
+            {
+                "day": r.day_ix,
+                "regime": r.regime,
+                "n_trades": r.ledger.n_trades,
+                "gross_pnl": float(r.gross_pnl),
+                "commission": float(r.commission),
+                "net_pnl": float(r.pnl),
+            }
+        )
 
     return LegReport(
         label=label,
@@ -513,7 +541,9 @@ def build_report(
     # Assign regimes round-robin with seeded shuffle
     regimes = list(REGIMES)
     rng = random.Random(seed)
-    schedule = [regimes[(i + rng.randint(0, len(regimes) - 1)) % len(regimes)] for i in range(n_days)]
+    schedule = [
+        regimes[(i + rng.randint(0, len(regimes) - 1)) % len(regimes)] for i in range(n_days)
+    ]
     regime_counts: dict[str, int] = {}
     for r in schedule:
         regime_counts[r.name] = regime_counts.get(r.name, 0) + 1
@@ -578,7 +608,9 @@ def _render_leg(leg: LegReport, lines: list[str]) -> None:
         )
     if leg.tpd_bootstrap:
         tb = leg.tpd_bootstrap
-        lines.append(f"| Trades / day | {tb['mean_tpd']:.2f} (95% CI [{tb['lo_95']:.2f}, {tb['hi_95']:.2f}]) |")
+        lines.append(
+            f"| Trades / day | {tb['mean_tpd']:.2f} (95% CI [{tb['lo_95']:.2f}, {tb['hi_95']:.2f}]) |"
+        )
     lines.append("")
 
     lines.append("### Gate 15 — Turnover (bootstrap CI)")
@@ -597,7 +629,9 @@ def _render_leg(leg: LegReport, lines: list[str]) -> None:
         lines.append("| Exit | n | total PnL | avg PnL |")
         lines.append("|---|---:|---:|---:|")
         for k, b in sorted(leg.exit_reason_breakdown.items()):
-            lines.append(f"| {k} | {int(b['n'])} | ${float(b['pnl']):,.2f} | ${float(b['pnl_avg']):,.2f} |")
+            lines.append(
+                f"| {k} | {int(b['n'])} | ${float(b['pnl']):,.2f} | ${float(b['pnl_avg']):,.2f} |"
+            )
     else:
         lines.append("_no trades_")
     lines.append("")
@@ -608,7 +642,9 @@ def _render_leg(leg: LegReport, lines: list[str]) -> None:
         lines.append("| Side | n | total PnL | avg PnL |")
         lines.append("|---|---:|---:|---:|")
         for k, b in sorted(leg.side_breakdown.items()):
-            lines.append(f"| {k} | {int(b['n'])} | ${float(b['pnl']):,.2f} | ${float(b['pnl_avg']):,.2f} |")
+            lines.append(
+                f"| {k} | {int(b['n'])} | ${float(b['pnl']):,.2f} | ${float(b['pnl_avg']):,.2f} |"
+            )
     else:
         lines.append("_no trades_")
     lines.append("")
@@ -668,8 +704,8 @@ def render_markdown(rpt: Report) -> str:
         "because the HTFWrapper repeats the last-completed value within each 5-minute "
         "bucket, that condition is structurally hard to satisfy. Zero or very few "
         "fires on synthetic data is the expected behaviour — see the strategy "
-        "rationale in the spec YAML (\"Designed to LOSE in noisy regimes via the "
-        "rvol filter rather than win cleverly\")."
+        'rationale in the spec YAML ("Designed to LOSE in noisy regimes via the '
+        'rvol filter rather than win cleverly").'
     )
     lines.append(
         "- The **scripted leg** exists to exercise the simulator, ledger, and gate-15 "

@@ -17,6 +17,7 @@ Usage:
     # score.pass_rate in [0.0, 1.0]
     # score.voice in [-100, +100]
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -75,8 +76,12 @@ def gauntlet_day_score(
     """
     if not bars:
         return GauntletDayScore(
-            delta=0.0, voice=0.0, pass_rate=0.0,
-            n_passed=0, n_failed=0, failed_gates=[],
+            delta=0.0,
+            voice=0.0,
+            pass_rate=0.0,
+            n_passed=0,
+            n_failed=0,
+            failed_gates=[],
             eval_bar_idx=0,
         )
 

@@ -1,4 +1,4 @@
-# Correlation Cap · 2026-04-17 01:39:42 UTC
+# Correlation Cap · 2026-04-26 14:26:20 UTC
 
 - aggregate beta exposure: **+0.00** / cap **2.0**
 - verdict: **🟢 within cap**

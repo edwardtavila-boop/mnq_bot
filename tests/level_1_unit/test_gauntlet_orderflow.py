@@ -1,4 +1,5 @@
 """Tests for mnq.gauntlet.orderflow — Bookmap/DOM order flow features."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -39,9 +40,14 @@ T0 = datetime(2025, 1, 2, 14, 0, tzinfo=UTC)
 class TestOrderFlowSnapshot:
     def test_frozen(self) -> None:
         snap = OrderFlowSnapshot(
-            bar_delta=10.0, cvd=10.0, imbalance=0.5,
-            absorption_score=0.3, buy_aggressor_pct=0.7,
-            bid_depth=0.0, ask_depth=0.0, is_live=False,
+            bar_delta=10.0,
+            cvd=10.0,
+            imbalance=0.5,
+            absorption_score=0.3,
+            buy_aggressor_pct=0.7,
+            bid_depth=0.0,
+            ask_depth=0.0,
+            is_live=False,
         )
         assert snap.bar_delta == 10.0
         assert snap.is_live is False
@@ -135,7 +141,9 @@ class TestOrderFlowTracker:
     def test_cvd_slope_increasing(self) -> None:
         tracker = OrderFlowTracker()
         for i in range(5):
-            bar = _make_bar(T0 + timedelta(minutes=i), 20000, 20002, 19998, 20002, volume=100 + i * 20)
+            bar = _make_bar(
+                T0 + timedelta(minutes=i), 20000, 20002, 19998, 20002, volume=100 + i * 20
+            )
             tracker.on_bar(bar)
         # Increasing volume with same direction → positive slope
         assert tracker.cvd_slope > 0

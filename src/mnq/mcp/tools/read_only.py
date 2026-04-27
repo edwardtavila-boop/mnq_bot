@@ -8,6 +8,7 @@ are deferred to a later step.
 tuples — pure data — so both the FastMCP registration (`mcp.server.py`)
 and unit tests can consume them without coupling to the MCP transport.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -76,20 +77,40 @@ def build_read_only_tools(
         return state.get_open_orders(venue)
 
     return [
-        ("get_strategy", _safe(get_strategy),
-         "Get the full strategy spec for the given version id or semver."),
-        ("list_strategy_versions", _safe(list_strategy_versions),
-         "List all strategies in specs/strategies/."),
-        ("get_executor_state", _safe(get_executor_state),
-         "Return the latest executor state snapshot (bars_processed, position, etc.)."),
-        ("get_session_pnl", _safe(get_session_pnl),
-         "Session PnL summary. Optional spec_hash filter."),
-        ("get_recent_fills", _safe(get_recent_fills),
-         "Fills at/after an ISO-8601 timestamp. Optional spec_hash filter."),
-        ("get_risk_utilization", _safe(get_risk_utilization),
-         "Current risk caps usage (per-trade / per-session / per-week / position)."),
-        ("get_ws_health", _safe(get_ws_health),
-         "Tradovate WS connectivity health."),
-        ("get_open_orders", _safe(get_open_orders),
-         "Open orders at the given venue (`tradovate_paper` | `tradovate_live`)."),
+        (
+            "get_strategy",
+            _safe(get_strategy),
+            "Get the full strategy spec for the given version id or semver.",
+        ),
+        (
+            "list_strategy_versions",
+            _safe(list_strategy_versions),
+            "List all strategies in specs/strategies/.",
+        ),
+        (
+            "get_executor_state",
+            _safe(get_executor_state),
+            "Return the latest executor state snapshot (bars_processed, position, etc.).",
+        ),
+        (
+            "get_session_pnl",
+            _safe(get_session_pnl),
+            "Session PnL summary. Optional spec_hash filter.",
+        ),
+        (
+            "get_recent_fills",
+            _safe(get_recent_fills),
+            "Fills at/after an ISO-8601 timestamp. Optional spec_hash filter.",
+        ),
+        (
+            "get_risk_utilization",
+            _safe(get_risk_utilization),
+            "Current risk caps usage (per-trade / per-session / per-week / position).",
+        ),
+        ("get_ws_health", _safe(get_ws_health), "Tradovate WS connectivity health."),
+        (
+            "get_open_orders",
+            _safe(get_open_orders),
+            "Open orders at the given venue (`tradovate_paper` | `tradovate_live`).",
+        ),
     ]

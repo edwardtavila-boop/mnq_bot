@@ -1,4 +1,5 @@
 """Unit tests for the 12-gate gauntlet."""
+
 from __future__ import annotations
 
 import math
@@ -25,8 +26,7 @@ from mnq.gauntlet.gates.gauntlet12 import (
 
 def _clean_context() -> GauntletContext:
     closes = [
-        21000.0 + i * 0.5 + 3.0 * math.sin(i * 0.7) + 2.0 * math.cos(i * 1.3)
-        for i in range(60)
+        21000.0 + i * 0.5 + 3.0 * math.sin(i * 0.7) + 2.0 * math.cos(i * 1.3) for i in range(60)
     ]
     return GauntletContext(
         now=datetime(2026, 4, 16, 14, 30, tzinfo=UTC),
@@ -161,12 +161,24 @@ class TestRegime:
         ctx.regime = "trend_up"
         assert gate_regime(ctx).pass_ is False
 
-    def test_chop_yields_low_score_but_passes(self):
+    def test_chop_yields_low_score_and_fails(self):
+        # Scorecard bundle v0.1 (Apr 2026): chop scores 0.3 but the gate
+        # threshold lifted from >0.0 to >=0.5 so chop now blocks entries.
         ctx = _clean_context()
         ctx.regime = "chop"
         r = gate_regime(ctx)
         assert r.score > 0.0
         assert r.score < 0.5
+        assert r.pass_ is False
+
+    def test_stub_path_still_passes(self):
+        # Without a regime classifier the gate is a soft-pass (score 0.5,
+        # exactly on the threshold) so it doesn't block unrelated flows.
+        ctx = _clean_context()
+        ctx.regime = None
+        r = gate_regime(ctx)
+        assert r.pass_ is True
+        assert r.score == 0.5
 
 
 class TestCorrelation:

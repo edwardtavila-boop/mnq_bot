@@ -1,8 +1,8 @@
-# GBM Filter · 2026-04-17 01:39:40 UTC
+# GBM Filter · 2026-04-26 14:26:04 UTC
 
 - train: **25** · test: **12**
 - feature set: [bias, hour, weekday, qty, duration_s, is_long]
-- weights: [0.0682, 0.0682, 0.2728, 0.0682, 0.0123, -0.6836]
+- weights: [0.0325, 0.0, 0.1952, 0.0325, -0.001, -0.6984]
 
 ## Test performance
 - accuracy: **66.7%**

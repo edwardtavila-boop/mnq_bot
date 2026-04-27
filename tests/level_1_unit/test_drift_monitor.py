@@ -53,9 +53,7 @@ class TestDriftMonitorBasic:
         assert report.z_score == -5.0
         assert report.is_anomalous is True  # Exceeds threshold of 3.0
 
-    def test_drift_monitor_realized_matching_expected(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_drift_monitor_realized_matching_expected(self, temp_journal: EventJournal) -> None:
         """When realized matches expected, z_score should be ~0."""
         # Create fills for 10 trades across 2 ET trading days
         # Must account for UTC-4 offset: each ET calendar day is actually a 28-hour
@@ -96,9 +94,7 @@ class TestDriftMonitorBasic:
         assert report.is_anomalous is False
         assert abs(report.z_score) <= 2.0
 
-    def test_drift_monitor_high_realized_anomalous(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_drift_monitor_high_realized_anomalous(self, temp_journal: EventJournal) -> None:
         """When realized >> expected, should be anomalous."""
         now = datetime(2026, 4, 14, 16, 0, tzinfo=UTC)
         base_ts = now - timedelta(days=1)
@@ -137,9 +133,7 @@ class TestDriftMonitorBasic:
         assert report.z_score == 20.0
         assert report.is_anomalous is True
 
-    def test_drift_monitor_low_realized_anomalous(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_drift_monitor_low_realized_anomalous(self, temp_journal: EventJournal) -> None:
         """When realized << expected, should be anomalous."""
         now = datetime(2026, 4, 14, 16, 0, tzinfo=UTC)
         # Start 5 days ago (about 120 hours)
@@ -221,9 +215,7 @@ class TestDriftMonitorEvents:
         payload = alerts[0].payload
         assert abs(payload["z_score"]) > 3.0
 
-    def test_drift_monitor_emits_drift_ok_when_normal(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_drift_monitor_emits_drift_ok_when_normal(self, temp_journal: EventJournal) -> None:
         """Should emit DRIFT_OK event when not anomalous."""
         now = datetime(2026, 4, 14, 16, 0, tzinfo=UTC)
         # Start 2 days ago; spread trades across multiple ET days
@@ -281,9 +273,7 @@ class TestDriftMonitorDaysWindow:
         assert (end - start).days == 5
         assert end == now
 
-    def test_days_window_respects_lookback_sessions(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_days_window_respects_lookback_sessions(self, temp_journal: EventJournal) -> None:
         """Window should respect lookback_sessions parameter."""
         config = DriftMonitorConfig(lookback_sessions=10)
         monitor = TurnoverDriftMonitor(
@@ -300,9 +290,7 @@ class TestDriftMonitorDaysWindow:
         # Should be 10 calendar days lookback
         assert (end - start).days == 10
 
-    def test_days_window_with_timezone_normalization(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_days_window_with_timezone_normalization(self, temp_journal: EventJournal) -> None:
         """Window should normalize time-aware datetimes to UTC."""
         config = DriftMonitorConfig(lookback_sessions=5)
         monitor = TurnoverDriftMonitor(
@@ -328,9 +316,7 @@ class TestDriftMonitorDaysWindow:
 class TestDriftMonitorMetrics:
     """Prometheus metrics tests."""
 
-    def test_drift_monitor_updates_prometheus_metric(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_drift_monitor_updates_prometheus_metric(self, temp_journal: EventJournal) -> None:
         """Should update drift_z_score prometheus metric."""
         now = datetime(2026, 4, 14, 16, 0, tzinfo=UTC)
         base_ts = now - timedelta(days=1)
@@ -448,9 +434,7 @@ class TestDriftMonitorEdgeCases:
         assert report.z_score == 0.0
         assert not report.is_anomalous
 
-    def test_drift_monitor_report_structure(
-        self, temp_journal: EventJournal
-    ) -> None:
+    def test_drift_monitor_report_structure(self, temp_journal: EventJournal) -> None:
         """DriftReport should have all required fields."""
         now = datetime(2026, 4, 14, 16, 0, tzinfo=UTC)
 

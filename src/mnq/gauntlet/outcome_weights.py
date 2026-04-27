@@ -25,6 +25,7 @@ Usage:
     weights = compute_gate_weights(records)
     # Use weights.weighted_pass_rate(gate_verdicts) instead of raw pass_rate
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -115,7 +116,8 @@ def _pearson(xs: list[float], ys: list[float]) -> float:
 
 
 def _information_value(
-    pass_pnl: list[float], fail_pnl: list[float],
+    pass_pnl: list[float],
+    fail_pnl: list[float],
 ) -> float:
     """Compute information value — how much PnL-separation the gate provides.
 
@@ -173,7 +175,10 @@ def compute_gate_weights(
     """
     if not records:
         return OutcomeWeights(
-            gate_weights={}, gate_results=[], n_days=0, total_pnl=0.0,
+            gate_weights={},
+            gate_results=[],
+            n_days=0,
+            total_pnl=0.0,
             method=correlation_method,
         )
 
@@ -205,16 +210,18 @@ def compute_gate_weights(
 
         # Insufficient data — can't judge
         if len(pass_pnl) < min_samples or len(fail_pnl) < min_samples:
-            results.append(GateWeightResult(
-                name=gate_name,
-                weight=0.0,
-                raw_correlation=0.0,
-                pass_pnl_mean=_safe_mean(pass_pnl),
-                fail_pnl_mean=_safe_mean(fail_pnl),
-                pass_count=len(pass_pnl),
-                fail_count=len(fail_pnl),
-                information_value=0.0,
-            ))
+            results.append(
+                GateWeightResult(
+                    name=gate_name,
+                    weight=0.0,
+                    raw_correlation=0.0,
+                    pass_pnl_mean=_safe_mean(pass_pnl),
+                    fail_pnl_mean=_safe_mean(fail_pnl),
+                    pass_count=len(pass_pnl),
+                    fail_count=len(fail_pnl),
+                    information_value=0.0,
+                )
+            )
             continue
 
         corr = _pearson(binary_series, pnl_series)
@@ -222,16 +229,18 @@ def compute_gate_weights(
 
         weight = (corr + 1.0) / 2.0 if correlation_method == "pearson_shift" else max(0.0, corr)
 
-        results.append(GateWeightResult(
-            name=gate_name,
-            weight=weight,
-            raw_correlation=corr,
-            pass_pnl_mean=_safe_mean(pass_pnl),
-            fail_pnl_mean=_safe_mean(fail_pnl),
-            pass_count=len(pass_pnl),
-            fail_count=len(fail_pnl),
-            information_value=iv,
-        ))
+        results.append(
+            GateWeightResult(
+                name=gate_name,
+                weight=weight,
+                raw_correlation=corr,
+                pass_pnl_mean=_safe_mean(pass_pnl),
+                fail_pnl_mean=_safe_mean(fail_pnl),
+                pass_count=len(pass_pnl),
+                fail_count=len(fail_pnl),
+                information_value=iv,
+            )
+        )
 
     gate_weights = {r.name: r.weight for r in results}
 

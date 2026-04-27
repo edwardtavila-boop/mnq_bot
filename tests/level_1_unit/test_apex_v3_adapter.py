@@ -6,6 +6,7 @@ sys.path. When the real engine isn't importable, the adapter returns
 None snapshots and the enrichment helpers pass the base payload
 through unchanged. That fail-open contract is what these tests lock in.
 """
+
 from __future__ import annotations
 
 from mnq.eta_v3 import (
@@ -110,6 +111,7 @@ class TestEnrichAgentInput:
     def test_none_snapshot_is_noop(self):
         class _AI:
             payload = {"x": 1}
+
         ai = _AI()
         out = enrich_agent_input(ai, None)
         assert out is ai
@@ -121,6 +123,7 @@ class TestEnrichAgentInput:
     def test_non_dict_payload_is_noop(self):
         class _AI:
             payload = "not-a-dict"
+
         ai = _AI()
         enrich_agent_input(ai, _fake_snapshot())
         assert ai.payload == "not-a-dict"
@@ -128,6 +131,7 @@ class TestEnrichAgentInput:
     def test_rewrites_payload_with_enrichment(self):
         class _AI:
             payload = {"symbol": "MNQ"}
+
         ai = _AI()
         enrich_agent_input(ai, _fake_snapshot())
         assert "eta_v3_voices" in ai.payload

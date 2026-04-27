@@ -19,6 +19,7 @@ Usage:
     python scripts/daily_digest.py
     python scripts/daily_digest.py --output reports/daily/2026-04-15.md
 """
+
 from __future__ import annotations
 
 import argparse
@@ -52,7 +53,7 @@ class Digest:
     wins: int
     losses: int
     mean_slip: float
-    biggest_winner: tuple[str, float, str] | None   # (order_id, pnl, regime)
+    biggest_winner: tuple[str, float, str] | None  # (order_id, pnl, regime)
     biggest_loser: tuple[str, float, str] | None
     per_regime_pnl: dict[str, float]
     per_side_pnl: dict[str, float]
@@ -217,7 +218,9 @@ def _render(d: Digest, *, gap_threshold_min: float = 30.0) -> str:
     lines.append("- Re-run walk-forward optimizer; confirm winner stability.")
     lines.append("- Re-run calibration; watch for LOOCV Brier > 0.30 as overfit alarm.")
     lines.append("- Check strategy registry drift (`scripts/strategy_registry.py --update`).")
-    lines.append("- If any bucket heat-cap dropped to 0, block that (regime × side) in the gauntlet.")
+    lines.append(
+        "- If any bucket heat-cap dropped to 0, block that (regime × side) in the gauntlet."
+    )
     return "\n".join(lines) + "\n"
 
 

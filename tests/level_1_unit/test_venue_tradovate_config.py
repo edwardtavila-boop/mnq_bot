@@ -1,4 +1,5 @@
 """Level-1 tests for mnq.venues.tradovate.config."""
+
 from __future__ import annotations
 
 import pytest
@@ -7,14 +8,17 @@ from mnq.venues.tradovate.config import Environment, hosts_for
 
 
 class TestEnvironment:
-    @pytest.mark.parametrize("raw,expected", [
-        ("demo", Environment.DEMO),
-        ("Demo", Environment.DEMO),
-        ("paper", Environment.DEMO),
-        ("live", Environment.LIVE),
-        ("PROD", Environment.LIVE),
-        ("production", Environment.LIVE),
-    ])
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("demo", Environment.DEMO),
+            ("Demo", Environment.DEMO),
+            ("paper", Environment.DEMO),
+            ("live", Environment.LIVE),
+            ("PROD", Environment.LIVE),
+            ("production", Environment.LIVE),
+        ],
+    )
     def test_from_str_accepts_synonyms(self, raw, expected) -> None:
         assert Environment.from_str(raw) is expected
 

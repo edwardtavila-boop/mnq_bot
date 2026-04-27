@@ -10,6 +10,7 @@ Live-feed adapters (TradingView webhook, broker-native streams) are
 *not* in this package — they belong with the venue layer. This package
 is strictly historical replay.
 """
+
 from __future__ import annotations
 
 from mnq.tape.databento_tape import (

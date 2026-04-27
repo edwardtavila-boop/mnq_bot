@@ -17,6 +17,7 @@ Public surface the executor and CLI use:
 Nothing else is considered a stable contract. See `docs/TRADOVATE_NOTES.md`
 for the protocol details this module encodes.
 """
+
 from mnq.venues.tradovate.auth import (
     AuthError,
     InvalidCredentialsError,

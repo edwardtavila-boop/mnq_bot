@@ -1,7 +1,7 @@
-# mnq_bot — Internal-Simulation Live Run
+# EVOLUTIONARY TRADING ALGO // Paper Sim — Live Run
 
-- Generated: 2026-04-17T01:37:29.863868+00:00
-- Journal: `/sessions/kind-keen-faraday/data/live_sim/journal.sqlite`
+- Generated: 2026-04-26T14:25:20.050040+00:00
+- Journal: `C:\Users\edwar\projects\mnq_bot\data\live_sim\journal.sqlite`
 - Days × bars: **20 × 390**
 
 This is an internal-simulation "live" run. Every state transition — order submits, acks, fills, risk decisions, breaker folds, slippage records, reconciliation — is committed to a durable SQLite journal the same way the production path would. The bot is now accumulating the data it needs to adapt: fill expectations vs realizations, per-regime PnL attribution, turnover drift, and per-check safety outcomes.
@@ -41,8 +41,8 @@ This is an internal-simulation "live" run. Every state transition — order subm
 
 | Volatility regime | n | mean slip (ticks) |
 |---|---:|---:|
-| normal | 78 | +0.987 |
 | high | 33 | +1.273 |
+| normal | 78 | +0.987 |
 
 ## Per-regime PnL (from trade-closure FILL_REALIZED)
 

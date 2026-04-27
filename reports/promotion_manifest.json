@@ -1,0 +1,150 @@
+{
+  "metadata": {
+    "generated": "2026-04-18T12:32:32.884470+00:00",
+    "journal_paths": [],
+    "journals_all_passed": true,
+    "manifest_generated": "2026-04-18T12:12:00.647211+00:00",
+    "manifest_source": "C:\\Users\\edwar\\projects\\mnq_bot\\reports\\edge_forensics.json",
+    "n_variants_evaluated": 6
+  },
+  "variants": {
+    "orb_confidence_pm30": {
+      "cleared_to_promote": true,
+      "gates": [
+        {
+          "detail": "verdict=PASS, sharpe=4.11, dsr_100=1.000, n=112",
+          "name": "ship_manifest",
+          "passed": true
+        },
+        {
+          "detail": "no journal configured (paper dry-run; skipping)",
+          "name": "journal_health",
+          "passed": true
+        },
+        {
+          "detail": "tier=0 ACTIVE, allowed_qty=0",
+          "name": "rollout_state",
+          "passed": true
+        }
+      ],
+      "rollout_state": "active",
+      "tier": 0,
+      "variant": "orb_confidence_pm30"
+    },
+    "orb_only_pm30": {
+      "cleared_to_promote": true,
+      "gates": [
+        {
+          "detail": "verdict=PASS, sharpe=4.31, dsr_100=1.000, n=112",
+          "name": "ship_manifest",
+          "passed": true
+        },
+        {
+          "detail": "no journal configured (paper dry-run; skipping)",
+          "name": "journal_health",
+          "passed": true
+        },
+        {
+          "detail": "tier=0 ACTIVE, allowed_qty=0",
+          "name": "rollout_state",
+          "passed": true
+        }
+      ],
+      "rollout_state": "active",
+      "tier": 0,
+      "variant": "orb_only_pm30"
+    },
+    "orb_regime_conf_pm25": {
+      "cleared_to_promote": true,
+      "gates": [
+        {
+          "detail": "verdict=PASS, sharpe=4.38, dsr_100=1.000, n=173",
+          "name": "ship_manifest",
+          "passed": true
+        },
+        {
+          "detail": "no journal configured (paper dry-run; skipping)",
+          "name": "journal_health",
+          "passed": true
+        },
+        {
+          "detail": "tier=0 ACTIVE, allowed_qty=0",
+          "name": "rollout_state",
+          "passed": true
+        }
+      ],
+      "rollout_state": "active",
+      "tier": 0,
+      "variant": "orb_regime_conf_pm25"
+    },
+    "orb_regime_conf_pm30": {
+      "cleared_to_promote": true,
+      "gates": [
+        {
+          "detail": "verdict=PASS, sharpe=4.11, dsr_100=1.000, n=112",
+          "name": "ship_manifest",
+          "passed": true
+        },
+        {
+          "detail": "no journal configured (paper dry-run; skipping)",
+          "name": "journal_health",
+          "passed": true
+        },
+        {
+          "detail": "tier=0 ACTIVE, allowed_qty=0",
+          "name": "rollout_state",
+          "passed": true
+        }
+      ],
+      "rollout_state": "active",
+      "tier": 0,
+      "variant": "orb_regime_conf_pm30"
+    },
+    "orb_regime_pm30": {
+      "cleared_to_promote": true,
+      "gates": [
+        {
+          "detail": "verdict=PASS, sharpe=4.31, dsr_100=1.000, n=112",
+          "name": "ship_manifest",
+          "passed": true
+        },
+        {
+          "detail": "no journal configured (paper dry-run; skipping)",
+          "name": "journal_health",
+          "passed": true
+        },
+        {
+          "detail": "tier=0 ACTIVE, allowed_qty=0",
+          "name": "rollout_state",
+          "passed": true
+        }
+      ],
+      "rollout_state": "active",
+      "tier": 0,
+      "variant": "orb_regime_pm30"
+    },
+    "orb_sweep_pm30": {
+      "cleared_to_promote": true,
+      "gates": [
+        {
+          "detail": "verdict=PASS, sharpe=4.31, dsr_100=1.000, n=112",
+          "name": "ship_manifest",
+          "passed": true
+        },
+        {
+          "detail": "no journal configured (paper dry-run; skipping)",
+          "name": "journal_health",
+          "passed": true
+        },
+        {
+          "detail": "tier=0 ACTIVE, allowed_qty=0",
+          "name": "rollout_state",
+          "passed": true
+        }
+      ],
+      "rollout_state": "active",
+      "tier": 0,
+      "variant": "orb_sweep_pm30"
+    }
+  }
+}

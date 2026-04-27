@@ -21,6 +21,7 @@ Usage:
     python scripts/alerting.py --tier action --live
     python scripts/alerting.py --message "Kill switch tripped" --tier action
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,10 +38,9 @@ REPORT_PATH = REPO_ROOT / "reports" / "alerting.md"
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from _trade_utils import load_trades, summary_stats  # noqa: E402
 
-
 TIER_ENV = {
-    "info":   "FIRM_WEBHOOK_INFO",
-    "warn":   "FIRM_WEBHOOK_WARN",
+    "info": "FIRM_WEBHOOK_INFO",
+    "warn": "FIRM_WEBHOOK_WARN",
     "action": "FIRM_WEBHOOK_ACTION",
 }
 TIER_PRIORITY = {"info": 0, "warn": 1, "action": 2}
@@ -54,39 +54,55 @@ class AlertPayload:
     ts: str
 
     def to_discord(self) -> dict:
-        color = {"info": 0x22c55e, "warn": 0xf59e0b, "action": 0xef4444}[self.tier]
+        color = {"info": 0x22C55E, "warn": 0xF59E0B, "action": 0xEF4444}[self.tier]
         tiny = f"n={self.stats['n']} · WR={self.stats['win_rate']:.1%} · PF={self.stats['profit_factor']:.2f}"
         return {
-            "embeds": [{
-                "title": f"[{self.tier.upper()}] {self.message}",
-                "description": f"`{tiny}` — total PnL `${self.stats['total_pnl']:+.2f}`",
-                "color": color,
-                "timestamp": self.ts,
-                "footer": {"text": "The Firm · alerting.py"},
-            }]
+            "embeds": [
+                {
+                    "title": f"[{self.tier.upper()}] {self.message}",
+                    "description": f"`{tiny}` — total PnL `${self.stats['total_pnl']:+.2f}`",
+                    "color": color,
+                    "timestamp": self.ts,
+                    "footer": {"text": "The Firm · alerting.py"},
+                }
+            ]
         }
 
     def to_slack(self) -> dict:
-        emoji = {"info": ":information_source:", "warn": ":warning:", "action": ":rotating_light:"}[self.tier]
+        emoji = {"info": ":information_source:", "warn": ":warning:", "action": ":rotating_light:"}[
+            self.tier
+        ]
         return {
             "text": f"{emoji} *{self.tier.upper()}* · {self.message}",
-            "attachments": [{
-                "color": {"info": "good", "warn": "warning", "action": "danger"}[self.tier],
-                "fields": [
-                    {"title": "Trades", "value": f"{self.stats['n']}", "short": True},
-                    {"title": "WR", "value": f"{self.stats['win_rate']:.1%}", "short": True},
-                    {"title": "PF", "value": f"{self.stats['profit_factor']:.2f}", "short": True},
-                    {"title": "PnL", "value": f"${self.stats['total_pnl']:+.2f}", "short": True},
-                ],
-                "ts": int(datetime.now(UTC).timestamp()),
-            }]
+            "attachments": [
+                {
+                    "color": {"info": "good", "warn": "warning", "action": "danger"}[self.tier],
+                    "fields": [
+                        {"title": "Trades", "value": f"{self.stats['n']}", "short": True},
+                        {"title": "WR", "value": f"{self.stats['win_rate']:.1%}", "short": True},
+                        {
+                            "title": "PF",
+                            "value": f"{self.stats['profit_factor']:.2f}",
+                            "short": True,
+                        },
+                        {
+                            "title": "PnL",
+                            "value": f"${self.stats['total_pnl']:+.2f}",
+                            "short": True,
+                        },
+                    ],
+                    "ts": int(datetime.now(UTC).timestamp()),
+                }
+            ],
         }
 
 
 def _post(url: str, body: dict) -> tuple[int, str]:
     req = urlrequest.Request(
-        url, data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"}, method="POST",
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
     )
     try:
         with urlrequest.urlopen(req, timeout=10) as r:
@@ -105,11 +121,11 @@ def main() -> int:
 
     trades = load_trades()
     stats = summary_stats(trades)
-    msg = args.message or (
-        f"Auto-rollup · {stats['n']} trades · ${stats['total_pnl']:+.2f}"
-    )
+    msg = args.message or (f"Auto-rollup · {stats['n']} trades · ${stats['total_pnl']:+.2f}")
     alert = AlertPayload(
-        tier=args.tier, message=msg, stats=stats,
+        tier=args.tier,
+        message=msg,
+        stats=stats,
         ts=datetime.now(UTC).isoformat(),
     )
     body = alert.to_discord() if args.format == "discord" else alert.to_slack()

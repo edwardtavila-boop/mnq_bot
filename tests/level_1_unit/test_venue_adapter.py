@@ -1,30 +1,25 @@
 """Tests for mnq.venues — Phase 6 API boundary."""
+
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from mnq.core.types import Side
 from mnq.venues.base import (
-    AccountSnapshot,
-    CancelAck,
     ConnectionState,
-    OrderAck,
     OrderRequest,
-    PositionSnapshot,
-    QuoteTick,
     VenueAdapter,
     VenueFill,
     VenueType,
 )
-from mnq.venues.ninjatrader import NTConfig, NinjaTraderVenue
-
+from mnq.venues.ninjatrader import NinjaTraderVenue, NTConfig
 
 # ── NTConfig ───────────────────────────────────────────────────────────
+
 
 class TestNTConfig:
     def test_defaults(self):
@@ -47,6 +42,7 @@ class TestNTConfig:
 
 
 # ── NinjaTraderVenue ───────────────────────────────────────────────────
+
 
 class TestNinjaTraderVenue:
     def test_initial_state(self):
@@ -85,6 +81,7 @@ class TestNinjaTraderVenue:
 
 # ── VenueAdapter ABC ───────────────────────────────────────────────────
 
+
 class TestVenueAdapterABC:
     def test_cannot_instantiate_abc(self):
         """VenueAdapter is abstract — can't be instantiated directly."""
@@ -93,6 +90,7 @@ class TestVenueAdapterABC:
 
     def test_concrete_must_implement_all(self):
         """Subclass missing methods should fail."""
+
         class Incomplete(VenueAdapter):
             pass
 
@@ -101,6 +99,7 @@ class TestVenueAdapterABC:
 
 
 # ── OrderRequest ───────────────────────────────────────────────────────
+
 
 class TestOrderRequest:
     def test_market_order(self):
@@ -127,6 +126,7 @@ class TestOrderRequest:
 
 
 # ── VenueFill ──────────────────────────────────────────────────────────
+
 
 class TestVenueFill:
     def test_fill_fields(self):

@@ -10,6 +10,7 @@ Writes ``reports/cumulative_delta.md`` with the session CVD series.
 Usage:
     python scripts/cumulative_delta.py --date 2026-04-15
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,6 +31,7 @@ BARS_DIR = BARS_DATABENTO_DIR
 def _read_parquet(path: Path):
     try:
         import pyarrow.parquet as pq  # type: ignore
+
         return pq.read_table(str(path)).to_pylist()
     except Exception:  # noqa: BLE001
         return []
@@ -68,7 +70,8 @@ def main() -> int:
     sparkline_chars = " ▁▂▃▄▅▆▇█"
     spark = (
         "".join(sparkline_chars[min(8, int((v - lo) / (hi - lo) * 8))] for v in series)
-        if hi > lo else "▄" * len(series)
+        if hi > lo
+        else "▄" * len(series)
     )
 
     REPORT_PATH.write_text(

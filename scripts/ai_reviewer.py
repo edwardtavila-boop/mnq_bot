@@ -10,6 +10,7 @@ Usage:
     python scripts/ai_reviewer.py --last 10
     python scripts/ai_reviewer.py --last 5 --llm   # uses ANTHROPIC_API_KEY if set
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,7 +38,9 @@ def _heuristic_review(t) -> list[str]:
     if t.qty > 4:
         notes.append(f"Position size {t.qty} — above normal. Confirm conviction / context.")
     if t.hour is not None and t.hour < 13:
-        notes.append(f"Opened pre-13:00 UTC (H{t.hour:02d}) — watch for thin-liquidity false moves.")
+        notes.append(
+            f"Opened pre-13:00 UTC (H{t.hour:02d}) — watch for thin-liquidity false moves."
+        )
     if not notes:
         notes.append("No flags. Clean trade within policy.")
     return notes
@@ -82,7 +85,7 @@ def main() -> int:
         print("ai_reviewer: no trades")
         return 0
 
-    targets = trades[-args.last:]
+    targets = trades[-args.last :]
     lines = [
         f"# AI Reviewer · {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
         "",
@@ -92,8 +95,7 @@ def main() -> int:
     ]
     for t in targets:
         header = (
-            f"### Trade #{t.seq} · {t.side} {t.qty}c · "
-            f"${t.net_pnl:+.2f} ({t.r_multiple:+.2f}R)"
+            f"### Trade #{t.seq} · {t.side} {t.qty}c · ${t.net_pnl:+.2f} ({t.r_multiple:+.2f}R)"
         )
         lines.append(header)
         for n in _heuristic_review(t):

@@ -1,4 +1,4 @@
-# Hot Hand · 2026-04-17 01:39:39 UTC
+# Hot Hand · 2026-04-26 14:26:00 UTC
 
 - trades: **37** · base WR: **70.3%**
 - P(win | prev win): **72.0%**  (n=25)

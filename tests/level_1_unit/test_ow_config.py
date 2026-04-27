@@ -1,4 +1,5 @@
 """Tests for OW config loader — Batch 11B."""
+
 from __future__ import annotations
 
 import json

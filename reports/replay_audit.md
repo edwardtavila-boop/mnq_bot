@@ -1,9 +1,9 @@
 # Journal Replay Audit
 
-- Journal: `/sessions/kind-keen-faraday/data/live_sim/journal.sqlite`
+- Journal: `C:\Users\edwar\projects\mnq_bot\data\live_sim\journal.sqlite`
 - Deterministic two-pass replay: **OK**
 - Total events: **669**
-- Event checksum (SHA-256): `1a7a4b7305c9d01b7936dce73a069f1015a6d81b52f8ee59a35fcde19170b7e2`
+- Event checksum (SHA-256): `9486cf755dd0bcb4a3714284f49544519227a72f05b6ffa7a6d52fa49c3ed62c`
 - Reconstructed orders: **74**
 
 ## Event-type distribution

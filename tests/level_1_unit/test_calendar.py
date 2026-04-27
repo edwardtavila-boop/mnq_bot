@@ -5,6 +5,7 @@ Tests for:
   - CMEFuturesCalendar (RTH/ETH windows, holidays, half-days, roll dates)
   - FuturesContract (parsing, symbol generation, navigation)
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime

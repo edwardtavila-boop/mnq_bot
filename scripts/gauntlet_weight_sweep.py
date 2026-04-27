@@ -9,6 +9,7 @@ and reports: PnL, trade count, block rate, avg PnL/trade.
 
 Output: ``reports/gauntlet_weight_sweep.md``
 """
+
 from __future__ import annotations
 
 import argparse
@@ -106,22 +107,27 @@ def _run_sweep(
                 for tr in ledger.trades:
                     eff_qty = max(1, int(round(tr.qty * mult)))
                     from decimal import Decimal
+
                     scale = Decimal(eff_qty) / Decimal(tr.qty) if tr.qty else Decimal(1)
                     total_pnl += float(tr.pnl_dollars * scale)
                     n_trades += 1
 
         avg = total_pnl / n_trades if n_trades > 0 else 0.0
-        results.append(SweepResult(
-            weight=weight,
-            total_pnl=round(total_pnl, 2),
-            n_trades=n_trades,
-            n_full=n_full,
-            n_reduced=n_reduced,
-            n_skip=n_skip,
-            avg_pnl_per_trade=round(avg, 2),
-        ))
-        print(f"  w={weight:.2f} → PnL=${total_pnl:+,.2f}, "
-              f"trades={n_trades}, full={n_full}/red={n_reduced}/skip={n_skip}")
+        results.append(
+            SweepResult(
+                weight=weight,
+                total_pnl=round(total_pnl, 2),
+                n_trades=n_trades,
+                n_full=n_full,
+                n_reduced=n_reduced,
+                n_skip=n_skip,
+                avg_pnl_per_trade=round(avg, 2),
+            )
+        )
+        print(
+            f"  w={weight:.2f} → PnL=${total_pnl:+,.2f}, "
+            f"trades={n_trades}, full={n_full}/red={n_reduced}/skip={n_skip}"
+        )
 
     return results
 
@@ -144,8 +150,9 @@ def _render(results: list[SweepResult]) -> str:
         )
 
     lines.append("")
-    lines.append(f"**Best weight:** {best.weight:.2f} "
-                 f"(PnL ${best.total_pnl:+,.2f}, {best.n_trades} trades)")
+    lines.append(
+        f"**Best weight:** {best.weight:.2f} (PnL ${best.total_pnl:+,.2f}, {best.n_trades} trades)"
+    )
     lines.append("")
     lines.append("## Interpretation")
     lines.append("")

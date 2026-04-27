@@ -7,6 +7,7 @@ Currently exposes:
 Future modules will add: walk-forward CI, DSR / PSR (gate 4), DOW
 placebo (gate 7), etc.
 """
+
 from __future__ import annotations
 
 from mnq.stats.block_bootstrap import block_bootstrap_ci

@@ -7,6 +7,7 @@ Public surface:
     TradeLedger                              — sequence of round-trip trades
     run_layer2(spec, strategy, bars, seed)   — convenience wrapper
 """
+
 from __future__ import annotations
 
 from mnq.sim.layer2.engine import Layer2Engine, TradeLedger, TradeRecord, run_layer2

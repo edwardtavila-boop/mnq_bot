@@ -75,8 +75,10 @@ class TestParityCLI:
                 [
                     "parity",
                     "compare",
-                    "--paper", str(paper_path),
-                    "--live", str(live_path),
+                    "--paper",
+                    str(paper_path),
+                    "--live",
+                    str(live_path),
                 ],
             )
             assert result.exit_code == 0
@@ -118,9 +120,12 @@ class TestParityCLI:
                 [
                     "parity",
                     "compare",
-                    "--paper", str(paper_path),
-                    "--live", str(live_path),
-                    "--threshold-pnl", "5.0",
+                    "--paper",
+                    str(paper_path),
+                    "--live",
+                    str(live_path),
+                    "--threshold-pnl",
+                    "5.0",
                 ],
             )
             assert result.exit_code == 2
@@ -151,8 +156,10 @@ class TestParityCLI:
                 [
                     "parity",
                     "compare",
-                    "--paper", str(paper_path),
-                    "--live", str(live_path),
+                    "--paper",
+                    str(paper_path),
+                    "--live",
+                    str(live_path),
                     "--json",
                 ],
             )

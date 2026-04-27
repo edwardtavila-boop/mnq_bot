@@ -32,7 +32,7 @@ Usage:
 import argparse
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 try:
@@ -52,17 +52,17 @@ DATASET = "GLBX.MDP3"  # CME Globex MDP 3.0 - has NQ, MNQ, ES, MES, 6E, CL, etc.
 
 # Common CME futures continuous front-month symbols
 FUTURES_SYMBOLS = {
-    "NQ":  "NQ.c.0",   # E-mini Nasdaq-100
+    "NQ": "NQ.c.0",  # E-mini Nasdaq-100
     "MNQ": "MNQ.c.0",  # Micro E-mini Nasdaq-100
-    "ES":  "ES.c.0",   # E-mini S&P 500
+    "ES": "ES.c.0",  # E-mini S&P 500
     "MES": "MES.c.0",  # Micro E-mini S&P 500
     "RTY": "RTY.c.0",  # E-mini Russell 2000
     "M2K": "M2K.c.0",  # Micro E-mini Russell 2000
-    "YM":  "YM.c.0",   # E-mini Dow
+    "YM": "YM.c.0",  # E-mini Dow
     "MYM": "MYM.c.0",  # Micro E-mini Dow
-    "6E":  "6E.c.0",   # Euro FX
-    "CL":  "CL.c.0",   # Crude oil
-    "GC":  "GC.c.0",   # Gold
+    "6E": "6E.c.0",  # Euro FX
+    "CL": "CL.c.0",  # Crude oil
+    "GC": "GC.c.0",  # Gold
 }
 
 
@@ -106,16 +106,15 @@ def estimate_cost(symbol: str, start: str, end: str, schema: str = "ohlcv-1m"):
         return None, None
 
 
-def fetch_ohlcv(symbol: str, start: str, end: str, schema: str = "ohlcv-1m",
-                chunk_days: int = 90):
+def fetch_ohlcv(symbol: str, start: str, end: str, schema: str = "ohlcv-1m", chunk_days: int = 90):
     """Fetch OHLCV data in chunks to avoid memory issues on long ranges.
     Returns a pandas DataFrame with columns: time, open, high, low, close, volume."""
     client = get_client()
     full_symbol = FUTURES_SYMBOLS.get(symbol, symbol)
     stype_in = "continuous" if full_symbol.endswith(".c.0") else "raw_symbol"
 
-    start_dt = datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-    end_dt = datetime.strptime(end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    start_dt = datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=UTC)
+    end_dt = datetime.strptime(end, "%Y-%m-%d").replace(tzinfo=UTC)
     chunks = []
     current = start_dt
     total_records = 0
@@ -142,11 +141,13 @@ def fetch_ohlcv(symbol: str, start: str, end: str, schema: str = "ohlcv-1m",
             total_records += n
             if n > 0:
                 chunks.append(df_chunk)
-            print(f"  {chunk_start_str} → {chunk_end_str}: {n:>7d} records "
-                  f"(running total: {total_records:>8d})")
+            print(
+                f"  {chunk_start_str} → {chunk_end_str}: {n:>7d} records "
+                f"(running total: {total_records:>8d})"
+            )
         except Exception as e:
             print(f"  WARN: chunk {chunk_start_str} → {chunk_end_str} failed: {e}")
-            print(f"        continuing...")
+            print("        continuing...")
 
         current = chunk_end
 
@@ -157,7 +158,7 @@ def fetch_ohlcv(symbol: str, start: str, end: str, schema: str = "ohlcv-1m",
     df = pd.concat(chunks)
     df = df.sort_index()
     # Drop duplicates from chunk boundary overlap
-    df = df[~df.index.duplicated(keep='first')]
+    df = df[~df.index.duplicated(keep="first")]
     return df
 
 
@@ -169,25 +170,31 @@ def df_to_backtest_csv(df, out_path: str, resample: str = None):
     # Databento returns a DataFrame indexed by timestamp with columns:
     # open, high, low, close, volume (among others)
     # We select only OHLCV and handle the timestamp
-    keep_cols = ['open', 'high', 'low', 'close', 'volume']
+    keep_cols = ["open", "high", "low", "close", "volume"]
     keep_cols = [c for c in keep_cols if c in df.columns]
     df = df[keep_cols].copy()
 
     if resample:
         # Convert Databento's short code to pandas resample
-        pandas_tf = resample.replace('m', 'min').replace('h', 'H').replace('d', 'D')
-        df = df.resample(pandas_tf, label='left', closed='left').agg({
-            'open': 'first',
-            'high': 'max',
-            'low': 'min',
-            'close': 'last',
-            'volume': 'sum',
-        }).dropna()
+        pandas_tf = resample.replace("m", "min").replace("h", "H").replace("d", "D")
+        df = (
+            df.resample(pandas_tf, label="left", closed="left")
+            .agg(
+                {
+                    "open": "first",
+                    "high": "max",
+                    "low": "min",
+                    "close": "last",
+                    "volume": "sum",
+                }
+            )
+            .dropna()
+        )
 
     # Convert timestamp to epoch seconds
-    df['time'] = (df.index.astype('int64') // 10**9).astype(int)
+    df["time"] = (df.index.astype("int64") // 10**9).astype(int)
     # Reorder columns to match our format
-    df = df[['time', 'open', 'high', 'low', 'close', 'volume']]
+    df = df[["time", "open", "high", "low", "close", "volume"]]
 
     df.to_csv(out_path, index=False)
     print(f"Wrote {len(df)} bars to {out_path}")
@@ -196,26 +203,33 @@ def df_to_backtest_csv(df, out_path: str, resample: str = None):
 
 def main():
     p = argparse.ArgumentParser(description="Databento fetcher for Apex v2")
-    p.add_argument("--symbol", required=True, choices=list(FUTURES_SYMBOLS.keys()),
-                   help="Symbol (NQ, MNQ, ES, MES, RTY, etc.)")
+    p.add_argument(
+        "--symbol",
+        required=True,
+        choices=list(FUTURES_SYMBOLS.keys()),
+        help="Symbol (NQ, MNQ, ES, MES, RTY, etc.)",
+    )
     p.add_argument("--start", required=True, help="Start date YYYY-MM-DD")
     p.add_argument("--end", required=True, help="End date YYYY-MM-DD")
-    p.add_argument("--schema", default="ohlcv-1m",
-                   choices=["ohlcv-1s", "ohlcv-1m", "ohlcv-1h", "ohlcv-1d"])
+    p.add_argument(
+        "--schema", default="ohlcv-1m", choices=["ohlcv-1s", "ohlcv-1m", "ohlcv-1h", "ohlcv-1d"]
+    )
     p.add_argument("--out", help="Output CSV path")
     p.add_argument("--resample", help="Resample to timeframe (e.g. '5m', '15m')")
-    p.add_argument("--estimate", action="store_true",
-                   help="Estimate cost without fetching")
-    p.add_argument("--chunk-days", type=int, default=90,
-                   help="Days per chunk (default 90, reduce if memory issues)")
-    p.add_argument("--yes", action="store_true",
-                   help="Skip cost confirmation prompt")
+    p.add_argument("--estimate", action="store_true", help="Estimate cost without fetching")
+    p.add_argument(
+        "--chunk-days",
+        type=int,
+        default=90,
+        help="Days per chunk (default 90, reduce if memory issues)",
+    )
+    p.add_argument("--yes", action="store_true", help="Skip cost confirmation prompt")
     args = p.parse_args()
 
     # Always estimate first
-    print(f"\n{'='*60}")
-    print(f"DATABENTO FETCH PLAN")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("DATABENTO FETCH PLAN")
+    print(f"{'=' * 60}")
     print(f"Symbol:   {args.symbol} ({FUTURES_SYMBOLS[args.symbol]})")
     print(f"Dataset:  {DATASET}")
     print(f"Schema:   {args.schema}")
@@ -223,13 +237,13 @@ def main():
     if args.resample:
         print(f"Resample: {args.resample} (aggregated from {args.schema})")
 
-    print(f"\nEstimating cost...")
+    print("\nEstimating cost...")
     records, cost = estimate_cost(args.symbol, args.start, args.end, args.schema)
     if records is not None:
         print(f"  Records:   {records:,}")
         print(f"  Est. cost: ${cost:.4f}")
     else:
-        print(f"  (cost estimation unavailable — will proceed if --yes)")
+        print("  (cost estimation unavailable — will proceed if --yes)")
 
     if args.estimate:
         return
@@ -240,7 +254,7 @@ def main():
 
     if not args.yes and cost is not None and cost > 1.0:
         ans = input(f"\nProceed with fetch? Est. cost ${cost:.4f} [y/N]: ")
-        if ans.lower() != 'y':
+        if ans.lower() != "y":
             print("Aborted.")
             return
 
@@ -254,16 +268,18 @@ def main():
     out_df = df_to_backtest_csv(df, args.out, resample=args.resample)
 
     # Summary
-    print(f"\n{'='*60}")
-    print(f"FETCH COMPLETE")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("FETCH COMPLETE")
+    print(f"{'=' * 60}")
     print(f"Output file:  {args.out}")
     print(f"Bars:         {len(out_df):,}")
-    print(f"Date range:   {datetime.fromtimestamp(out_df['time'].iloc[0], tz=timezone.utc):%Y-%m-%d} → "
-          f"{datetime.fromtimestamp(out_df['time'].iloc[-1], tz=timezone.utc):%Y-%m-%d}")
-    file_size_mb = Path(args.out).stat().st_size / (1024*1024)
+    print(
+        f"Date range:   {datetime.fromtimestamp(out_df['time'].iloc[0], tz=UTC):%Y-%m-%d} → "
+        f"{datetime.fromtimestamp(out_df['time'].iloc[-1], tz=UTC):%Y-%m-%d}"
+    )
+    file_size_mb = Path(args.out).stat().st_size / (1024 * 1024)
     print(f"File size:    {file_size_mb:.1f} MB")
-    print(f"\nReady to backtest:")
+    print("\nReady to backtest:")
     print(f"  python backtest.py {args.out} --pm 25")
 
 

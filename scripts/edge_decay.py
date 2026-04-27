@@ -8,6 +8,7 @@ Usage:
     python scripts/edge_decay.py
     python scripts/edge_decay.py --window 50 --threshold 0.6
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,8 +35,9 @@ def rolling(values: list[float], window: int) -> list[float]:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--window", type=int, default=50)
-    p.add_argument("--threshold", type=float, default=0.6,
-                   help="Flag if rolling < all-time × threshold")
+    p.add_argument(
+        "--threshold", type=float, default=0.6, help="Flag if rolling < all-time × threshold"
+    )
     args = p.parse_args()
 
     trades = load_trades()
@@ -60,9 +62,7 @@ def main() -> int:
         if hi == lo:
             spark = "▄" * len(sl)
         else:
-            spark = "".join(
-                sparkline_chars[min(8, int((v - lo) / (hi - lo) * 8))] for v in sl
-            )
+            spark = "".join(sparkline_chars[min(8, int((v - lo) / (hi - lo) * 8))] for v in sl)
     else:
         spark = ""
 
@@ -85,7 +85,9 @@ def main() -> int:
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines))
-    print(f"edge_decay: {status} · last={last_window:+.3f} R · alltime={alltime:+.3f} R · ratio={ratio:.2f}")
+    print(
+        f"edge_decay: {status} · last={last_window:+.3f} R · alltime={alltime:+.3f} R · ratio={ratio:.2f}"
+    )
     return 1 if decayed else 0
 
 

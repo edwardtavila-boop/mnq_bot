@@ -10,6 +10,7 @@ Covers:
         - start_bracket sends orderStrategyTypeId=2 and stringified params
         - error classification (non-200, errorText in 200)
 """
+
 from __future__ import annotations
 
 import json
@@ -46,6 +47,7 @@ def _tok() -> Token:
 
 # ---------- BracketParams ---------------------------------------------------
 
+
 class TestBracketParams:
     def _base(self, **overrides) -> dict:
         defaults = {
@@ -75,10 +77,12 @@ class TestBracketParams:
         assert bp.to_request_body()["action"] == "Sell"
 
     def test_limit_entry_includes_price(self) -> None:
-        bp = BracketParams(**self._base(
-            entry_order_type="Limit",
-            entry_limit_price=Decimal("18234.25"),
-        ))
+        bp = BracketParams(
+            **self._base(
+                entry_order_type="Limit",
+                entry_limit_price=Decimal("18234.25"),
+            )
+        )
         params = json.loads(bp.to_request_body()["params"])
         assert params["entryVersion"]["orderType"] == "Limit"
         assert params["entryVersion"]["price"] == pytest.approx(18234.25)
@@ -111,11 +115,15 @@ class TestBracketParams:
 
 # ---------- AccountInfo -----------------------------------------------------
 
+
 class TestAccountInfo:
     def test_from_api_happy(self) -> None:
         row = {
-            "id": 123456, "name": "DEMO123456",
-            "accountType": "Customer", "active": True, "archived": False,
+            "id": 123456,
+            "name": "DEMO123456",
+            "accountType": "Customer",
+            "active": True,
+            "archived": False,
         }
         ai = AccountInfo.from_api(row)
         assert ai.id == 123456
@@ -126,11 +134,12 @@ class TestAccountInfo:
         row = {"id": 1, "name": "x"}
         ai = AccountInfo.from_api(row)
         assert ai.account_type == ""
-        assert ai.active is True       # default — Tradovate omits this on active accts
+        assert ai.active is True  # default — Tradovate omits this on active accts
         assert ai.archived is False
 
 
 # ---------- TradovateRestClient --------------------------------------------
+
 
 class TestRestClient:
     async def test_list_accounts_parses_rows(self) -> None:
@@ -138,10 +147,25 @@ class TestRestClient:
             assert request.method == "GET"
             assert request.url.path.endswith("/account/list")
             assert request.headers["authorization"] == "Bearer TOK"
-            return httpx.Response(200, json=[
-                {"id": 1, "name": "A", "accountType": "Customer", "active": True, "archived": False},
-                {"id": 2, "name": "B", "accountType": "Customer", "active": True, "archived": False},
-            ])
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": 1,
+                        "name": "A",
+                        "accountType": "Customer",
+                        "active": True,
+                        "archived": False,
+                    },
+                    {
+                        "id": 2,
+                        "name": "B",
+                        "accountType": "Customer",
+                        "active": True,
+                        "archived": False,
+                    },
+                ],
+            )
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
             rc = TradovateRestClient(hosts_for("demo"), _tok, http)
@@ -160,8 +184,11 @@ class TestRestClient:
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
             rc = TradovateRestClient(hosts_for("demo"), _tok, http)
             out = await rc.place_order(
-                account_id=1, account_spec="DEMO1", symbol="MNQM6",
-                side=Side.SHORT, qty=1,
+                account_id=1,
+                account_spec="DEMO1",
+                symbol="MNQM6",
+                side=Side.SHORT,
+                qty=1,
             )
 
         assert captured["path"].endswith("/order/placeorder")
@@ -181,9 +208,13 @@ class TestRestClient:
             return httpx.Response(200, json={"orderStrategy": {"id": 777}})
 
         bp = BracketParams(
-            account_id=1, account_spec="DEMO1", symbol="MNQM6",
-            side=Side.LONG, qty=1,
-            profit_target_ticks=8, stop_loss_ticks=-12,
+            account_id=1,
+            account_spec="DEMO1",
+            symbol="MNQM6",
+            side=Side.LONG,
+            qty=1,
+            profit_target_ticks=8,
+            stop_loss_ticks=-12,
         )
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
             rc = TradovateRestClient(hosts_for("demo"), _tok, http)
@@ -208,13 +239,18 @@ class TestRestClient:
 
     async def test_200_with_errorText_still_raises(self) -> None:
         """Tradovate embeds errors in 200-OK bodies for some order paths."""
+
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json={"errorText": "insufficient buying power"})
 
         bp = BracketParams(
-            account_id=1, account_spec="DEMO1", symbol="MNQM6",
-            side=Side.LONG, qty=1,
-            profit_target_ticks=8, stop_loss_ticks=-12,
+            account_id=1,
+            account_spec="DEMO1",
+            symbol="MNQM6",
+            side=Side.LONG,
+            qty=1,
+            profit_target_ticks=8,
+            stop_loss_ticks=-12,
         )
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
             rc = TradovateRestClient(hosts_for("demo"), _tok, http)
@@ -224,15 +260,21 @@ class TestRestClient:
 
     async def test_200_with_failureReason_still_raises(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
-            return httpx.Response(200, json={
-                "failureReason": "RiskCheckFailed",
-                "failureText": "margin",
-            })
+            return httpx.Response(
+                200,
+                json={
+                    "failureReason": "RiskCheckFailed",
+                    "failureText": "margin",
+                },
+            )
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
             rc = TradovateRestClient(hosts_for("demo"), _tok, http)
             with pytest.raises(OrderRejectedError):
                 await rc.place_order(
-                    account_id=1, account_spec="DEMO1", symbol="MNQM6",
-                    side=Side.LONG, qty=1,
+                    account_id=1,
+                    account_spec="DEMO1",
+                    symbol="MNQM6",
+                    side=Side.LONG,
+                    qty=1,
                 )

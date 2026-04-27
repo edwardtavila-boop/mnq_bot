@@ -1,4 +1,4 @@
-# Edge decay · 2026-04-17 01:39:39 UTC
+# Edge decay · 2026-04-26 14:25:58 UTC
 
 - trades: **37**
 - window: **50**

@@ -9,6 +9,7 @@ This module provides a higher-level abstraction over TradovateWSClient:
   - Subscription registry and re-subscription on reconnect
   - Optional journaling of ws.connect, ws.disconnect, ws.gap events
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +21,7 @@ from typing import Any
 
 try:
     import structlog
+
     log = structlog.get_logger(__name__)
 except ImportError:
     logging.basicConfig()
@@ -35,6 +37,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # StaleFlag
 # ---------------------------------------------------------------------------
+
 
 class StaleFlag:
     """A boolean-like that tracks staleness and grace period.
@@ -92,9 +95,11 @@ class StaleFlag:
 # Config
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class SupervisorConfig:
     """Configuration for WebSocketSupervisor."""
+
     stale_threshold_s: float = 30.0
     grace_period_s: float = 5.0
     reconnect_base_s: float = 1.0
@@ -107,9 +112,11 @@ class SupervisorConfig:
 # WebSocketSupervisor
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _SupervisorStats:
     """Internal stats tracking."""
+
     connects: int = 0
     reconnects: int = 0
     gaps: int = 0
@@ -281,12 +288,17 @@ class WebSocketSupervisor:
                     new_seq = item["seq"]
                     if self._stats.last_seq > 0 and new_seq != self._stats.last_seq + 1:
                         gap = new_seq - self._stats.last_seq - 1
-                        log.warning("seq gap detected", gap=gap, last=self._stats.last_seq, new=new_seq)
-                        await self._journal_event("ws.gap", {
-                            "gap_size": gap,
-                            "last_seq": self._stats.last_seq,
-                            "new_seq": new_seq,
-                        })
+                        log.warning(
+                            "seq gap detected", gap=gap, last=self._stats.last_seq, new=new_seq
+                        )
+                        await self._journal_event(
+                            "ws.gap",
+                            {
+                                "gap_size": gap,
+                                "last_seq": self._stats.last_seq,
+                                "new_seq": new_seq,
+                            },
+                        )
                         self._stats.gaps += 1
                     self._stats.last_seq = new_seq
 
@@ -315,7 +327,8 @@ class WebSocketSupervisor:
     def _compute_backoff(self) -> float:
         """Compute exponential backoff delay with jitter."""
         import random
-        base: float = self._config.reconnect_base_s * (2 ** self._reconnect_attempt)
+
+        base: float = self._config.reconnect_base_s * (2**self._reconnect_attempt)
         base = min(base, self._config.reconnect_max_s)
         jitter: float = base * self._config.reconnect_jitter
         delay: float = base + random.uniform(-jitter, jitter)

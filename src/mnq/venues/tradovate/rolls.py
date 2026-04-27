@@ -82,9 +82,7 @@ class RollScheduler:
         self.early_warning_days = early_warning_days
         self.roll_time_before_close_min = roll_time_before_close_min
 
-    def plan_for(
-        self, contract: FuturesContract, today: date
-    ) -> RollPlan:
+    def plan_for(self, contract: FuturesContract, today: date) -> RollPlan:
         """Return the current RollPlan assuming `contract` is the
         currently-held position.
 
@@ -95,9 +93,7 @@ class RollScheduler:
         Returns:
             RollPlan with roll_date and days_until_roll.
         """
-        roll_date = self.calendar.quarterly_roll_date(
-            contract.symbol(), contract.year
-        )
+        roll_date = self.calendar.quarterly_roll_date(contract.symbol(), contract.year)
         days_until = (roll_date - today).days
         next_contract = contract.next_contract()
 
@@ -122,9 +118,7 @@ class RollScheduler:
             True if now is within the roll window.
         """
         # Get roll date for the contract
-        roll_date = self.calendar.quarterly_roll_date(
-            contract.symbol(), contract.year
-        )
+        roll_date = self.calendar.quarterly_roll_date(contract.symbol(), contract.year)
 
         # Get RTH window for roll_date
         rth = self.calendar.rth_window(roll_date)
@@ -161,9 +155,7 @@ class RollExecutor:
     we're in the roll window and returns a list of instructions to execute.
     """
 
-    def __init__(
-        self, scheduler: RollScheduler, journal: EventJournal | None = None
-    ) -> None:
+    def __init__(self, scheduler: RollScheduler, journal: EventJournal | None = None) -> None:
         """Initialize the roll executor.
 
         Args:
@@ -220,9 +212,7 @@ class RollExecutor:
                 )
 
         # Log warning on first warning day
-        if self.scheduler.should_warn(
-            held_contract, today
-        ) and self._last_warning_date != today:
+        if self.scheduler.should_warn(held_contract, today) and self._last_warning_date != today:
             self._last_warning_date = today
             if self.journal:
                 self.journal.append(

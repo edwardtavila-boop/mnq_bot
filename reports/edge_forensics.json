@@ -1,0 +1,2605 @@
+{
+  "bootstrap_iters": 10000,
+  "cost_scenarios_per_trade": [
+    -1.74,
+    -5.0,
+    -10.0
+  ],
+  "counts": {
+    "KILL": 51,
+    "PASS": 6
+  },
+  "generated": "2026-04-18T12:12:00.647211+00:00",
+  "n_buckets": 4,
+  "variants": {
+    "all_setups_pm30": {
+      "avg_per_trade": 28.789375000000007,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 14170.624749999997,
+      "bootstrap_lo": -3399.5789999999997,
+      "cost_sensitivity": {
+        "-1.74": 5193.480000000001,
+        "-10.00": 3607.5600000000013,
+        "-5.00": 4567.560000000001
+      },
+      "dsr_100": 8.918474824724826e-13,
+      "dsr_30": 1.4715114454034783e-05,
+      "n_days": 186,
+      "n_trades": 192,
+      "quarter_labels": [
+        "2019-05-17..2021-01-27",
+        "2021-01-27..2022-10-10",
+        "2022-10-10..2024-06-22",
+        "2024-06-22..2026-03-05"
+      ],
+      "quarter_pnls": [
+        2119.5,
+        3854.26,
+        -4943.64,
+        4497.44
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 21,
+        "RISK-ON": 171
+      },
+      "regime_pnls": {
+        "NEUTRAL": 1829.3500000000001,
+        "RISK-ON": 3698.2099999999996
+      },
+      "sharpe": 1.4084368343103388,
+      "shippable": false,
+      "t_stat": 1.2100228628645429,
+      "total_pnl": 5527.560000000001,
+      "variant": "all_setups_pm30",
+      "verdict": "KILL",
+      "win_rate": 0.5208333333333334
+    },
+    "micro_fallback_pm30": {
+      "avg_per_trade": -14.246770833333334,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 3911.7614999999973,
+      "bootstrap_lo": -9674.45675,
+      "cost_sensitivity": {
+        "-1.74": -3069.46,
+        "-10.00": -4655.38,
+        "-5.00": -3695.38
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 186,
+      "n_trades": 192,
+      "quarter_labels": [
+        "2019-05-17..2021-01-27",
+        "2021-01-27..2022-10-10",
+        "2022-10-10..2024-06-22",
+        "2024-06-22..2026-03-05"
+      ],
+      "quarter_pnls": [
+        405.67,
+        547.43,
+        -4766.24,
+        1077.7599999999998
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 21,
+        "RISK-ON": 171
+      },
+      "regime_pnls": {
+        "NEUTRAL": -303.3,
+        "RISK-ON": -2432.0800000000004
+      },
+      "sharpe": -0.8984789992364932,
+      "shippable": false,
+      "t_stat": -0.7719054943718255,
+      "total_pnl": -2735.38,
+      "variant": "micro_fallback_pm30",
+      "verdict": "KILL",
+      "win_rate": 0.484375
+    },
+    "micro_fallback_pm40": {
+      "avg_per_trade": 4.9604,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 2350.503999999999,
+      "bootstrap_lo": -2322.5587499999992,
+      "cost_sensitivity": {
+        "-1.74": 80.50999999999999,
+        "-10.00": -125.99000000000001,
+        "-5.00": -0.9900000000000091
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        17.599999999999998,
+        176.07,
+        -978.87,
+        909.21
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction",
+        "Sharpe = 0.34 below 0.5 hurdle"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 4.35,
+        "RISK-ON": 119.65999999999997
+      },
+      "sharpe": 0.3369796666298088,
+      "shippable": false,
+      "t_stat": 0.10613861842713396,
+      "total_pnl": 124.00999999999999,
+      "variant": "micro_fallback_pm40",
+      "verdict": "KILL",
+      "win_rate": 0.56
+    },
+    "micro_strict_pm30": {
+      "avg_per_trade": -1.2716494845360826,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 424.86999999999995,
+      "bootstrap_lo": -606.3317499999998,
+      "cost_sensitivity": {
+        "-1.74": -292.13,
+        "-10.00": -1093.35,
+        "-5.00": -608.35
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 96,
+      "n_trades": 97,
+      "quarter_labels": [
+        "2019-11-06..2021-06-04",
+        "2021-06-04..2023-01-01",
+        "2023-01-01..2024-07-30",
+        "2024-07-30..2026-02-26"
+      ],
+      "quarter_pnls": [
+        167.06,
+        0.8200000000000074,
+        -219.65,
+        -71.58
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 15,
+        "RISK-ON": 82
+      },
+      "regime_pnls": {
+        "NEUTRAL": -110.0,
+        "RISK-ON": -13.34999999999999
+      },
+      "sharpe": -0.7624180080435302,
+      "shippable": false,
+      "t_stat": -0.4705746108501674,
+      "total_pnl": -123.35000000000001,
+      "variant": "micro_strict_pm30",
+      "verdict": "KILL",
+      "win_rate": 0.6082474226804123
+    },
+    "micro_strict_pm40": {
+      "avg_per_trade": 4.678181818181818,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 512.0837499999996,
+      "bootstrap_lo": -179.80125,
+      "cost_sensitivity": {
+        "-1.74": 64.63999999999999,
+        "-10.00": -117.08000000000001,
+        "-5.00": -7.0800000000000125
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 22,
+      "n_trades": 22,
+      "quarter_labels": [
+        "2019-11-06..2021-05-26",
+        "2021-05-26..2022-12-14",
+        "2022-12-14..2024-07-03",
+        "2024-07-03..2026-01-21"
+      ],
+      "quarter_pnls": [
+        17.599999999999998,
+        43.6,
+        -131.0,
+        172.72
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 21
+      },
+      "regime_pnls": {
+        "NEUTRAL": 4.35,
+        "RISK-ON": 98.56999999999998
+      },
+      "sharpe": 1.9088199090953495,
+      "shippable": false,
+      "t_stat": 0.5639960028772195,
+      "total_pnl": 102.91999999999999,
+      "variant": "micro_strict_pm40",
+      "verdict": "KILL",
+      "win_rate": 0.5454545454545454
+    },
+    "n0_pct_baseline": {
+      "avg_per_trade": -6.861413043478261,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -1565.0,
+      "bootstrap_lo": -3450.0,
+      "cost_sensitivity": {
+        "-1.74": -3165.32,
+        "-10.00": -6205.0,
+        "-5.00": -4365.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 247,
+      "n_trades": 368,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        -840.0,
+        -1585.0,
+        -20.0,
+        -80.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 368
+      },
+      "regime_pnls": {
+        "UNKNOWN": -2525.0
+      },
+      "sharpe": -5.165311373181559,
+      "shippable": false,
+      "t_stat": -5.11381146905199,
+      "total_pnl": -2525.0,
+      "variant": "n0_pct_baseline",
+      "verdict": "KILL",
+      "win_rate": 0.22010869565217392
+    },
+    "n1_pct_loose": {
+      "avg_per_trade": -8.420479302832245,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -2870.0,
+      "bootstrap_lo": -4850.0,
+      "cost_sensitivity": {
+        "-1.74": -4663.66,
+        "-10.00": -8455.0,
+        "-5.00": -6160.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 301,
+      "n_trades": 459,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        -980.0,
+        -2425.0,
+        -240.0,
+        -220.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 459
+      },
+      "regime_pnls": {
+        "UNKNOWN": -3865.0
+      },
+      "sharpe": -6.522480639224235,
+      "shippable": false,
+      "t_stat": -7.128460969610489,
+      "total_pnl": -3865.0,
+      "variant": "n1_pct_loose",
+      "verdict": "KILL",
+      "win_rate": 0.19389978213507625
+    },
+    "n2_pct_long_only": {
+      "avg_per_trade": -5.618279569892473,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -360.0,
+      "bootstrap_lo": -1705.0,
+      "cost_sensitivity": {
+        "-1.74": -1368.6399999999999,
+        "-10.00": -2905.0,
+        "-5.00": -1975.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 153,
+      "n_trades": 186,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        -440.0,
+        -505.0,
+        -20.0,
+        -80.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 186
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1045.0
+      },
+      "sharpe": -3.7263067581397866,
+      "shippable": false,
+      "t_stat": -2.9035148339548873,
+      "total_pnl": -1045.0,
+      "variant": "n2_pct_long_only",
+      "verdict": "KILL",
+      "win_rate": 0.24193548387096775
+    },
+    "n3_pct_morning_only": {
+      "avg_per_trade": -5.436893203883495,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -400.0,
+      "bootstrap_lo": -1840.0,
+      "cost_sensitivity": {
+        "-1.74": -1478.44,
+        "-10.00": -3180.0,
+        "-5.00": -2150.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 160,
+      "n_trades": 206,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        -540.0,
+        -540.0,
+        0.0,
+        -40.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 206
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1120.0
+      },
+      "sharpe": -3.8778571060953393,
+      "shippable": false,
+      "t_stat": -3.089950504077219,
+      "total_pnl": -1120.0,
+      "variant": "n3_pct_morning_only",
+      "verdict": "KILL",
+      "win_rate": 0.24271844660194175
+    },
+    "n4_pct_no_vol": {
+      "avg_per_trade": -16.240155536353537,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -129013.9125,
+      "bootstrap_lo": -134118.075,
+      "cost_sensitivity": {
+        "-1.74": -145657.24,
+        "-10.00": -212571.5,
+        "-5.00": -172066.5
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 1145,
+      "n_trades": 8101,
+      "quarter_labels": [
+        "2019-05-22..2021-02-09",
+        "2021-02-09..2022-11-01",
+        "2022-11-01..2024-07-23",
+        "2024-07-23..2026-04-14"
+      ],
+      "quarter_pnls": [
+        -1180.0,
+        -10665.0,
+        -62978.0,
+        -56738.5
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 8101
+      },
+      "regime_pnls": {
+        "UNKNOWN": -131561.5
+      },
+      "sharpe": -20.86191326774191,
+      "shippable": false,
+      "t_stat": -44.468922706541434,
+      "total_pnl": -131561.5,
+      "variant": "n4_pct_no_vol",
+      "verdict": "KILL",
+      "win_rate": 0.06270830761634366
+    },
+    "n5_pct_long_morning": {
+      "avg_per_trade": -4.423076923076923,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 80.0,
+      "bootstrap_lo": -940.0,
+      "cost_sensitivity": {
+        "-1.74": -640.96,
+        "-10.00": -1500.0,
+        "-5.00": -980.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 97,
+      "n_trades": 104,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        -240.0,
+        -180.0,
+        0.0,
+        -40.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 104
+      },
+      "regime_pnls": {
+        "UNKNOWN": -460.0
+      },
+      "sharpe": -2.6787626066278745,
+      "shippable": false,
+      "t_stat": -1.6619571592080076,
+      "total_pnl": -460.0,
+      "variant": "n5_pct_long_morning",
+      "verdict": "KILL",
+      "win_rate": 0.25961538461538464
+    },
+    "n6_pct_adaptive_stop": {
+      "avg_per_trade": 1.8166666666666667,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 1009.0,
+      "bootstrap_lo": -845.5,
+      "cost_sensitivity": {
+        "-1.74": 2.299999999999997,
+        "-10.00": -245.5,
+        "-5.00": -95.5
+      },
+      "dsr_100": 9.332392106318445e-41,
+      "dsr_30": 2.80737161430099e-26,
+      "n_days": 30,
+      "n_trades": 30,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        54.5,
+        180.0,
+        0.0,
+        -180.0
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction",
+        "edge concentrated in early buckets \u2014 last 1/4 of sample = $-180.00",
+        "Sharpe = 0.34 below 0.5 hurdle"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 30
+      },
+      "regime_pnls": {
+        "UNKNOWN": 54.5
+      },
+      "sharpe": 0.337029229243349,
+      "shippable": false,
+      "t_stat": 0.11628613179626707,
+      "total_pnl": 54.5,
+      "variant": "n6_pct_adaptive_stop",
+      "verdict": "KILL",
+      "win_rate": 0.3333333333333333
+    },
+    "n7_pct_adaptive_long": {
+      "avg_per_trade": -26.25,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 120.0,
+      "bootstrap_lo": -960.0,
+      "cost_sensitivity": {
+        "-1.74": -447.84,
+        "-10.00": -580.0,
+        "-5.00": -500.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 16,
+      "n_trades": 16,
+      "quarter_labels": [
+        "2019-05-22..2021-01-18",
+        "2021-01-18..2022-09-17",
+        "2022-09-17..2024-05-16",
+        "2024-05-16..2026-01-13"
+      ],
+      "quarter_pnls": [
+        -120.0,
+        -120.0,
+        0.0,
+        -180.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 16
+      },
+      "regime_pnls": {
+        "UNKNOWN": -420.0
+      },
+      "sharpe": -5.74288857899657,
+      "shippable": false,
+      "t_stat": -1.4470719035407653,
+      "total_pnl": -420.0,
+      "variant": "n7_pct_adaptive_long",
+      "verdict": "KILL",
+      "win_rate": 0.1875
+    },
+    "orb_confidence_pm30": {
+      "avg_per_trade": 63.62035714285714,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": 12045.7115,
+      "bootstrap_lo": 2001.5525000000016,
+      "cost_sensitivity": {
+        "-1.74": 6930.599999999999,
+        "-10.00": 6005.48,
+        "-5.00": 6565.48
+      },
+      "dsr_100": 0.9997353135269063,
+      "dsr_30": 0.9999960718339006,
+      "n_days": 112,
+      "n_trades": 112,
+      "quarter_labels": [
+        "2019-11-06..2021-06-04",
+        "2021-06-04..2023-01-01",
+        "2023-01-01..2024-07-30",
+        "2024-07-30..2026-02-26"
+      ],
+      "quarter_pnls": [
+        2173.77,
+        2399.9900000000002,
+        -1824.44,
+        4376.16
+      ],
+      "reasons": [],
+      "regime_counts": {
+        "NEUTRAL": 13,
+        "RISK-ON": 99
+      },
+      "regime_pnls": {
+        "NEUTRAL": 1397.6299999999999,
+        "RISK-ON": 5727.849999999999
+      },
+      "sharpe": 4.109311905684146,
+      "shippable": true,
+      "t_stat": 2.7395412704560975,
+      "total_pnl": 7125.48,
+      "variant": "orb_confidence_pm30",
+      "verdict": "PASS",
+      "win_rate": 0.7678571428571429
+    },
+    "orb_only_pm30": {
+      "avg_per_trade": 100.13455357142857,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": 18487.184749999993,
+      "bootstrap_lo": 3326.450000000002,
+      "cost_sensitivity": {
+        "-1.74": 11020.19,
+        "-10.00": 10095.07,
+        "-5.00": 10655.07
+      },
+      "dsr_100": 0.9998481386715099,
+      "dsr_30": 0.9999971723019753,
+      "n_days": 112,
+      "n_trades": 112,
+      "quarter_labels": [
+        "2019-11-06..2021-06-04",
+        "2021-06-04..2023-01-01",
+        "2023-01-01..2024-07-30",
+        "2024-07-30..2026-02-26"
+      ],
+      "quarter_pnls": [
+        3317.74,
+        4029.9300000000003,
+        -2724.4700000000003,
+        6591.870000000001
+      ],
+      "reasons": [],
+      "regime_counts": {
+        "NEUTRAL": 13,
+        "RISK-ON": 99
+      },
+      "regime_pnls": {
+        "NEUTRAL": 2272.26,
+        "RISK-ON": 8942.81
+      },
+      "sharpe": 4.3125796546694595,
+      "shippable": true,
+      "t_stat": 2.875053103112973,
+      "total_pnl": 11215.07,
+      "variant": "orb_only_pm30",
+      "verdict": "PASS",
+      "win_rate": 0.7678571428571429
+    },
+    "orb_only_pm40": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7056.489999999999,
+      "bootstrap_lo": -633.2299999999977,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "orb_only_pm40",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "orb_regime_conf_pm25": {
+      "avg_per_trade": 61.23838150289017,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": 16199.213999999998,
+      "bootstrap_lo": 4924.552250000001,
+      "cost_sensitivity": {
+        "-1.74": 10293.22,
+        "-10.00": 8864.24,
+        "-5.00": 9729.24
+      },
+      "dsr_100": 0.9999983039769208,
+      "dsr_30": 0.9999999965337094,
+      "n_days": 173,
+      "n_trades": 173,
+      "quarter_labels": [
+        "2019-11-06..2021-06-05",
+        "2021-06-05..2023-01-03",
+        "2023-01-03..2024-08-02",
+        "2024-08-02..2026-03-03"
+      ],
+      "quarter_pnls": [
+        2463.54,
+        3024.77,
+        -1096.13,
+        6202.0599999999995
+      ],
+      "reasons": [],
+      "regime_counts": {
+        "NEUTRAL": 21,
+        "RISK-ON": 152
+      },
+      "regime_pnls": {
+        "NEUTRAL": 1614.8799999999999,
+        "RISK-ON": 8979.36
+      },
+      "sharpe": 4.382345574718064,
+      "shippable": true,
+      "t_stat": 3.63102636642811,
+      "total_pnl": 10594.24,
+      "variant": "orb_regime_conf_pm25",
+      "verdict": "PASS",
+      "win_rate": 0.7283236994219653
+    },
+    "orb_regime_conf_pm30": {
+      "avg_per_trade": 63.62035714285714,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": 12208.881749999999,
+      "bootstrap_lo": 1916.0317500000012,
+      "cost_sensitivity": {
+        "-1.74": 6930.599999999999,
+        "-10.00": 6005.48,
+        "-5.00": 6565.48
+      },
+      "dsr_100": 0.9997353135269063,
+      "dsr_30": 0.9999960718339006,
+      "n_days": 112,
+      "n_trades": 112,
+      "quarter_labels": [
+        "2019-11-06..2021-06-04",
+        "2021-06-04..2023-01-01",
+        "2023-01-01..2024-07-30",
+        "2024-07-30..2026-02-26"
+      ],
+      "quarter_pnls": [
+        2173.77,
+        2399.9900000000002,
+        -1824.44,
+        4376.16
+      ],
+      "reasons": [],
+      "regime_counts": {
+        "NEUTRAL": 13,
+        "RISK-ON": 99
+      },
+      "regime_pnls": {
+        "NEUTRAL": 1397.6299999999999,
+        "RISK-ON": 5727.849999999999
+      },
+      "sharpe": 4.109311905684146,
+      "shippable": true,
+      "t_stat": 2.7395412704560975,
+      "total_pnl": 7125.48,
+      "variant": "orb_regime_conf_pm30",
+      "verdict": "PASS",
+      "win_rate": 0.7678571428571429
+    },
+    "orb_regime_pm30": {
+      "avg_per_trade": 100.13455357142857,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": 18641.265,
+      "bootstrap_lo": 3326.6037500000007,
+      "cost_sensitivity": {
+        "-1.74": 11020.19,
+        "-10.00": 10095.07,
+        "-5.00": 10655.07
+      },
+      "dsr_100": 0.9998481386715099,
+      "dsr_30": 0.9999971723019753,
+      "n_days": 112,
+      "n_trades": 112,
+      "quarter_labels": [
+        "2019-11-06..2021-06-04",
+        "2021-06-04..2023-01-01",
+        "2023-01-01..2024-07-30",
+        "2024-07-30..2026-02-26"
+      ],
+      "quarter_pnls": [
+        3317.74,
+        4029.9300000000003,
+        -2724.4700000000003,
+        6591.870000000001
+      ],
+      "reasons": [],
+      "regime_counts": {
+        "NEUTRAL": 13,
+        "RISK-ON": 99
+      },
+      "regime_pnls": {
+        "NEUTRAL": 2272.26,
+        "RISK-ON": 8942.81
+      },
+      "sharpe": 4.3125796546694595,
+      "shippable": true,
+      "t_stat": 2.875053103112973,
+      "total_pnl": 11215.07,
+      "variant": "orb_regime_pm30",
+      "verdict": "PASS",
+      "win_rate": 0.7678571428571429
+    },
+    "orb_sweep_pm30": {
+      "avg_per_trade": 100.13455357142857,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": 18695.58075,
+      "bootstrap_lo": 3298.7015,
+      "cost_sensitivity": {
+        "-1.74": 11020.19,
+        "-10.00": 10095.07,
+        "-5.00": 10655.07
+      },
+      "dsr_100": 0.9998481386715099,
+      "dsr_30": 0.9999971723019753,
+      "n_days": 112,
+      "n_trades": 112,
+      "quarter_labels": [
+        "2019-11-06..2021-06-04",
+        "2021-06-04..2023-01-01",
+        "2023-01-01..2024-07-30",
+        "2024-07-30..2026-02-26"
+      ],
+      "quarter_pnls": [
+        3317.74,
+        4029.9300000000003,
+        -2724.4700000000003,
+        6591.870000000001
+      ],
+      "reasons": [],
+      "regime_counts": {
+        "NEUTRAL": 13,
+        "RISK-ON": 99
+      },
+      "regime_pnls": {
+        "NEUTRAL": 2272.26,
+        "RISK-ON": 8942.81
+      },
+      "sharpe": 4.3125796546694595,
+      "shippable": true,
+      "t_stat": 2.875053103112973,
+      "total_pnl": 11215.07,
+      "variant": "orb_sweep_pm30",
+      "verdict": "PASS",
+      "win_rate": 0.7678571428571429
+    },
+    "r0_real_baseline": {
+      "avg_per_trade": -16.790271760535642,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -210488.4,
+      "bootstrap_lo": -215793.525,
+      "cost_sensitivity": {
+        "-1.74": -235241.8,
+        "-10.00": -340102.5,
+        "-5.00": -276627.5
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 1100,
+      "n_trades": 12695,
+      "quarter_labels": [
+        "2019-05-13..2021-02-03",
+        "2021-02-03..2022-10-28",
+        "2022-10-28..2024-07-21",
+        "2024-07-21..2026-04-14"
+      ],
+      "quarter_pnls": [
+        -1600.0,
+        -15810.0,
+        -99348.0,
+        -96394.5
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 12695
+      },
+      "regime_pnls": {
+        "UNKNOWN": -213152.5
+      },
+      "sharpe": -25.269644934860302,
+      "shippable": false,
+      "t_stat": -52.79529390129592,
+      "total_pnl": -213152.5,
+      "variant": "r0_real_baseline",
+      "verdict": "KILL",
+      "win_rate": 0.06435604568727846
+    },
+    "r1_real_volfilter": {
+      "avg_per_trade": -10.44943820224719,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -1310.0,
+      "bootstrap_lo": -2360.0,
+      "cost_sensitivity": {
+        "-1.74": -2169.72,
+        "-10.00": -3640.0,
+        "-5.00": -2750.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 151,
+      "n_trades": 178,
+      "quarter_labels": [
+        "2019-05-13..2020-04-10",
+        "2020-04-10..2021-03-09",
+        "2021-03-09..2022-02-05",
+        "2022-02-05..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -830.0,
+        -440.0,
+        -380.0,
+        -210.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 178
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1860.0
+      },
+      "sharpe": -8.35872615848577,
+      "shippable": false,
+      "t_stat": -6.470357854200298,
+      "total_pnl": -1860.0,
+      "variant": "r1_real_volfilter",
+      "verdict": "KILL",
+      "win_rate": 0.19101123595505617
+    },
+    "r2_real_trend_morn": {
+      "avg_per_trade": -9.841688654353563,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -2930.0,
+      "bootstrap_lo": -4480.0,
+      "cost_sensitivity": {
+        "-1.74": -4389.46,
+        "-10.00": -7520.0,
+        "-5.00": -5625.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 280,
+      "n_trades": 379,
+      "quarter_labels": [
+        "2019-05-13..2020-04-10",
+        "2020-04-10..2021-03-09",
+        "2021-03-09..2022-02-05",
+        "2022-02-05..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -1560.0,
+        -1080.0,
+        -900.0,
+        -190.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 379
+      },
+      "regime_pnls": {
+        "UNKNOWN": -3730.0
+      },
+      "sharpe": -8.5667199593876,
+      "shippable": false,
+      "t_stat": -9.030115716163325,
+      "total_pnl": -3730.0,
+      "variant": "r2_real_trend_morn",
+      "verdict": "KILL",
+      "win_rate": 0.20316622691292877
+    },
+    "r3_real_hard_pause": {
+      "avg_per_trade": -9.841688654353563,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -2930.0,
+      "bootstrap_lo": -4480.0,
+      "cost_sensitivity": {
+        "-1.74": -4389.46,
+        "-10.00": -7520.0,
+        "-5.00": -5625.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 280,
+      "n_trades": 379,
+      "quarter_labels": [
+        "2019-05-13..2020-04-10",
+        "2020-04-10..2021-03-09",
+        "2021-03-09..2022-02-05",
+        "2022-02-05..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -1560.0,
+        -1080.0,
+        -900.0,
+        -190.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 379
+      },
+      "regime_pnls": {
+        "UNKNOWN": -3730.0
+      },
+      "sharpe": -8.5667199593876,
+      "shippable": false,
+      "t_stat": -9.030115716163325,
+      "total_pnl": -3730.0,
+      "variant": "r3_real_hard_pause",
+      "verdict": "KILL",
+      "win_rate": 0.20316622691292877
+    },
+    "r4_real_orderflow": {
+      "avg_per_trade": -6.4978902953586495,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -890.0,
+      "bootstrap_lo": -2190.0,
+      "cost_sensitivity": {
+        "-1.74": -1952.38,
+        "-10.00": -3910.0,
+        "-5.00": -2725.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -210.0,
+        -500.0,
+        -700.0,
+        -130.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1540.0
+      },
+      "sharpe": -5.155106520845642,
+      "shippable": false,
+      "t_stat": -4.452626819383132,
+      "total_pnl": -1540.0,
+      "variant": "r4_real_orderflow",
+      "verdict": "KILL",
+      "win_rate": 0.270042194092827
+    },
+    "r5_real_wide_target": {
+      "avg_per_trade": -5.928270042194093,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -625.0,
+      "bootstrap_lo": -2150.0,
+      "cost_sensitivity": {
+        "-1.74": -1817.38,
+        "-10.00": -3775.0,
+        "-5.00": -2590.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -140.0,
+        -585.0,
+        -620.0,
+        -60.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1405.0
+      },
+      "sharpe": -4.164963174786795,
+      "shippable": false,
+      "t_stat": -3.5974090271090424,
+      "total_pnl": -1405.0,
+      "variant": "r5_real_wide_target",
+      "verdict": "KILL",
+      "win_rate": 0.23628691983122363
+    },
+    "r6_real_allday": {
+      "avg_per_trade": -6.388755980861244,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -4083.4500000000007,
+      "bootstrap_lo": -6567.5,
+      "cost_sensitivity": {
+        "-1.74": -6795.64,
+        "-10.00": -13701.0,
+        "-5.00": -9521.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 638,
+      "n_trades": 836,
+      "quarter_labels": [
+        "2019-05-22..2021-02-08",
+        "2021-02-08..2022-10-30",
+        "2022-10-30..2024-07-20",
+        "2024-07-20..2026-04-10"
+      ],
+      "quarter_pnls": [
+        -1907.5,
+        -1763.5,
+        -890.0,
+        -780.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 836
+      },
+      "regime_pnls": {
+        "UNKNOWN": -5341.0
+      },
+      "sharpe": -5.006936614379516,
+      "shippable": false,
+      "t_stat": -7.966767856038047,
+      "total_pnl": -5341.0,
+      "variant": "r6_real_allday",
+      "verdict": "KILL",
+      "win_rate": 0.2715311004784689
+    },
+    "r7_real_conviction": {
+      "avg_per_trade": -4.615384615384615,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 90.0,
+      "bootstrap_lo": -210.0,
+      "cost_sensitivity": {
+        "-1.74": -82.62,
+        "-10.00": -190.0,
+        "-5.00": -125.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 13,
+      "n_trades": 13,
+      "quarter_labels": [
+        "2019-05-22..2020-02-02",
+        "2020-02-02..2020-10-16",
+        "2020-10-16..2021-06-30",
+        "2021-06-30..2022-03-14"
+      ],
+      "quarter_pnls": [
+        -10.0,
+        30.0,
+        0.0,
+        -80.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction",
+        "edge concentrated in early buckets \u2014 last 1/4 of sample = $-80.00"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 13
+      },
+      "regime_pnls": {
+        "UNKNOWN": -60.0
+      },
+      "sharpe": -3.0503467646507643,
+      "shippable": false,
+      "t_stat": -0.6928203230275508,
+      "total_pnl": -60.0,
+      "variant": "r7_real_conviction",
+      "verdict": "KILL",
+      "win_rate": 0.3076923076923077
+    },
+    "t0_r5_tight_stop": {
+      "avg_per_trade": -4.729957805907173,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -497.0,
+      "bootstrap_lo": -1697.0749999999994,
+      "cost_sensitivity": {
+        "-1.74": -1533.38,
+        "-10.00": -3491.0,
+        "-5.00": -2306.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -208.0,
+        -321.0,
+        -496.0,
+        -96.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1121.0
+      },
+      "sharpe": -4.18453782480488,
+      "shippable": false,
+      "t_stat": -3.6143162648737945,
+      "total_pnl": -1121.0,
+      "variant": "t0_r5_tight_stop",
+      "verdict": "KILL",
+      "win_rate": 0.23628691983122363
+    },
+    "t10_r5_long_hold": {
+      "avg_per_trade": -5.928270042194093,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -625.0,
+      "bootstrap_lo": -2160.0,
+      "cost_sensitivity": {
+        "-1.74": -1817.38,
+        "-10.00": -3775.0,
+        "-5.00": -2590.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -140.0,
+        -585.0,
+        -620.0,
+        -60.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1405.0
+      },
+      "sharpe": -4.164963174786795,
+      "shippable": false,
+      "t_stat": -3.5974090271090424,
+      "total_pnl": -1405.0,
+      "variant": "t10_r5_long_hold",
+      "verdict": "KILL",
+      "win_rate": 0.23628691983122363
+    },
+    "t11_r5_no_cooldown": {
+      "avg_per_trade": -5.928270042194093,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -625.0,
+      "bootstrap_lo": -2160.0,
+      "cost_sensitivity": {
+        "-1.74": -1817.38,
+        "-10.00": -3775.0,
+        "-5.00": -2590.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -140.0,
+        -585.0,
+        -620.0,
+        -60.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1405.0
+      },
+      "sharpe": -4.164963174786795,
+      "shippable": false,
+      "t_stat": -3.5974090271090424,
+      "total_pnl": -1405.0,
+      "variant": "t11_r5_no_cooldown",
+      "verdict": "KILL",
+      "win_rate": 0.23628691983122363
+    },
+    "t12_r5_pm_wide": {
+      "avg_per_trade": -8.713235294117647,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -620.0,
+      "bootstrap_lo": -1700.0,
+      "cost_sensitivity": {
+        "-1.74": -1421.6399999999999,
+        "-10.00": -2545.0,
+        "-5.00": -1865.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 115,
+      "n_trades": 136,
+      "quarter_labels": [
+        "2019-09-12..2020-07-10",
+        "2020-07-10..2021-05-09",
+        "2021-05-09..2022-03-08",
+        "2022-03-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -240.0,
+        -405.0,
+        -400.0,
+        -140.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 136
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1185.0
+      },
+      "sharpe": -6.30161740871328,
+      "shippable": false,
+      "t_stat": -4.2569709059278145,
+      "total_pnl": -1185.0,
+      "variant": "t12_r5_pm_wide",
+      "verdict": "KILL",
+      "win_rate": 0.19117647058823528
+    },
+    "t13_r5_pm_loose_cross": {
+      "avg_per_trade": -6.366120218579235,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -494.75000000000364,
+      "bootstrap_lo": -1800.0,
+      "cost_sensitivity": {
+        "-1.74": -1483.42,
+        "-10.00": -2995.0,
+        "-5.00": -2080.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 155,
+      "n_trades": 183,
+      "quarter_labels": [
+        "2019-08-01..2020-06-09",
+        "2020-06-09..2021-04-18",
+        "2021-04-18..2022-02-25",
+        "2022-02-25..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -320.0,
+        -325.0,
+        -380.0,
+        -140.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 183
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1165.0
+      },
+      "sharpe": -4.3498248766714624,
+      "shippable": false,
+      "t_stat": -3.411436967949111,
+      "total_pnl": -1165.0,
+      "variant": "t13_r5_pm_loose_cross",
+      "verdict": "KILL",
+      "win_rate": 0.22950819672131148
+    },
+    "t14_r5_pm_loose_flow": {
+      "avg_per_trade": -10.40625,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -1115.0,
+      "bootstrap_lo": -2205.0,
+      "cost_sensitivity": {
+        "-1.74": -1943.4,
+        "-10.00": -3265.0,
+        "-5.00": -2465.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 140,
+      "n_trades": 160,
+      "quarter_labels": [
+        "2019-05-13..2020-04-10",
+        "2020-04-10..2021-03-09",
+        "2021-03-09..2022-02-05",
+        "2022-02-05..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -720.0,
+        -440.0,
+        -345.0,
+        -160.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 160
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1665.0
+      },
+      "sharpe": -7.697150540753177,
+      "shippable": false,
+      "t_stat": -5.737117280724457,
+      "total_pnl": -1665.0,
+      "variant": "t14_r5_pm_loose_flow",
+      "verdict": "KILL",
+      "win_rate": 0.1625
+    },
+    "t15_r5_pm_no_volcap": {
+      "avg_per_trade": -7.556390977443609,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -440.0,
+      "bootstrap_lo": -1545.0,
+      "cost_sensitivity": {
+        "-1.74": -1236.42,
+        "-10.00": -2335.0,
+        "-5.00": -1670.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 119,
+      "n_trades": 133,
+      "quarter_labels": [
+        "2019-06-19..2020-11-30",
+        "2020-11-30..2022-05-15",
+        "2022-05-15..2023-10-28",
+        "2023-10-28..2025-04-11"
+      ],
+      "quarter_pnls": [
+        -360.0,
+        -585.0,
+        -40.0,
+        -20.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 133
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1005.0
+      },
+      "sharpe": -5.170367419299971,
+      "shippable": false,
+      "t_stat": -3.55299516550433,
+      "total_pnl": -1005.0,
+      "variant": "t15_r5_pm_no_volcap",
+      "verdict": "KILL",
+      "win_rate": 0.21052631578947367
+    },
+    "t16_r5_long_only": {
+      "avg_per_trade": -5.223214285714286,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -35.0,
+      "bootstrap_lo": -1100.0,
+      "cost_sensitivity": {
+        "-1.74": -779.88,
+        "-10.00": -1705.0,
+        "-5.00": -1145.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 101,
+      "n_trades": 112,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -120.0,
+        -325.0,
+        -140.0,
+        0.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 112
+      },
+      "regime_pnls": {
+        "UNKNOWN": -585.0
+      },
+      "sharpe": -3.4644593248784536,
+      "shippable": false,
+      "t_stat": -2.193289115008267,
+      "total_pnl": -585.0,
+      "variant": "t16_r5_long_only",
+      "verdict": "KILL",
+      "win_rate": 0.25
+    },
+    "t17_r5_short_only": {
+      "avg_per_trade": -6.56,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -280.0,
+      "bootstrap_lo": -1360.0,
+      "cost_sensitivity": {
+        "-1.74": -1037.5,
+        "-10.00": -2070.0,
+        "-5.00": -1445.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 113,
+      "n_trades": 125,
+      "quarter_labels": [
+        "2019-07-23..2020-04-06",
+        "2020-04-06..2020-12-21",
+        "2020-12-21..2021-09-06",
+        "2021-09-06..2022-05-23"
+      ],
+      "quarter_pnls": [
+        -20.0,
+        -140.0,
+        -500.0,
+        -160.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 125
+      },
+      "regime_pnls": {
+        "UNKNOWN": -820.0
+      },
+      "sharpe": -4.287517117339259,
+      "shippable": false,
+      "t_stat": -2.871076855769243,
+      "total_pnl": -820.0,
+      "variant": "t17_r5_short_only",
+      "verdict": "KILL",
+      "win_rate": 0.224
+    },
+    "t1_r5_wide_stop": {
+      "avg_per_trade": -6.1835443037974684,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -529.5,
+      "bootstrap_lo": -2370.1499999999987,
+      "cost_sensitivity": {
+        "-1.74": -1877.88,
+        "-10.00": -3835.5,
+        "-5.00": -2650.5
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -88.5,
+        -633.0,
+        -744.0,
+        0.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1465.5
+      },
+      "sharpe": -3.4000738750159267,
+      "shippable": false,
+      "t_stat": -2.93675020342672,
+      "total_pnl": -1465.5,
+      "variant": "t1_r5_wide_stop",
+      "verdict": "KILL",
+      "win_rate": 0.2489451476793249
+    },
+    "t2_r5_rr25": {
+      "avg_per_trade": -5.675105485232067,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -470.0,
+      "bootstrap_lo": -2150.0,
+      "cost_sensitivity": {
+        "-1.74": -1757.38,
+        "-10.00": -3715.0,
+        "-5.00": -2530.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -70.0,
+        -615.0,
+        -600.0,
+        -60.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1345.0
+      },
+      "sharpe": -3.53695185558361,
+      "shippable": false,
+      "t_stat": -3.05497599852798,
+      "total_pnl": -1345.0,
+      "variant": "t2_r5_rr25",
+      "verdict": "KILL",
+      "win_rate": 0.20675105485232068
+    },
+    "t3_r5_rr175": {
+      "avg_per_trade": -6.624472573839663,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -855.0,
+      "bootstrap_lo": -2250.0,
+      "cost_sensitivity": {
+        "-1.74": -1982.38,
+        "-10.00": -3940.0,
+        "-5.00": -2755.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -175.0,
+        -565.0,
+        -735.0,
+        -95.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1570.0
+      },
+      "sharpe": -4.967398195576687,
+      "shippable": false,
+      "t_stat": -4.290497264943404,
+      "total_pnl": -1570.0,
+      "variant": "t3_r5_rr175",
+      "verdict": "KILL",
+      "win_rate": 0.24472573839662448
+    },
+    "t4_r5_tight_cross": {
+      "avg_per_trade": -6.153846153846154,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 20.0,
+      "bootstrap_lo": -760.0,
+      "cost_sensitivity": {
+        "-1.74": -513.1,
+        "-10.00": -1050.0,
+        "-5.00": -725.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 62,
+      "n_trades": 65,
+      "quarter_labels": [
+        "2019-05-22..2020-02-20",
+        "2020-02-20..2020-11-20",
+        "2020-11-20..2021-08-21",
+        "2021-08-21..2022-05-23"
+      ],
+      "quarter_pnls": [
+        20.0,
+        -20.0,
+        -60.0,
+        -340.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 65
+      },
+      "regime_pnls": {
+        "UNKNOWN": -400.0
+      },
+      "sharpe": -4.04942581884958,
+      "shippable": false,
+      "t_stat": -2.0085794817212324,
+      "total_pnl": -400.0,
+      "variant": "t4_r5_tight_cross",
+      "verdict": "KILL",
+      "win_rate": 0.23076923076923078
+    },
+    "t5_r5_loose_flow": {
+      "avg_per_trade": -9.03735632183908,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -2295.0,
+      "bootstrap_lo": -3960.374999999997,
+      "cost_sensitivity": {
+        "-1.74": -3750.52,
+        "-10.00": -6625.0,
+        "-5.00": -4885.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 263,
+      "n_trades": 348,
+      "quarter_labels": [
+        "2019-05-13..2020-04-10",
+        "2020-04-10..2021-03-09",
+        "2021-03-09..2022-02-05",
+        "2022-02-05..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -1320.0,
+        -1040.0,
+        -725.0,
+        -60.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 348
+      },
+      "regime_pnls": {
+        "UNKNOWN": -3145.0
+      },
+      "sharpe": -6.866980931931654,
+      "shippable": false,
+      "t_stat": -7.015254730814971,
+      "total_pnl": -3145.0,
+      "variant": "t5_r5_loose_flow",
+      "verdict": "KILL",
+      "win_rate": 0.1839080459770115
+    },
+    "t6_r5_strict_flow": {
+      "avg_per_trade": -5.659090909090909,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -465.0,
+      "bootstrap_lo": -1965.0,
+      "cost_sensitivity": {
+        "-1.74": -1627.8,
+        "-10.00": -3445.0,
+        "-5.00": -2345.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 181,
+      "n_trades": 220,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -120.0,
+        -505.0,
+        -520.0,
+        -100.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 220
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1245.0
+      },
+      "sharpe": -3.9599247016811376,
+      "shippable": false,
+      "t_stat": -3.3560308539670056,
+      "total_pnl": -1245.0,
+      "variant": "t6_r5_strict_flow",
+      "verdict": "KILL",
+      "win_rate": 0.2409090909090909
+    },
+    "t7_r5_morning_only": {
+      "avg_per_trade": -4.444444444444445,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 0.0,
+      "bootstrap_lo": -1200.0,
+      "cost_sensitivity": {
+        "-1.74": -834.9,
+        "-10.00": -1950.0,
+        "-5.00": -1275.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 116,
+      "n_trades": 135,
+      "quarter_labels": [
+        "2019-05-22..2020-02-03",
+        "2020-02-03..2020-10-17",
+        "2020-10-17..2021-07-01",
+        "2021-07-01..2022-03-16"
+      ],
+      "quarter_pnls": [
+        -60.0,
+        -220.0,
+        -120.0,
+        -200.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 135
+      },
+      "regime_pnls": {
+        "UNKNOWN": -600.0
+      },
+      "sharpe": -2.9666273545460404,
+      "shippable": false,
+      "t_stat": -2.0127587399935405,
+      "total_pnl": -600.0,
+      "variant": "t7_r5_morning_only",
+      "verdict": "KILL",
+      "win_rate": 0.25925925925925924
+    },
+    "t8_r5_afternoon_only": {
+      "avg_per_trade": -7.892156862745098,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -325.0,
+      "bootstrap_lo": -1260.0,
+      "cost_sensitivity": {
+        "-1.74": -982.48,
+        "-10.00": -1825.0,
+        "-5.00": -1315.0
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 94,
+      "n_trades": 102,
+      "quarter_labels": [
+        "2019-09-12..2020-07-10",
+        "2020-07-10..2021-05-09",
+        "2021-05-09..2022-03-08",
+        "2022-03-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -160.0,
+        -245.0,
+        -280.0,
+        -120.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 102
+      },
+      "regime_pnls": {
+        "UNKNOWN": -805.0
+      },
+      "sharpe": -5.346383842935435,
+      "shippable": false,
+      "t_stat": -3.2653052911695837,
+      "total_pnl": -805.0,
+      "variant": "t8_r5_afternoon_only",
+      "verdict": "KILL",
+      "win_rate": 0.20588235294117646
+    },
+    "t9_r5_short_hold": {
+      "avg_per_trade": -5.9261603375527425,
+      "bootstrap_ci_covers_zero": false,
+      "bootstrap_hi": -644.5,
+      "bootstrap_lo": -2160.0,
+      "cost_sensitivity": {
+        "-1.74": -1816.88,
+        "-10.00": -3774.5,
+        "-5.00": -2589.5
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 188,
+      "n_trades": 237,
+      "quarter_labels": [
+        "2019-05-22..2020-04-17",
+        "2020-04-17..2021-03-14",
+        "2021-03-14..2022-02-08",
+        "2022-02-08..2023-01-05"
+      ],
+      "quarter_pnls": [
+        -140.0,
+        -584.5,
+        -620.0,
+        -60.0
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "UNKNOWN": 237
+      },
+      "regime_pnls": {
+        "UNKNOWN": -1404.5
+      },
+      "sharpe": -4.165640591829579,
+      "shippable": false,
+      "t_stat": -3.5979941334071195,
+      "total_pnl": -1404.5,
+      "variant": "t9_r5_short_hold",
+      "verdict": "KILL",
+      "win_rate": 0.23628691983122363
+    },
+    "v3_0_fib_partial_pb": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7045.882,
+      "bootstrap_lo": -573.6094999999993,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_0_fib_partial_pb",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "v3_1_fib_partial_mkt": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7044.560750000001,
+      "bootstrap_lo": -529.7174999999997,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_1_fib_partial_mkt",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "v3_2_rmult_partial_pb": {
+      "avg_per_trade": -55.8108,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 793.243249999999,
+      "bootstrap_lo": -4110.3565,
+      "cost_sensitivity": {
+        "-1.74": -1438.77,
+        "-10.00": -1645.27,
+        "-5.00": -1520.27
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        188.3,
+        69.43,
+        -2097.55,
+        444.54999999999995
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 0.0,
+        "RISK-ON": -1395.27
+      },
+      "sharpe": -3.3873623982250685,
+      "shippable": false,
+      "t_stat": -1.0669188697803418,
+      "total_pnl": -1395.27,
+      "variant": "v3_2_rmult_partial_pb",
+      "verdict": "KILL",
+      "win_rate": 0.2
+    },
+    "v3_3_fib_noptl_pb": {
+      "avg_per_trade": -92.2112,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 78.69024999999996,
+      "bootstrap_lo": -5092.65975,
+      "cost_sensitivity": {
+        "-1.74": -2348.78,
+        "-10.00": -2555.28,
+        "-5.00": -2430.28
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        -404.86,
+        -366.89,
+        -2236.29,
+        702.76
+      ],
+      "reasons": [
+        "total PnL <= 0",
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise",
+        "PnL goes negative at $-5/trade friction"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": -140.67,
+        "RISK-ON": -2164.61
+      },
+      "sharpe": -5.423036704927943,
+      "shippable": false,
+      "t_stat": -1.7080960085731551,
+      "total_pnl": -2305.28,
+      "variant": "v3_3_fib_noptl_pb",
+      "verdict": "KILL",
+      "win_rate": 0.2
+    },
+    "v3_4_fib_partial_pm30": {
+      "avg_per_trade": 28.789375000000007,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 14318.124999999993,
+      "bootstrap_lo": -3559.7007500000004,
+      "cost_sensitivity": {
+        "-1.74": 5193.480000000001,
+        "-10.00": 3607.5600000000013,
+        "-5.00": 4567.560000000001
+      },
+      "dsr_100": 8.918474824724826e-13,
+      "dsr_30": 1.4715114454034783e-05,
+      "n_days": 186,
+      "n_trades": 192,
+      "quarter_labels": [
+        "2019-05-17..2021-01-27",
+        "2021-01-27..2022-10-10",
+        "2022-10-10..2024-06-22",
+        "2024-06-22..2026-03-05"
+      ],
+      "quarter_pnls": [
+        2119.5,
+        3854.26,
+        -4943.64,
+        4497.44
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 21,
+        "RISK-ON": 171
+      },
+      "regime_pnls": {
+        "NEUTRAL": 1829.3500000000001,
+        "RISK-ON": 3698.2099999999996
+      },
+      "sharpe": 1.4084368343103388,
+      "shippable": false,
+      "t_stat": 1.2100228628645429,
+      "total_pnl": 5527.560000000001,
+      "variant": "v3_4_fib_partial_pm30",
+      "verdict": "KILL",
+      "win_rate": 0.5208333333333334
+    },
+    "v3_6_firm_only": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7038.0132499999945,
+      "bootstrap_lo": -549.7877499999994,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_6_firm_only",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "v3_7_fib_full_session": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7084.964249999999,
+      "bootstrap_lo": -520.9202499999999,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 2,
+        "RISK-ON": 23
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.1099999999997
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_7_fib_full_session",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "v3_8_hybrid_exits": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7061.702499999999,
+      "bootstrap_lo": -569.7892499999997,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_8_hybrid_exits",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "v3_9_strong_redteam": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7062.612749999999,
+      "bootstrap_lo": -534.0332499999988,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_9_strong_redteam",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    },
+    "v3_baseline_pm30": {
+      "avg_per_trade": 28.789375000000007,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 14147.891249999995,
+      "bootstrap_lo": -3350.232999999999,
+      "cost_sensitivity": {
+        "-1.74": 5193.480000000001,
+        "-10.00": 3607.5600000000013,
+        "-5.00": 4567.560000000001
+      },
+      "dsr_100": 8.918474824724826e-13,
+      "dsr_30": 1.4715114454034783e-05,
+      "n_days": 186,
+      "n_trades": 192,
+      "quarter_labels": [
+        "2019-05-17..2021-01-27",
+        "2021-01-27..2022-10-10",
+        "2022-10-10..2024-06-22",
+        "2024-06-22..2026-03-05"
+      ],
+      "quarter_pnls": [
+        2119.5,
+        3854.26,
+        -4943.64,
+        4497.44
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 21,
+        "RISK-ON": 171
+      },
+      "regime_pnls": {
+        "NEUTRAL": 1829.3500000000001,
+        "RISK-ON": 3698.2099999999996
+      },
+      "sharpe": 1.4084368343103388,
+      "shippable": false,
+      "t_stat": 1.2100228628645429,
+      "total_pnl": 5527.560000000001,
+      "variant": "v3_baseline_pm30",
+      "verdict": "KILL",
+      "win_rate": 0.5208333333333334
+    },
+    "v3_baseline_pm40": {
+      "avg_per_trade": 137.29080000000002,
+      "bootstrap_ci_covers_zero": true,
+      "bootstrap_hi": 7091.997249999998,
+      "bootstrap_lo": -561.5350000000001,
+      "cost_sensitivity": {
+        "-1.74": 3388.7700000000004,
+        "-10.00": 3182.2700000000004,
+        "-5.00": 3307.2700000000004
+      },
+      "dsr_100": 0.0,
+      "dsr_30": 0.0,
+      "n_days": 25,
+      "n_trades": 25,
+      "quarter_labels": [
+        "2019-11-06..2021-06-02",
+        "2021-06-02..2022-12-29",
+        "2022-12-29..2024-07-25",
+        "2024-07-25..2026-02-20"
+      ],
+      "quarter_pnls": [
+        992.51,
+        976.31,
+        -1600.3,
+        3063.75
+      ],
+      "reasons": [
+        "95% bootstrap CI on total PnL covers zero",
+        "DSR@100 trials = 0.00 \u2014 edge indistinguishable from multi-testing noise"
+      ],
+      "regime_counts": {
+        "NEUTRAL": 1,
+        "RISK-ON": 24
+      },
+      "regime_pnls": {
+        "NEUTRAL": 201.16,
+        "RISK-ON": 3231.11
+      },
+      "sharpe": 5.492986989559702,
+      "shippable": false,
+      "t_stat": 1.7301282772962283,
+      "total_pnl": 3432.2700000000004,
+      "variant": "v3_baseline_pm40",
+      "verdict": "KILL",
+      "win_rate": 0.76
+    }
+  }
+}

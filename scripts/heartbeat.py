@@ -8,12 +8,13 @@ Usage:
     python scripts/heartbeat.py --beat
     python scripts/heartbeat.py --check --threshold-min 5
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

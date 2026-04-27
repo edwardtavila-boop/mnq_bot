@@ -41,6 +41,7 @@ Usage (realistic — slippage + latency):
 Partial fills are modeled via ``PartialFillModel``: qty may be reduced
 stochastically. ``fill.is_partial`` flags when this happens.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,6 +58,7 @@ from mnq.core.types import Fill, Side, Signal
 # =====================================================================
 # Slippage models
 # =====================================================================
+
 
 class SlippageProvider(Protocol):
     """Interface for slippage models.  Returns adverse ticks to add."""
@@ -128,7 +130,7 @@ class VolumeAwareSlippage:
 
     def ticks(self, side: Side, price: Decimal, qty: int) -> Decimal:
         ratio = qty / self.depth_lots if self.depth_lots > 0 else 0.0
-        raw = self.base_ticks + self.scale_factor * (ratio ** self.elasticity)
+        raw = self.base_ticks + self.scale_factor * (ratio**self.elasticity)
         # Add small noise
         noise = self._rng.gauss(0, 0.15)
         raw = max(0.0, min(float(self.max_ticks), raw + noise))
@@ -139,6 +141,7 @@ class VolumeAwareSlippage:
 # =====================================================================
 # Latency models
 # =====================================================================
+
 
 class LatencyProvider(Protocol):
     """Interface for latency models.  Returns a timedelta to add to fill ts."""
@@ -185,6 +188,7 @@ class StochasticLatency:
 # =====================================================================
 # Partial-fill model
 # =====================================================================
+
 
 class PartialFillProvider(Protocol):
     """Interface for partial-fill models.  Returns filled qty <= requested."""

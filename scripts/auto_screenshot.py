@@ -10,6 +10,7 @@ Usage:
     python scripts/auto_screenshot.py --seq 42
     python scripts/auto_screenshot.py --all
 """
+
 from __future__ import annotations
 
 import argparse
@@ -40,13 +41,19 @@ PLACEHOLDER_SVG_TEMPLATE = """\
 def _shoot(trade) -> Path:
     SHOTS_DIR.mkdir(parents=True, exist_ok=True)
     out = SHOTS_DIR / f"{trade.seq:06d}.svg"
-    out.write_text(PLACEHOLDER_SVG_TEMPLATE.format(
-        seq=trade.seq, side=trade.side, qty=trade.qty,
-        pnl=trade.net_pnl, r=trade.r_multiple,
-        entry_ts=trade.entry_ts.isoformat() if trade.entry_ts else "—",
-        exit_ts=trade.exit_ts.isoformat() if trade.exit_ts else "—",
-        entry_px=trade.entry_price or 0, exit_px=trade.exit_price or 0,
-    ))
+    out.write_text(
+        PLACEHOLDER_SVG_TEMPLATE.format(
+            seq=trade.seq,
+            side=trade.side,
+            qty=trade.qty,
+            pnl=trade.net_pnl,
+            r=trade.r_multiple,
+            entry_ts=trade.entry_ts.isoformat() if trade.entry_ts else "—",
+            exit_ts=trade.exit_ts.isoformat() if trade.exit_ts else "—",
+            entry_px=trade.entry_price or 0,
+            exit_px=trade.exit_price or 0,
+        )
+    )
     return out
 
 
@@ -69,7 +76,7 @@ def main() -> int:
     elif args.all:
         targets = trades
     else:
-        targets = trades[-args.last:]
+        targets = trades[-args.last :]
 
     shot_paths = []
     for t in targets:

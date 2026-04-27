@@ -22,20 +22,18 @@ Features used (all per-bar):
 import argparse
 import pickle
 from pathlib import Path
-from typing import List, Optional
 
 try:
     import numpy as np
     from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
     from sklearn.metrics import classification_report, confusion_matrix
-except ImportError:
-    raise SystemExit("Install sklearn: pip install -r requirements.txt")
+    from sklearn.model_selection import train_test_split
+except ImportError as e:
+    raise SystemExit("Install sklearn: pip install -r requirements.txt") from e
 
+from backtest import load_csv
 from firm_engine import Bar, detect_regime
 from indicator_state import IndicatorState
-from backtest import load_csv
-
 
 REGIME_LABELS = ["RISK-ON", "RISK-OFF", "NEUTRAL", "CRISIS"]
 LABEL_TO_IDX = {r: i for i, r in enumerate(REGIME_LABELS)}
@@ -46,9 +44,9 @@ def _safe(v, default=0.0):
     return v if v is not None else default
 
 
-def features_from_bar(bar: Bar, state: IndicatorState,
-                      prev_ema9: Optional[float],
-                      prev_ema21: Optional[float]) -> List[float]:
+def features_from_bar(
+    bar: Bar, state: IndicatorState, prev_ema9: float | None, prev_ema21: float | None
+) -> list[float]:
     """Extract feature vector for ML regime classifier."""
     atr = _safe(bar.atr)
     atr_ma20 = state.atr_ma20() or 1.0
@@ -87,8 +85,15 @@ def features_from_bar(bar: Bar, state: IndicatorState,
 
 
 FEATURE_NAMES = [
-    "adx", "atr_ratio", "vol_z", "rsi", "range_expand",
-    "htf_dist", "ema9_slope", "ema21_slope", "ema_spread",
+    "adx",
+    "atr_ratio",
+    "vol_z",
+    "rsi",
+    "range_expand",
+    "htf_dist",
+    "ema9_slope",
+    "ema21_slope",
+    "ema_spread",
 ]
 
 
@@ -112,8 +117,7 @@ def build_training_set(csv_path: str):
             continue
 
         feats = features_from_bar(bar, state, prev_ema9, prev_ema21)
-        regime = detect_regime(bar.adx or 20, bar.atr or 0,
-                               state.atr_ma20(), state.vol_z())
+        regime = detect_regime(bar.adx or 20, bar.atr or 0, state.atr_ma20(), state.vol_z())
         X.append(feats)
         y.append(LABEL_TO_IDX[regime])
         prev_ema9 = bar.ema9
@@ -125,10 +129,10 @@ def build_training_set(csv_path: str):
 def train(csv_path: str, out_path: str):
     X, y = build_training_set(csv_path)
     print(f"\nTraining set: {len(X)} samples, {X.shape[1]} features")
-    print(f"Class distribution:")
+    print("Class distribution:")
     for i, lbl in enumerate(REGIME_LABELS):
         cnt = (y == i).sum()
-        print(f"  {lbl:10s}: {cnt:6d}  ({cnt/len(y)*100:.1f}%)")
+        print(f"  {lbl:10s}: {cnt:6d}  ({cnt / len(y) * 100:.1f}%)")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=42, stratify=y if len(np.unique(y)) > 1 else None
@@ -154,11 +158,14 @@ def train(csv_path: str, out_path: str):
     y_pred = clf.predict(X_test)
     present_labels = sorted(set(y_test) | set(y_pred))
     target_names = [IDX_TO_LABEL[i] for i in present_labels]
-    print(f"\nClassification report (test set):")
-    print(classification_report(y_test, y_pred, labels=present_labels,
-                                target_names=target_names, zero_division=0))
+    print("\nClassification report (test set):")
+    print(
+        classification_report(
+            y_test, y_pred, labels=present_labels, target_names=target_names, zero_division=0
+        )
+    )
 
-    print(f"Confusion matrix (rows=true, cols=pred):")
+    print("Confusion matrix (rows=true, cols=pred):")
     cm = confusion_matrix(y_test, y_pred, labels=present_labels)
     header = "          " + "  ".join(f"{n:>9s}" for n in target_names)
     print(header)
@@ -166,23 +173,27 @@ def train(csv_path: str, out_path: str):
         print(f"  {target_names[i]:>8s}  " + "  ".join(f"{v:>9d}" for v in row))
 
     # Feature importance
-    print(f"\nFeature importances:")
-    for name, imp in sorted(zip(FEATURE_NAMES, clf.feature_importances_),
-                            key=lambda x: -x[1]):
+    print("\nFeature importances:")
+    for name, imp in sorted(
+        zip(FEATURE_NAMES, clf.feature_importances_, strict=False), key=lambda x: -x[1]
+    ):
         bar_str = "█" * int(imp * 50)
         print(f"  {name:14s}  {imp:.3f}  {bar_str}")
 
     # Save model
     out = Path(out_path)
     with out.open("wb") as f:
-        pickle.dump({
-            "model": clf,
-            "feature_names": FEATURE_NAMES,
-            "labels": REGIME_LABELS,
-            "trained_on": csv_path,
-            "train_acc": train_acc,
-            "test_acc": test_acc,
-        }, f)
+        pickle.dump(
+            {
+                "model": clf,
+                "feature_names": FEATURE_NAMES,
+                "labels": REGIME_LABELS,
+                "trained_on": csv_path,
+                "train_acc": train_acc,
+                "test_acc": test_acc,
+            },
+            f,
+        )
     print(f"\nModel saved to {out.absolute()}")
 
 
@@ -195,15 +206,20 @@ class MLRegime:
         self.clf = data["model"]
         self.labels = data["labels"]
 
-    def predict(self, bar: Bar, state: IndicatorState,
-                prev_ema9: Optional[float] = None,
-                prev_ema21: Optional[float] = None) -> str:
+    def predict(
+        self,
+        bar: Bar,
+        state: IndicatorState,
+        prev_ema9: float | None = None,
+        prev_ema21: float | None = None,
+    ) -> str:
         feats = features_from_bar(bar, state, prev_ema9, prev_ema21)
         idx = self.clf.predict([feats])[0]
         return self.labels[idx]
 
-    def predict_proba(self, bar: Bar, state: IndicatorState,
-                      prev_ema9=None, prev_ema21=None) -> dict:
+    def predict_proba(
+        self, bar: Bar, state: IndicatorState, prev_ema9=None, prev_ema21=None
+    ) -> dict:
         feats = features_from_bar(bar, state, prev_ema9, prev_ema21)
         probs = self.clf.predict_proba([feats])[0]
         return {self.labels[i]: float(p) for i, p in enumerate(probs)}
@@ -233,8 +249,11 @@ def main():
         prev_ema9 = None
         prev_ema21 = None
         from datetime import datetime
+
         print(f"\nLast {args.n} bars regime predictions vs rule-based:")
-        print(f"{'Time':>20s}  {'Close':>9s}  {'Rule-Based':>12s}  {'ML Predict':>12s}  {'Top Probs':>30s}")
+        print(
+            f"{'Time':>20s}  {'Close':>9s}  {'Rule-Based':>12s}  {'ML Predict':>12s}  {'Top Probs':>30s}"
+        )
         for bar in bars:
             state.update(bar)
             if state._adx is None or state._atr is None or state.atr_ma20() == 0:
@@ -252,15 +271,14 @@ def main():
                 prev_ema9 = bar.ema9
                 prev_ema21 = bar.ema21
                 continue
-            rule = detect_regime(bar.adx or 20, bar.atr or 0,
-                                state.atr_ma20(), state.vol_z())
+            rule = detect_regime(bar.adx or 20, bar.atr or 0, state.atr_ma20(), state.vol_z())
             ml_pred = ml.predict(bar, state, prev_ema9, prev_ema21)
             probs = ml.predict_proba(bar, state, prev_ema9, prev_ema21)
             all_results.append((bar.time, bar.close, rule, ml_pred, probs))
             prev_ema9 = bar.ema9
             prev_ema21 = bar.ema21
 
-        for t, c, rule, ml_pred, probs in all_results[-args.n:]:
+        for t, c, rule, ml_pred, probs in all_results[-args.n :]:
             top2 = sorted(probs.items(), key=lambda x: -x[1])[:2]
             top_str = "  ".join(f"{k}:{v:.2f}" for k, v in top2)
             mark = " " if rule == ml_pred else "✗"

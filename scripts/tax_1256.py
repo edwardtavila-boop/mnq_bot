@@ -10,6 +10,7 @@ Usage:
     python scripts/tax_1256.py
     python scripts/tax_1256.py --federal 0.32 --state 0.093
 """
+
 from __future__ import annotations
 
 import argparse

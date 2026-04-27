@@ -11,6 +11,7 @@ Design rules baked into this module:
 3. All timestamps are timezone-aware, in UTC internally. Convert to
    exchange tz only at presentation boundaries.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -105,13 +106,14 @@ def points_to_dollars(points: Decimal, qty: int, point_value: Decimal = MNQ_POIN
 @dataclass(frozen=True, slots=True)
 class Bar:
     """OHLCV bar. Timestamp is bar OPEN time, UTC."""
-    ts: datetime              # bar open time, UTC
+
+    ts: datetime  # bar open time, UTC
     open: Decimal
     high: Decimal
     low: Decimal
     close: Decimal
-    volume: int               # contract count
-    timeframe_sec: int        # 60 for 1m
+    volume: int  # contract count
+    timeframe_sec: int  # 60 for 1m
 
     def __post_init__(self) -> None:
         if self.ts.tzinfo is None:
@@ -133,20 +135,22 @@ class Bar:
 @dataclass(frozen=True, slots=True)
 class Tick:
     """Single trade tick. We don't model L2 here; that's a separate type."""
-    ts: datetime               # tick time, UTC, with millisecond precision min
+
+    ts: datetime  # tick time, UTC, with millisecond precision min
     price: Decimal
     size: int
-    aggressor: Side | None     # None if not classified
+    aggressor: Side | None  # None if not classified
 
 
 @dataclass(frozen=True, slots=True)
 class Signal:
     """Output of a strategy's `on_bar()`. Consumed by the order manager."""
+
     side: Side
     qty: int
-    ref_price: Decimal         # signal price (typically bar close)
-    stop: Decimal              # protective stop, tick-aligned
-    take_profit: Decimal       # target, tick-aligned
+    ref_price: Decimal  # signal price (typically bar close)
+    stop: Decimal  # protective stop, tick-aligned
+    take_profit: Decimal  # target, tick-aligned
     order_type: OrderType
     limit_offset_ticks: int = 0
     market_fallback_ms: int = 500
@@ -183,6 +187,7 @@ class Signal:
 @dataclass(frozen=True, slots=True)
 class Fill:
     """A confirmed fill from the venue."""
+
     order_id: str
     spec_hash: str
     ts: datetime
@@ -190,7 +195,7 @@ class Fill:
     qty: int
     price: Decimal
     commission: Decimal
-    venue: str                 # 'tradovate_paper' | 'tradovate_live' | 'mock'
+    venue: str  # 'tradovate_paper' | 'tradovate_live' | 'mock'
     venue_fill_id: str
     is_partial: bool = False
 
@@ -198,9 +203,10 @@ class Fill:
 @dataclass(frozen=True, slots=True)
 class Position:
     """Net position in one instrument."""
+
     symbol: str
-    qty: int                   # signed: positive long, negative short, 0 flat
-    avg_price: Decimal         # 0 if flat
+    qty: int  # signed: positive long, negative short, 0 flat
+    avg_price: Decimal  # 0 if flat
     realized_pnl_session: Decimal = Decimal(0)
     unrealized_pnl: Decimal = Decimal(0)
 

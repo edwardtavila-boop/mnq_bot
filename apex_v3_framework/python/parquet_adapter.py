@@ -18,6 +18,7 @@ Usage:
     .venv/bin/python eta_v3_framework/python/parquet_adapter.py --symbol MNQ1 --tf 5m
     .venv/bin/python eta_v3_framework/python/parquet_adapter.py --all
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,17 +30,15 @@ import pandas as pd
 PARQUET_ROOT = Path(
     "/sessions/kind-keen-faraday/mnt/OneDrive/Desktop/Base/mnq_backtest/.cache/parquet"
 )
-CSV_OUT_ROOT = Path(
-    "/sessions/kind-keen-faraday/mnt/mnq_bot/data/bars/databento"
-)
+CSV_OUT_ROOT = Path("/sessions/kind-keen-faraday/mnt/mnq_bot/data/bars/databento")
 
 DEFAULT_SYMBOLS = [
-    ("MNQ1", "5m"),   # primary execution instrument
-    ("MNQ1", "1m"),   # microstructure entries
-    ("NQ1", "4h"),    # HTF bias
+    ("MNQ1", "5m"),  # primary execution instrument
+    ("MNQ1", "1m"),  # microstructure entries
+    ("NQ1", "4h"),  # HTF bias
     ("ES_1m", None),  # V9 ES correlation (special naming)
     ("ES", "5m"),
-    ("DXY", "5m"),    # V10 macro
+    ("DXY", "5m"),  # V10 macro
     ("VIX_YF", "D"),  # V8 VIX (daily only in cache)
 ]
 
@@ -80,8 +79,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Parquet → CSV adapter")
     ap.add_argument("--symbol", help="Symbol (MNQ1, NQ1, ES, DXY, VIX_YF)")
     ap.add_argument("--tf", help="Timeframe (1m, 5m, 4h, D)")
-    ap.add_argument("--session", choices=["ETH", "RTH", "CLOSED"],
-                    help="Optional session filter")
+    ap.add_argument("--session", choices=["ETH", "RTH", "CLOSED"], help="Optional session filter")
     ap.add_argument("--all", action="store_true", help="Convert all default symbols")
     args = ap.parse_args()
 

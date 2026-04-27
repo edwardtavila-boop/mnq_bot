@@ -18,6 +18,7 @@ Usage:
     python scripts/walk_forward.py --variants r5_real_wide_target t16_r5_long_only
     python scripts/walk_forward.py --output reports/walk_forward.md
 """
+
 from __future__ import annotations
 
 import argparse
@@ -59,9 +60,7 @@ class FoldResult:
     test_win_rate: float
 
 
-def _pick_best_on_train(
-    variants: list[str], spec, train_days
-) -> tuple[str, float]:
+def _pick_best_on_train(variants: list[str], spec, train_days) -> tuple[str, float]:
     """Score each variant on the train slice; return (name, pnl)."""
     best_name = ""
     best_pnl = -1e18
@@ -88,15 +87,36 @@ def walk_forward(
     stride: int = 1,
     variants: list[str] | None = None,
     timeframe: str = "1m",
+    source: str = "auto",
+    days_tail: int | None = 60,
 ) -> list[FoldResult]:
-    """Run the walk-forward schedule; return per-fold results."""
+    """Run the walk-forward schedule; return per-fold results.
+
+    Args:
+        source: 'rth_csv' (the 15-day small RTH tape) or 'databento'
+                (the multi-year 1m tape). Default 'auto' tries rth_csv
+                first; if it yields too few days for the requested
+                window, falls back to databento.
+        days_tail: when source='databento', cap to the last N RTH days
+                (default 60) so the run stays under a minute.
+    """
     spec = load_spec(BASELINE)
-    days = _load_real_days(timeframe=timeframe)
+
+    if source == "auto":
+        # Try the small RTH csv; if too small, auto-fall-through to databento.
+        days = _load_real_days(timeframe=timeframe)
+        if len(days) < train_window + test_window and timeframe == "1m":
+            print(
+                f"[walk_forward] rth_csv has {len(days)} days (< {train_window + test_window}); "
+                f"auto-falling-through to databento (tail={days_tail})."
+            )
+            days = _load_real_days(timeframe=timeframe, source="databento", days_tail=days_tail)
+    else:
+        days = _load_real_days(timeframe=timeframe, source=source, days_tail=days_tail)
+
     n = len(days)
     if n < train_window + test_window:
-        raise RuntimeError(
-            f"not enough days: have {n}, need >= {train_window + test_window}"
-        )
+        raise RuntimeError(f"not enough days: have {n}, need >= {train_window + test_window}")
 
     # Variant pool (default: everything in VARIANTS)
     pool = list(variants) if variants else list(VARIANTS.keys())
@@ -223,6 +243,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Subset of variant names to consider (default: all).",
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--source",
+        type=str,
+        default="auto",
+        choices=("auto", "rth_csv", "databento"),
+        help="Data source: auto (rth_csv → databento fallback) / rth_csv / databento",
+    )
+    parser.add_argument(
+        "--days-tail",
+        type=int,
+        default=60,
+        help="When source=databento, cap to the last N RTH days (default 60)",
+    )
     args = parser.parse_args(argv)
 
     folds = walk_forward(
@@ -231,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
         stride=args.stride,
         variants=args.variants,
         timeframe=args.timeframe,
+        source=args.source,
+        days_tail=args.days_tail,
     )
     md = _render_report(folds, train=args.train_window, test=args.test_window, stride=args.stride)
     args.output.parent.mkdir(parents=True, exist_ok=True)

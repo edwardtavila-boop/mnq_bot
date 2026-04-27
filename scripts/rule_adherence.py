@@ -13,6 +13,7 @@ trade's size, hour, and streak context.
 Usage:
     python scripts/rule_adherence.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,9 +28,8 @@ REPORT_PATH = REPO_ROOT / "reports" / "rule_adherence.md"
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from _trade_utils import load_trades  # noqa: E402
 
-
 DEFAULT_RULES = {
-    "max_size": 4,                 # contracts per entry
+    "max_size": 4,  # contracts per entry
     "allowed_hours": list(range(13, 21)),  # 09:00–17:00 EST → 13–21 UTC
     "max_daily_trades": 8,
     "no_trade_after_2_losses": True,
@@ -45,11 +45,14 @@ def _infer_violations(trade, ctx) -> list[str]:
     if trade.hour is not None and trade.hour not in ctx["rules"]["allowed_hours"]:
         v.append(f"off-hours (H{trade.hour:02d})")
     # Daily cap
-    if ctx["per_day_count"].get(trade.exit_ts.date() if trade.exit_ts else None, 0) > ctx["rules"]["max_daily_trades"]:
+    if (
+        ctx["per_day_count"].get(trade.exit_ts.date() if trade.exit_ts else None, 0)
+        > ctx["rules"]["max_daily_trades"]
+    ):
         v.append("over daily cap")
     # Streak rule
     if ctx["rules"]["no_trade_after_2_losses"] and ctx["tail_losses"] >= 2:
-        v.append(f"revenge-trade (≥2 prior losses)")
+        v.append("revenge-trade (≥2 prior losses)")
     return v
 
 

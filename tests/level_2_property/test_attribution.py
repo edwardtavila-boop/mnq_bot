@@ -15,6 +15,7 @@ And the gate-level synthetic strategies:
     - naive momentum clone                             -> g13 fail on
                                                          naive_momentum only
 """
+
 from __future__ import annotations
 
 import math
@@ -82,7 +83,7 @@ class TestAlphaProperties:
         coef, *_ = np.linalg.lstsq(x, strat, rcond=None)
         pred = x @ coef
         resid = strat - pred
-        s2 = float((resid ** 2).sum() / (n - 2))
+        s2 = float((resid**2).sum() / (n - 2))
         xtx_inv = np.linalg.inv(x.T @ x)
         ols_se_alpha = math.sqrt(s2 * xtx_inv[0, 0])
 
@@ -170,21 +171,25 @@ def _make_bars(
         c = px + step
         hi = max(o, c) + abs(rng.normal(0.0, 1.0))
         lo = min(o, c) - abs(rng.normal(0.0, 1.0))
-        rows.append({
-            "ts": t0 + timedelta(minutes=i),
-            "open": o,
-            "high": hi,
-            "low": lo,
-            "close": c,
-            "volume": 1000.0,
-        })
+        rows.append(
+            {
+                "ts": t0 + timedelta(minutes=i),
+                "open": o,
+                "high": hi,
+                "low": lo,
+                "close": c,
+                "volume": 1000.0,
+            }
+        )
         px = c
     return pl.DataFrame(rows)
 
 
 class TestBenchmarks:
     def test_cash_returns_are_zero(self) -> None:
-        trades = pl.DataFrame({"entry_ts": [datetime.now(UTC)] * 5, "exit_ts": [datetime.now(UTC)] * 5})
+        trades = pl.DataFrame(
+            {"entry_ts": [datetime.now(UTC)] * 5, "exit_ts": [datetime.now(UTC)] * 5}
+        )
         out = _bm.cash_returns(trades)
         assert out.shape == (5,)
         assert (out == 0.0).all()
@@ -193,12 +198,14 @@ class TestBenchmarks:
         bars = _make_bars(200, drift_per_bar=0.5, bar_noise=0.0)
         t0 = bars.row(0, named=True)["ts"]
         # 10 consecutive trades, each 10 bars long.
-        trades = pl.DataFrame({
-            "entry_ts": [t0 + timedelta(minutes=10 * i) for i in range(10)],
-            "exit_ts": [t0 + timedelta(minutes=10 * (i + 1)) for i in range(10)],
-            "stop_dist_pts": [5.0] * 10,
-            "target_dist_pts": [10.0] * 10,
-        })
+        trades = pl.DataFrame(
+            {
+                "entry_ts": [t0 + timedelta(minutes=10 * i) for i in range(10)],
+                "exit_ts": [t0 + timedelta(minutes=10 * (i + 1)) for i in range(10)],
+                "stop_dist_pts": [5.0] * 10,
+                "target_dist_pts": [10.0] * 10,
+            }
+        )
         out = _bm.mnq_intraday_returns(trades, bars)
         # With drift of 0.5/bar and 10 bars of hold, each entry should net
         # roughly 5 points * $2/pt = $10. Allow some slop for entry/exit bar
@@ -209,12 +216,14 @@ class TestBenchmarks:
     def test_naive_momentum_longs_in_uptrend(self) -> None:
         bars = _make_bars(200, drift_per_bar=0.5, bar_noise=0.0)
         t0 = bars.row(0, named=True)["ts"]
-        trades = pl.DataFrame({
-            "entry_ts": [t0 + timedelta(minutes=20 + 10 * i) for i in range(5)],
-            "exit_ts": [t0 + timedelta(minutes=20 + 10 * (i + 1)) for i in range(5)],
-            "stop_dist_pts": [5.0] * 5,
-            "target_dist_pts": [10.0] * 5,
-        })
+        trades = pl.DataFrame(
+            {
+                "entry_ts": [t0 + timedelta(minutes=20 + 10 * i) for i in range(5)],
+                "exit_ts": [t0 + timedelta(minutes=20 + 10 * (i + 1)) for i in range(5)],
+                "stop_dist_pts": [5.0] * 5,
+                "target_dist_pts": [10.0] * 5,
+            }
+        )
         out = _bm.naive_momentum_returns(trades, bars, lookback_bars=5)
         # In uptrend → lookback says "long" → hits target (+10 pts * $2 = $20)
         # because drift * 10 bars = 5 pts but high reaches target via noise.
@@ -253,7 +262,9 @@ def _make_trades_df(n: int, bars: pl.DataFrame, *, bars_per_trade: int = 10) -> 
 class TestGate13Gate14Synthetics:
     """The handoff spec requires these 3 synthetic scenarios to behave as stated."""
 
-    def _paths(self, strategy_returns_list: list[np.ndarray], trades: pl.DataFrame) -> list[_PathResult]:
+    def _paths(
+        self, strategy_returns_list: list[np.ndarray], trades: pl.DataFrame
+    ) -> list[_PathResult]:
         return [_PathResult(returns=r, trades_df=trades) for r in strategy_returns_list]
 
     def test_pure_beta_strategy_fails_both_gates(self) -> None:
@@ -266,10 +277,12 @@ class TestGate13Gate14Synthetics:
         paths = []
         for seed in range(5):
             noise = np.random.default_rng(seed=seed).normal(0.0, 0.5, size=n_trades)
-            paths.append(_PathResult(
-                returns=0.5 * mnq_ret + noise,
-                trades_df=trades,
-            ))
+            paths.append(
+                _PathResult(
+                    returns=0.5 * mnq_ret + noise,
+                    trades_df=trades,
+                )
+            )
 
         ds = _Dataset(bars_df=bars)
         g13 = run_gate_13(paths, ds)
@@ -290,10 +303,12 @@ class TestGate13Gate14Synthetics:
         paths = []
         for seed in range(5):
             noise = np.random.default_rng(seed=seed).normal(0.0, 1.0, size=n_trades)
-            paths.append(_PathResult(
-                returns=5.0 + noise,  # consistent positive edge
-                trades_df=trades,
-            ))
+            paths.append(
+                _PathResult(
+                    returns=5.0 + noise,  # consistent positive edge
+                    trades_df=trades,
+                )
+            )
 
         ds = _Dataset(bars_df=bars)
         g13 = run_gate_13(paths, ds)
@@ -315,10 +330,12 @@ class TestGate13Gate14Synthetics:
         paths = []
         for seed in range(5):
             noise = np.random.default_rng(seed=seed).normal(0.0, 0.1, size=n_trades)
-            paths.append(_PathResult(
-                returns=naive_ret + noise,
-                trades_df=trades,
-            ))
+            paths.append(
+                _PathResult(
+                    returns=naive_ret + noise,
+                    trades_df=trades,
+                )
+            )
 
         ds = _Dataset(bars_df=bars)
         g13 = run_gate_13(paths, ds)

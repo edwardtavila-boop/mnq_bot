@@ -1,4 +1,5 @@
 """Helpers for constructing synthetic Bars in tests."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -7,8 +8,9 @@ from decimal import Decimal
 from mnq.core.types import Bar
 
 
-def make_bar(ts: datetime, o: float, h: float, lo: float, c: float, v: int = 100,
-             tf_sec: int = 60) -> Bar:
+def make_bar(
+    ts: datetime, o: float, h: float, lo: float, c: float, v: int = 100, tf_sec: int = 60
+) -> Bar:
     return Bar(
         ts=ts.astimezone(UTC),
         open=Decimal(str(o)),
@@ -20,8 +22,9 @@ def make_bar(ts: datetime, o: float, h: float, lo: float, c: float, v: int = 100
     )
 
 
-def constant_bars(n: int, price: float = 100.0, volume: int = 100,
-                   start: datetime | None = None, tf_sec: int = 60) -> list[Bar]:
+def constant_bars(
+    n: int, price: float = 100.0, volume: int = 100, start: datetime | None = None, tf_sec: int = 60
+) -> list[Bar]:
     start = start or datetime(2026, 1, 2, 9, 30, tzinfo=UTC)
     out: list[Bar] = []
     for i in range(n):
@@ -30,9 +33,14 @@ def constant_bars(n: int, price: float = 100.0, volume: int = 100,
     return out
 
 
-def linear_close_bars(n: int, start_price: float = 100.0, slope: float = 1.0,
-                      volume: int = 100, start: datetime | None = None,
-                      tf_sec: int = 60) -> list[Bar]:
+def linear_close_bars(
+    n: int,
+    start_price: float = 100.0,
+    slope: float = 1.0,
+    volume: int = 100,
+    start: datetime | None = None,
+    tf_sec: int = 60,
+) -> list[Bar]:
     start = start or datetime(2026, 1, 2, 9, 30, tzinfo=UTC)
     out: list[Bar] = []
     for i in range(n):

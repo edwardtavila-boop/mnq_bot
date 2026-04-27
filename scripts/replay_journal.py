@@ -21,6 +21,7 @@ Usage:
     python scripts/replay_journal.py
     python scripts/replay_journal.py --journal /path/to/journal.sqlite
 """
+
 from __future__ import annotations
 
 import argparse
@@ -94,7 +95,9 @@ def replay(journal_path: Path | str = DEFAULT_JOURNAL) -> ReplayResult:
     )
 
 
-def assert_deterministic(journal_path: Path | str = DEFAULT_JOURNAL) -> tuple[ReplayResult, ReplayResult]:
+def assert_deterministic(
+    journal_path: Path | str = DEFAULT_JOURNAL,
+) -> tuple[ReplayResult, ReplayResult]:
     """Replay twice; assert both runs are identical. Raises on mismatch."""
     a = replay(journal_path)
     b = replay(journal_path)

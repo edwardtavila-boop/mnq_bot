@@ -8,6 +8,7 @@ Usage:
     python scripts/monthly_narrative.py
     python scripts/monthly_narrative.py --month 2026-03
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,8 +29,7 @@ def main() -> int:
     args = p.parse_args()
 
     target = args.month  # YYYY-MM
-    trades = [t for t in load_trades()
-              if t.exit_ts and t.exit_ts.strftime("%Y-%m") == target]
+    trades = [t for t in load_trades() if t.exit_ts and t.exit_ts.strftime("%Y-%m") == target]
     stats = summary_stats(trades)
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -48,17 +48,21 @@ def main() -> int:
     peak = max(cum)
     trough = min(cum)
     arc = (
-        "steady compounding" if pnl_series[-1] > 0 and cum[-1] > peak * 0.8
-        else "drawdown recovery" if trough < cum[-1] < 0
-        else "choppy" if len(cum) > 1 and abs(statistics.stdev(cum)) > abs(cum[-1]) else "flat"
+        "steady compounding"
+        if pnl_series[-1] > 0 and cum[-1] > peak * 0.8
+        else "drawdown recovery"
+        if trough < cum[-1] < 0
+        else "choppy"
+        if len(cum) > 1 and abs(statistics.stdev(cum)) > abs(cum[-1])
+        else "flat"
     )
 
     # Theme extraction
     avg_hold = statistics.fmean([t.duration_s for t in trades if t.duration_s > 0]) if trades else 0
-    tightest_day = None
     biggest_day_pnl = float("-inf")
     worst_day_pnl = float("inf")
     from collections import defaultdict
+
     day_pnl: dict = defaultdict(float)
     for t in trades:
         if t.exit_ts:

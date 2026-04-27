@@ -5,6 +5,7 @@ specs, which the agent reads but does not mutate. The promotion path from
 experimental → schema is human-mediated: extend this file, then the agent
 can play with the new primitive.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,6 +15,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 # ---------- features ----------
+
 
 class _Feature(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -69,11 +71,12 @@ Feature = Annotated[
 
 # ---------- session / blackout ----------
 
+
 class SessionWindow(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str
-    start: str          # "HH:MM" in spec timezone
-    end: str            # "HH:MM" in spec timezone
+    start: str  # "HH:MM" in spec timezone
+    end: str  # "HH:MM" in spec timezone
     enabled: bool = True
 
 
@@ -98,8 +101,10 @@ class Session(BaseModel):
 
 # ---------- entries ----------
 
+
 class EntrySide(BaseModel):
     """Either an explicit list of conditions, or `mirror_of: long`."""
+
     model_config = ConfigDict(extra="forbid")
     all_of: list[str] | None = None
     any_of: list[str] | None = None
@@ -122,10 +127,11 @@ class Entry(BaseModel):
 
 # ---------- exits ----------
 
+
 class InitialStop(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["atr_multiple", "fixed_ticks", "swing_low_high"]
-    feature: str | None = None    # e.g., "atr_14"; required for atr_multiple
+    feature: str | None = None  # e.g., "atr_14"; required for atr_multiple
     multiplier: Decimal | None = None
     ticks: int | None = None
     min_ticks: int = 4
@@ -166,6 +172,7 @@ class Exit(BaseModel):
 
 # ---------- sizing ----------
 
+
 class PositionSizing(BaseModel):
     model_config = ConfigDict(extra="forbid")
     mode: Literal["fixed_risk", "fixed_contracts"] = "fixed_risk"
@@ -177,6 +184,7 @@ class PositionSizing(BaseModel):
 
 
 # ---------- risk caps ----------
+
 
 class PerTradeRisk(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -214,6 +222,7 @@ class Risk(BaseModel):
 
 # ---------- execution ----------
 
+
 class Execution(BaseModel):
     model_config = ConfigDict(extra="forbid")
     order_type: Literal["market", "limit", "limit_then_market"] = "limit_then_market"
@@ -224,6 +233,7 @@ class Execution(BaseModel):
 
 
 # ---------- sim-only models ----------
+
 
 class SlippageModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -240,6 +250,7 @@ class CommissionModel(BaseModel):
 
 
 # ---------- generators ----------
+
 
 class PineGen(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -269,6 +280,7 @@ class Generators(BaseModel):
 
 # ---------- timeframes / instrument ----------
 
+
 class Timeframes(BaseModel):
     model_config = ConfigDict(extra="forbid")
     primary: Literal["1m", "5m", "15m", "1h"] = "1m"
@@ -289,13 +301,14 @@ class Instrument(BaseModel):
 
 # ---------- meta ----------
 
+
 class StrategyMeta(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
     semver: str
     parent_hash: str | None = None
-    content_hash: str = ""             # filled by validator/hasher
-    created_by: str                    # "human:user" | "rl_agent_vX" | "chat:proposal_id"
+    content_hash: str = ""  # filled by validator/hasher
+    created_by: str  # "human:user" | "rl_agent_vX" | "chat:proposal_id"
     created_at: datetime
     tier: Literal["sim", "shadow", "live", "retired"] = "sim"
     experimental: bool = False
@@ -309,6 +322,7 @@ class Provenance(BaseModel):
 
 
 # ---------- top-level ----------
+
 
 class StrategySpec(BaseModel):
     model_config = ConfigDict(extra="forbid")

@@ -15,6 +15,7 @@ Covers:
   * Variant-specific entry / stop / target strings
   * dd_kill_switch_r derives from per_session.max_loss_usd / risk_dollars
 """
+
 from __future__ import annotations
 
 import json
@@ -126,7 +127,8 @@ def test_no_backtest_data_yields_pessimistic_oos(monkeypatch, tmp_path: Path) ->
     (so RedTeam flags the strategy until validation arrives)."""
     fake_path = tmp_path / "missing.json"
     monkeypatch.setattr(
-        "mnq.spec.runtime_payload.BACKTEST_DAILY_JSON", fake_path,
+        "mnq.spec.runtime_payload.BACKTEST_DAILY_JSON",
+        fake_path,
     )
     payload = build_spec_payload("r5_real_wide_target")
     assert payload["oos_degradation_pct"] == 100.0
@@ -135,26 +137,30 @@ def test_no_backtest_data_yields_pessimistic_oos(monkeypatch, tmp_path: Path) ->
 
 
 def test_synthetic_backtest_data_drives_sample_size(
-    monkeypatch, tmp_path: Path,
+    monkeypatch,
+    tmp_path: Path,
 ) -> None:
     """A hand-crafted backtest file with N positive-PnL days should
     produce sample_size = N * TRADES_PER_DAY_PROXY (when no journal
     rate is available)."""
     fake_path = tmp_path / "fake_daily.json"
     fake_path.write_text(
-        json.dumps({
-            "r5_real_wide_target": {
-                "2026-01-01": 50.0,
-                "2026-01-02": -20.0,
-                "2026-01-03": 30.0,
-                "2026-01-04": 40.0,
-                "2026-01-05": 0.0,
-            },
-        }),
+        json.dumps(
+            {
+                "r5_real_wide_target": {
+                    "2026-01-01": 50.0,
+                    "2026-01-02": -20.0,
+                    "2026-01-03": 30.0,
+                    "2026-01-04": 40.0,
+                    "2026-01-05": 0.0,
+                },
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        "mnq.spec.runtime_payload.BACKTEST_DAILY_JSON", fake_path,
+        "mnq.spec.runtime_payload.BACKTEST_DAILY_JSON",
+        fake_path,
     )
     # v0.2.10: pin journal rate to None so the test exercises the
     # TRADES_PER_DAY_PROXY fallback path. Without this patch the
@@ -175,12 +181,14 @@ def test_synthetic_backtest_data_drives_sample_size(
 
 
 def test_provenance_is_stub_only_when_all_sources_missing(
-    monkeypatch, tmp_path: Path,
+    monkeypatch,
+    tmp_path: Path,
 ) -> None:
     """If neither variant_cfg, yaml, nor backtest is available, the
     provenance must be exactly ['stub']."""
     monkeypatch.setattr(
-        "mnq.spec.runtime_payload.BASELINE_YAML", tmp_path / "no_yaml.yaml",
+        "mnq.spec.runtime_payload.BASELINE_YAML",
+        tmp_path / "no_yaml.yaml",
     )
     monkeypatch.setattr(
         "mnq.spec.runtime_payload.BACKTEST_DAILY_JSON",

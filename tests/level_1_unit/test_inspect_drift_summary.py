@@ -11,6 +11,7 @@ Pin the contract:
   * recency > expected by >= 0.05R -> EDGE GROWING
   * Output includes E, recency, and delta values
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -26,7 +27,8 @@ SCRIPT = REPO_ROOT / "scripts" / "run_eta_live.py"
 @pytest.fixture(scope="module")
 def runtime_mod():
     spec = importlib.util.spec_from_file_location(
-        "run_eta_live_drift_test", SCRIPT,
+        "run_eta_live_drift_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -129,7 +131,8 @@ def _make_runtime(runtime_mod):
     from mnq.risk.tiered_rollout import TieredRollout
 
     class _FakeJ:
-        def close(self): pass
+        def close(self):
+            pass
 
     class _FakeBook:
         _gate_chain = object()
@@ -140,23 +143,31 @@ def _make_runtime(runtime_mod):
                 allowed = True
                 reason = "ok"
                 detail = ""
+
             return _D()
 
     cfg = runtime_mod.RuntimeConfig(
-        live=False, max_bars=0, tick_interval_s=0.0,
+        live=False,
+        max_bars=0,
+        tick_interval_s=0.0,
         variant="r5_real_wide_target",
         state_dir=Path("/tmp/_drift_test"),
         journal_path=Path("/tmp/_drift_test/j.sqlite"),
         skip_promotion_gate=True,
-        tape_path=None, firm_review_every=1,
+        tape_path=None,
+        firm_review_every=1,
         firm_review_enabled=False,
         inspect=True,
     )
     rollout = TieredRollout.initial(cfg.variant)
     rollout.tier = 1
     return runtime_mod.ApexRuntime(
-        cfg=cfg, journal=_FakeJ(), book=_FakeBook(),
-        breaker=_FakeBreaker(), rollout=rollout, tape=None,
+        cfg=cfg,
+        journal=_FakeJ(),
+        book=_FakeBook(),
+        breaker=_FakeBreaker(),
+        rollout=rollout,
+        tape=None,
     )
 
 
@@ -176,7 +187,8 @@ def test_inspect_emits_drift_section(runtime_mod, capsys) -> None:
 
 
 def test_inspect_skips_drift_section_when_recency_none(
-    runtime_mod, capsys,
+    runtime_mod,
+    capsys,
 ) -> None:
     """No recency value -> drift section omitted (no visual noise)."""
     rt = _make_runtime(runtime_mod)
@@ -199,8 +211,10 @@ def test_drift_appears_before_regime_table(runtime_mod, capsys) -> None:
         "recency_weighted_expectancy_r": 0.15,
         "regime_expectancy": {
             "low-vol-trend": {
-                "n_days": 5.0, "expectancy_r": 0.1,
-                "total_pnl": 50.0, "pnl_per_day": 10.0,
+                "n_days": 5.0,
+                "expectancy_r": 0.1,
+                "total_pnl": 50.0,
+                "pnl_per_day": 10.0,
             },
         },
     }

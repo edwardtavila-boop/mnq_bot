@@ -8,6 +8,7 @@ Usage:
     python scripts/weekly_review.py
     python scripts/weekly_review.py --weeks-back 1
 """
+
 from __future__ import annotations
 
 import argparse
@@ -78,7 +79,7 @@ def main() -> int:
         "",
         "## Next-week focus (auto-generated candidates)",
         f"- {'Cut size by 25% on {} setup' if stats['avg_r'] < 0 else 'Maintain size discipline'}".format(
-            (max(setups.items(), key=lambda x: -x[1])[0] if trades else 'default')
+            max(setups.items(), key=lambda x: -x[1])[0] if trades else "default"
         ),
         f"- {'Tighten stop' if stats['profit_factor'] < 1.5 else 'Hold current stop'} — PF {stats['profit_factor']:.2f}",
         f"- {'Review every losing trade' if stats['win_rate'] < 0.5 else 'Review top 3 losses only'}",

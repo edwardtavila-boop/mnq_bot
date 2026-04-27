@@ -55,6 +55,7 @@ The full mutation catalog (`_FIELD_BOUNDS`, `_CLAUSE_TEMPLATES`) is its
 own decision — keep it small and deliberate. Each new template the agent
 can sample is part of its action space and should be intentional.
 """
+
 from __future__ import annotations
 
 from random import Random

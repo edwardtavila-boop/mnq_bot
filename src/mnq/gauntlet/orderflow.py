@@ -29,6 +29,7 @@ References:
   - Original: ``mnq_apex_bot/microstructure.py`` (feature layer)
   - Superpowers Module 9: ``dom_orderflow.md``
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -142,8 +143,9 @@ class OrderFlowTracker:
         # Imbalance estimate
         if self._has_live_data:
             total_depth = self._bid_depth + self._ask_depth
-            imbalance = ((self._bid_depth - self._ask_depth) / total_depth
-                         if total_depth > 0 else 0.0)
+            imbalance = (
+                (self._bid_depth - self._ask_depth) / total_depth if total_depth > 0 else 0.0
+            )
         else:
             # Proxy from bar: bullish close → positive imbalance
             bar_range = h - lo
@@ -227,9 +229,14 @@ def orderflow_from_bars(
     """
     if not bars:
         return OrderFlowSnapshot(
-            bar_delta=0.0, cvd=0.0, imbalance=0.0,
-            absorption_score=0.0, buy_aggressor_pct=0.5,
-            bid_depth=0.0, ask_depth=0.0, is_live=False,
+            bar_delta=0.0,
+            cvd=0.0,
+            imbalance=0.0,
+            absorption_score=0.0,
+            buy_aggressor_pct=0.5,
+            bid_depth=0.0,
+            ask_depth=0.0,
+            is_live=False,
         )
 
     if eval_bar_idx is None:
@@ -262,7 +269,7 @@ def depth_aware_slippage_ticks(
     if depth is None:
         # Fallback: simple qty/depth ratio
         ratio = qty / default_depth if default_depth > 0 else 0.0
-        return base_ticks + ratio ** 0.5
+        return base_ticks + ratio**0.5
 
     # Walk the book: accumulate size at each level until qty is filled
     book = depth.bids  # for a buy; for sell, use asks

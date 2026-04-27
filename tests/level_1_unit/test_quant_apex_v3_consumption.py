@@ -1,4 +1,4 @@
-﻿"""Quant agent fold-in of eta_v3_voices into probability estimate.
+"""Quant agent fold-in of eta_v3_voices into probability estimate.
 
 The adapter tested in ``test_eta_v3_adapter.py`` only shapes the dict.
 This test locks in the *consumption* side: given a payload that already
@@ -11,6 +11,7 @@ same path-injection pattern the bridge shim uses. When the_firm_complete
 isn't on disk (e.g., a clean CI clone), the whole module skips — the
 Apex V3 batch is explicitly fail-open on both ends.
 """
+
 from __future__ import annotations
 
 import os
@@ -59,6 +60,7 @@ from firm.agents.core import QuantAgent  # noqa: E402
 from firm.types import Verdict  # noqa: E402
 
 # ----- fixtures --------------------------------------------------------------
+
 
 def _clean_spec(**overrides) -> dict:
     """A spec that passes every rule-based gate in QuantAgent."""
@@ -110,6 +112,7 @@ def _build_input(spec: dict, voices: dict | None) -> AgentInput:
 
 # ----- no-op / backwards-compat ---------------------------------------------
 
+
 class TestNoApexVoices:
     def test_no_apex_key_is_exact_noop_on_probability(self):
         agent = QuantAgent()
@@ -153,6 +156,7 @@ class TestNoApexVoices:
 
 # ----- fold-in math ---------------------------------------------------------
 
+
 class TestApexFoldMath:
     def test_full_agreement_lifts_probability(self):
         agent = QuantAgent()
@@ -173,8 +177,7 @@ class TestApexFoldMath:
         out = agent.evaluate(
             _build_input(
                 _clean_spec(expected_expectancy_r=0.5),
-                _apex_voices(voice_agree=0, direction=0,
-                             fire_long=False, fire_short=False),
+                _apex_voices(voice_agree=0, direction=0, fire_long=False, fire_short=False),
             )
         )
         # base=0.7, signal=0.0, w=0.25 → 0.75*0.7 + 0.25*0.0 = 0.525
@@ -188,8 +191,9 @@ class TestApexFoldMath:
         out = agent.evaluate(
             _build_input(
                 _clean_spec(expected_expectancy_r=0.5),
-                _apex_voices(voice_agree=11, direction=1, fire_long=True,
-                             blocked_reason="vol_regime_veto"),
+                _apex_voices(
+                    voice_agree=11, direction=1, fire_long=True, blocked_reason="vol_regime_veto"
+                ),
             )
         )
         # base=0.7, signal=11/15≈0.7333, blended = 0.75*0.7 + 0.25*0.7333 = 0.7083
@@ -204,8 +208,7 @@ class TestApexFoldMath:
         out = agent.evaluate(
             _build_input(
                 _clean_spec(side="long", expected_expectancy_r=0.5),
-                _apex_voices(voice_agree=12, direction=-1,
-                             fire_long=False, fire_short=True),
+                _apex_voices(voice_agree=12, direction=-1, fire_long=False, fire_short=True),
             )
         )
         # base=0.7, signal=12/15=0.8 → blended 0.75*0.7 + 0.25*0.8 = 0.725
@@ -218,9 +221,13 @@ class TestApexFoldMath:
         out = agent.evaluate(
             _build_input(
                 _clean_spec(side="long", expected_expectancy_r=0.5),
-                _apex_voices(voice_agree=6, direction=-1,
-                             fire_long=False, fire_short=False,
-                             blocked_reason="regime_veto"),
+                _apex_voices(
+                    voice_agree=6,
+                    direction=-1,
+                    fire_long=False,
+                    fire_short=False,
+                    blocked_reason="regime_veto",
+                ),
             )
         )
         # base=0.7, signal=6/15=0.4 → blended 0.75*0.7 + 0.25*0.4 = 0.625
@@ -235,9 +242,13 @@ class TestApexFoldMath:
         out = agent.evaluate(
             _build_input(
                 bad_spec,
-                _apex_voices(voice_agree=0, direction=-1,
-                             fire_long=False, fire_short=False,
-                             blocked_reason="regime_veto"),
+                _apex_voices(
+                    voice_agree=0,
+                    direction=-1,
+                    fire_long=False,
+                    fire_short=False,
+                    blocked_reason="regime_veto",
+                ),
             )
         )
         # base=0.2, signal=0.0 → blended 0.15, penalty=0.15 → 0.0 (clip)
@@ -263,15 +274,14 @@ class TestApexFoldMath:
 
     def test_summary_direction_label_map(self):
         agent = QuantAgent()
-        out_long = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(direction=1))
-        )
+        out_long = agent.evaluate(_build_input(_clean_spec(), _apex_voices(direction=1)))
         out_flat = agent.evaluate(
             _build_input(_clean_spec(), _apex_voices(direction=0, fire_long=False))
         )
         out_short = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(direction=-1, fire_long=False,
-                                                      fire_short=True))
+            _build_input(
+                _clean_spec(), _apex_voices(direction=-1, fire_long=False, fire_short=True)
+            )
         )
         assert out_long.payload["eta_v3"]["direction_label"] == "LONG"
         assert out_flat.payload["eta_v3"]["direction_label"] == "FLAT"
@@ -280,12 +290,12 @@ class TestApexFoldMath:
 
 # ----- reasoning + drivers ---------------------------------------------------
 
+
 class TestApexReasoningTrail:
     def test_reasoning_suffix_includes_voice_count(self):
         agent = QuantAgent()
         out = agent.evaluate(
-            _build_input(_clean_spec(),
-                         _apex_voices(voice_agree=11, regime="TREND"))
+            _build_input(_clean_spec(), _apex_voices(voice_agree=11, regime="TREND"))
         )
         assert "Apex V3 corroboration" in out.reasoning
         assert "11/15" in out.reasoning
@@ -298,9 +308,7 @@ class TestApexReasoningTrail:
 
     def test_tertiary_driver_reflects_apex_when_consumed(self):
         agent = QuantAgent()
-        out = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(voice_agree=13))
-        )
+        out = agent.evaluate(_build_input(_clean_spec(), _apex_voices(voice_agree=13)))
         assert out.tertiary_driver.startswith("eta_v3")
         assert "13/15" in out.tertiary_driver
 
@@ -312,36 +320,27 @@ class TestApexReasoningTrail:
 
 # ----- malformed input tolerance --------------------------------------------
 
+
 class TestMalformedApexVoices:
     def test_string_voice_agree_treated_as_zero(self):
         agent = QuantAgent()
-        out = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(voice_agree="not-an-int"))
-        )
+        out = agent.evaluate(_build_input(_clean_spec(), _apex_voices(voice_agree="not-an-int")))
         assert out.payload["eta_v3"]["voice_agree"] == 0
 
     def test_out_of_range_voice_agree_clamped(self):
         agent = QuantAgent()
-        out_high = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(voice_agree=99))
-        )
-        out_low = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(voice_agree=-5))
-        )
+        out_high = agent.evaluate(_build_input(_clean_spec(), _apex_voices(voice_agree=99)))
+        out_low = agent.evaluate(_build_input(_clean_spec(), _apex_voices(voice_agree=-5)))
         assert out_high.payload["eta_v3"]["voice_agree"] == 15
         assert out_low.payload["eta_v3"]["voice_agree"] == 0
 
     def test_non_int_direction_defaults_to_zero(self):
         agent = QuantAgent()
-        out = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(direction="who-knows"))
-        )
+        out = agent.evaluate(_build_input(_clean_spec(), _apex_voices(direction="who-knows")))
         assert out.payload["eta_v3"]["direction"] == 0
 
     def test_none_blocked_reason_is_empty_string(self):
         agent = QuantAgent()
-        out = agent.evaluate(
-            _build_input(_clean_spec(), _apex_voices(blocked_reason=None))
-        )
+        out = agent.evaluate(_build_input(_clean_spec(), _apex_voices(blocked_reason=None)))
         assert out.payload["eta_v3"]["blocked_reason"] == ""
         assert out.payload["eta_v3"]["penalty_applied"] == 0.0

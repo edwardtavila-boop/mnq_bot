@@ -24,6 +24,7 @@ Usage:
     python scripts/firm_vs_baseline.py --filtered t16_r5_long_only
     python scripts/firm_vs_baseline.py --baseline v1_replica --n-boot 5000
 """
+
 from __future__ import annotations
 
 import argparse
@@ -52,9 +53,9 @@ DEFAULT_OUTPUT = REPO_ROOT / "reports" / "firm_vs_baseline.md"
 VARIANTS = {cfg.name: cfg for cfg in _VARIANT_LIST}
 
 
-def _synthetic_day_apex_pm_output(day_index: int, day_key: str | None = None,
-                                    *, base_probability: float = 0.6,
-                                    seed: int = 42) -> dict:
+def _synthetic_day_apex_pm_output(
+    day_index: int, day_key: str | None = None, *, base_probability: float = 0.6, seed: int = 42
+) -> dict:
     """Deterministic per-day PM output carrying an Apex V3 summary.
 
     The real 6-stage shim is pure overhead here — the gate only reads
@@ -77,9 +78,9 @@ def _synthetic_day_apex_pm_output(day_index: int, day_key: str | None = None,
     key = day_key if day_key is not None else f"day_{day_index}"
     h = hashlib.sha256(f"{seed}::{key}".encode()).hexdigest()
     # Three independent draws from the hash (8 hex chars each)
-    u1 = int(h[0:8], 16) / 0xFFFFFFFF     # voice_agree
-    u2 = int(h[8:16], 16) / 0xFFFFFFFF    # pm_final
-    u3 = int(h[16:24], 16) / 0xFFFFFFFF   # direction conflict
+    u1 = int(h[0:8], 16) / 0xFFFFFFFF  # voice_agree
+    u2 = int(h[8:16], 16) / 0xFFFFFFFF  # pm_final
+    u3 = int(h[16:24], 16) / 0xFFFFFFFF  # direction conflict
 
     # voice_agree in 0..15, biased toward middle
     # Triangular-ish distribution: avg of two uniforms → triangular [0,1]
@@ -147,9 +148,7 @@ def _apply_apex_gate_to_day_pnls(
         if day_bars is None:
             raise ValueError("apex_source='real' requires day_bars")
         if len(day_bars) != len(day_pnls):
-            raise ValueError(
-                f"day_bars has {len(day_bars)} days, day_pnls has {len(day_pnls)}"
-            )
+            raise ValueError(f"day_bars has {len(day_bars)} days, day_pnls has {len(day_pnls)}")
         # Import here so synthetic-path callers don't pay the eta_v3_framework
         # import cost (it pulls in numpy, etc. via indicator_state).
         from real_eta_driver import day_pm_output_from_real_apex
@@ -239,9 +238,7 @@ def compare(
             day_bars=day_bars_only,
         )
 
-    total_diff, lo, hi = _paired_daily_lift_ci(
-        filtered_day_pnls, baseline_day_pnls, n_boot=n_boot
-    )
+    total_diff, lo, hi = _paired_daily_lift_ci(filtered_day_pnls, baseline_day_pnls, n_boot=n_boot)
     return {
         "filtered_name": filtered_name,
         "baseline_name": baseline_name,
@@ -265,7 +262,9 @@ def _verdict(ci_lo: float, ci_hi: float, total_diff: float) -> str:
     if ci_lo > 0:
         return "**FIRM FILTER JUSTIFIED** — lift CI strictly positive."
     if ci_hi < 0:
-        return "**FIRM FILTER HARMFUL** — lift CI strictly negative; review each gauntlet component."
+        return (
+            "**FIRM FILTER HARMFUL** — lift CI strictly negative; review each gauntlet component."
+        )
     # CI crosses zero
     direction = "positive" if total_diff > 0 else "negative"
     return (
@@ -384,8 +383,8 @@ def main(argv: list[str] | None = None) -> int:
         "--with-apex-gate",
         action="store_true",
         help="Apply the Apex V3 downstream gate (src/mnq/eta_v3/gate.py) "
-             "to the filtered variant's per-day PnLs. A deterministic per-day "
-             "Apex snapshot is synthesized and routed through apex_gate().",
+        "to the filtered variant's per-day PnLs. A deterministic per-day "
+        "Apex snapshot is synthesized and routed through apex_gate().",
     )
     parser.add_argument(
         "--apex-seed",
@@ -399,8 +398,8 @@ def main(argv: list[str] | None = None) -> int:
         choices=("synthetic", "real"),
         default="synthetic",
         help="Apex snapshot source: 'synthetic' (deterministic hash, "
-             "backwards-compat default) or 'real' (per-day "
-             "firm_engine.evaluate() over real bar sequences — Batch 3F).",
+        "backwards-compat default) or 'real' (per-day "
+        "firm_engine.evaluate() over real bar sequences — Batch 3F).",
     )
     parser.add_argument(
         "--data-source",
@@ -408,15 +407,15 @@ def main(argv: list[str] | None = None) -> int:
         choices=("rth_csv", "databento"),
         default="rth_csv",
         help="Real-bar source: 'rth_csv' (~15 session-tagged days, default) "
-             "or 'databento' (multi-year 1m tape, Batch 3G — use "
-             "--days-tail to cap recent window).",
+        "or 'databento' (multi-year 1m tape, Batch 3G — use "
+        "--days-tail to cap recent window).",
     )
     parser.add_argument(
         "--days-tail",
         type=int,
         default=None,
         help="When --data-source=databento, keep only the last N "
-             "RTH-complete days. Default: all eligible days.",
+        "RTH-complete days. Default: all eligible days.",
     )
     args = parser.parse_args(argv)
 

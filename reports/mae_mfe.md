@@ -1,4 +1,4 @@
-# MAE / MFE Distribution · 2026-04-17 01:39:39 UTC
+# MAE / MFE Distribution · 2026-04-26 14:25:58 UTC
 
 - trades: **37** · winners: 26
 - mean MAE: **$2.30** / mean MFE: **$5.05**

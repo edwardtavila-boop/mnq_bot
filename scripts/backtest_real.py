@@ -18,6 +18,7 @@ Usage:
     python scripts/backtest_real.py --variants r5_real_wide_target t16_r5_long_only
     python scripts/backtest_real.py --max-days 200
 """
+
 from __future__ import annotations
 
 import argparse
@@ -186,21 +187,23 @@ def _backtest_variant_day(
         pnl_ticks = float(pnl_raw / TICK)
         pnl_dollars = float(pnl_raw * POINT_VALUE)
 
-        trades.append(Trade(
-            variant=cfg.name,
-            day_date=day_date,
-            side="long" if sig.side is Side.LONG else "short",
-            entry_bar_ix=bar_ix,
-            exit_bar_ix=exit_ix,
-            entry_price=sig.ref_price,
-            exit_price=exit_px,
-            stop=sig.stop,
-            take_profit=sig.take_profit,
-            exit_reason=exit_reason,
-            pnl_ticks=pnl_ticks,
-            pnl_dollars=pnl_dollars,
-            bars_held=exit_ix - bar_ix,
-        ))
+        trades.append(
+            Trade(
+                variant=cfg.name,
+                day_date=day_date,
+                side="long" if sig.side is Side.LONG else "short",
+                entry_bar_ix=bar_ix,
+                exit_bar_ix=exit_ix,
+                entry_price=sig.ref_price,
+                exit_price=exit_px,
+                stop=sig.stop,
+                take_profit=sig.take_profit,
+                exit_reason=exit_reason,
+                pnl_ticks=pnl_ticks,
+                pnl_dollars=pnl_dollars,
+                bars_held=exit_ix - bar_ix,
+            )
+        )
 
         # Report outcome and advance past exit
         strat.report_trade_outcome(pnl_dollars=Decimal(str(pnl_dollars)))
@@ -268,7 +271,9 @@ def _build_spec():
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Real-tape V2 backtest")
-    parser.add_argument("--variants", nargs="*", help="Variant names to test (default: all real-data variants)")
+    parser.add_argument(
+        "--variants", nargs="*", help="Variant names to test (default: all real-data variants)"
+    )
     parser.add_argument("--max-days", type=int, default=0, help="Limit to last N days (0=all)")
     parser.add_argument("--timeframe", choices=["1m", "5m"], default="1m")
     args = parser.parse_args()
@@ -305,7 +310,9 @@ def main() -> None:
             continue
         dropped_bars += len(day_bars) - len(scrubbed)
         clean_days.append(scrubbed)
-    print(f"  {len(clean_days)} clean days ({dropped_days} dropped, {dropped_bars} bad bars removed)")
+    print(
+        f"  {len(clean_days)} clean days ({dropped_days} dropped, {dropped_bars} bad bars removed)"
+    )
 
     spec = _build_spec()
     all_stats: list[VariantStats] = []
@@ -369,7 +376,7 @@ def main() -> None:
         if len(vs.daily_pnls) > 1:
             mu = statistics.mean(vs.daily_pnls)
             sd = statistics.stdev(vs.daily_pnls)
-            sharpe = (mu / sd * (252 ** 0.5)) if sd > 0 else 0.0
+            sharpe = (mu / sd * (252**0.5)) if sd > 0 else 0.0
         else:
             sharpe = 0.0
         lines.append(
@@ -405,7 +412,9 @@ def main() -> None:
     print("\nWrote reports/backtest_real.md")
 
     # 2. Trade log CSV
-    csv_lines = ["variant,date,side,entry_ix,exit_ix,entry_px,exit_px,stop,tp,exit_reason,pnl_ticks,pnl_dollars,bars_held"]
+    csv_lines = [
+        "variant,date,side,entry_ix,exit_ix,entry_px,exit_px,stop,tp,exit_reason,pnl_ticks,pnl_dollars,bars_held"
+    ]
     for vs in all_stats:
         for t in vs.trades:
             csv_lines.append(

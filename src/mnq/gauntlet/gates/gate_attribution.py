@@ -17,6 +17,7 @@ See the module-level docstring in the [CONTRACT] version (below) for
 failure-message semantics. That wording is preserved verbatim in the
 `failure_reason` strings so ops tooling can pattern-match on it.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -68,7 +69,9 @@ def _bench_returns(kind: str, trades: Any, bars: Any) -> np.ndarray:
 
 
 def _median_nan_safe(vals: list[float]) -> float:
-    arr = np.asarray([v for v in vals if not (isinstance(v, float) and np.isnan(v))], dtype=np.float64)
+    arr = np.asarray(
+        [v for v in vals if not (isinstance(v, float) and np.isnan(v))], dtype=np.float64
+    )
     if len(arr) == 0:
         return float("nan")
     return float(np.median(arr))
@@ -107,8 +110,7 @@ def run_gate_13(cpcv_results: list[Any], dataset: Any) -> GateResult:
 
     # Aggregate pass/fail per benchmark.
     per_pass = {
-        b: (v["alpha"] > 0.0 and v["t_stat"] > _ALPHA_T_THRESHOLD)
-        for b, v in per_bench.items()
+        b: (v["alpha"] > 0.0 and v["t_stat"] > _ALPHA_T_THRESHOLD) for b, v in per_bench.items()
     }
     passed = all(per_pass.values())
 
@@ -120,8 +122,7 @@ def run_gate_13(cpcv_results: list[Any], dataset: Any) -> GateResult:
         naive_ok = per_pass["naive_momentum"]
         if cash_ok and not mnq_ok:
             parts.append(
-                "alpha against cash significant but not against MNQ-intraday "
-                "-> likely closet beta"
+                "alpha against cash significant but not against MNQ-intraday -> likely closet beta"
             )
         if mnq_ok and not naive_ok:
             parts.append(

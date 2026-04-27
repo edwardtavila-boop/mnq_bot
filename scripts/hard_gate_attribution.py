@@ -7,6 +7,7 @@ need recalibration.
 
 Output: ``reports/hard_gate_attribution.md``
 """
+
 from __future__ import annotations
 
 import sys
@@ -81,17 +82,19 @@ def main() -> int:
 
         day_pnl = sum(float(tr.pnl_dollars) for tr in ledger.trades)
 
-        attributions.append(DayAttribution(
-            day_idx=i,
-            regime=regime,
-            pass_rate=g.pass_rate,
-            n_passed=g.n_passed,
-            n_failed=g.n_failed,
-            failed_gates=g.failed_gates,
-            pnl=round(day_pnl, 2),
-            n_trades=ledger.n_trades,
-            gate_action=dec["action"],
-        ))
+        attributions.append(
+            DayAttribution(
+                day_idx=i,
+                regime=regime,
+                pass_rate=g.pass_rate,
+                n_passed=g.n_passed,
+                n_failed=g.n_failed,
+                failed_gates=g.failed_gates,
+                pnl=round(day_pnl, 2),
+                n_trades=ledger.n_trades,
+                gate_action=dec["action"],
+            )
+        )
 
     # Analysis
     full_days = [a for a in attributions if a.gate_action == "full"]
@@ -161,30 +164,36 @@ def main() -> int:
             )
         lines.append("")
 
-    lines.extend([
-        "## Pass-rate distribution",
-        "",
-        "| Bucket | Days |",
-        "|---|---:|",
-    ])
+    lines.extend(
+        [
+            "## Pass-rate distribution",
+            "",
+            "| Bucket | Days |",
+            "|---|---:|",
+        ]
+    )
     for bucket, count in pr_buckets.items():
         lines.append(f"| {bucket} | {count} |")
 
-    lines.extend([
-        "",
-        "## Gate failure frequency (all days)",
-        "",
-        "| Gate | Failures | Rate |",
-        "|---|---:|---:|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Gate failure frequency (all days)",
+            "",
+            "| Gate | Failures | Rate |",
+            "|---|---:|---:|",
+        ]
+    )
     for gate, count in sorted(gate_fail_counts.items(), key=lambda x: -x[1]):
         lines.append(f"| {gate} | {count} | {count / len(attributions):.1%} |")
 
-    lines.extend([
-        "",
-        "## Interpretation",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Interpretation",
+            "",
+        ]
+    )
     if skipped_losers > skipped_winners:
         lines.append(
             f"The hard-gate blocks more losers ({skipped_losers}) than winners "

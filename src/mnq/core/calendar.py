@@ -3,6 +3,7 @@
 Uses pandas_market_calendars under the hood for holiday data, but provides
 a stable, typed interface for executor / blackout code without pandas types.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,18 +19,20 @@ class SessionWindow:
     """A trading session window (RTH, ETH, pre_open, post_close)."""
 
     start: datetime  # UTC
-    end: datetime    # UTC
-    kind: str        # "RTH" | "ETH" | "pre_open" | "post_close"
+    end: datetime  # UTC
+    kind: str  # "RTH" | "ETH" | "pre_open" | "post_close"
     is_half_day: bool
 
 
 # CME equity-index half-days. Christmas Eve, day after Thanksgiving, July 4, etc.
-_HALF_DAYS: Final[frozenset[tuple[int, int]]] = frozenset([
-    (12, 23),  # Dec 23 (Christmas Eve if it's a weekday)
-    (11, 27),  # day after Thanksgiving
-    (7, 4),    # July 4
-    (7, 5),    # day after July 4 if July 4 is Fri or weekday
-])
+_HALF_DAYS: Final[frozenset[tuple[int, int]]] = frozenset(
+    [
+        (12, 23),  # Dec 23 (Christmas Eve if it's a weekday)
+        (11, 27),  # day after Thanksgiving
+        (7, 4),  # July 4
+        (7, 5),  # day after July 4 if July 4 is Fri or weekday
+    ]
+)
 
 
 class CMEFuturesCalendar:
@@ -218,7 +221,7 @@ class CMEFuturesCalendar:
         """
         # Parse month code from contract
         month_code = contract[-3]  # e.g., 'H' from 'NQH26'
-        month_map = {'H': 3, 'M': 6, 'U': 9, 'Z': 12}
+        month_map = {"H": 3, "M": 6, "U": 9, "Z": 12}
         if month_code not in month_map:
             raise ValueError(f"Invalid month code '{month_code}' in contract '{contract}'")
 

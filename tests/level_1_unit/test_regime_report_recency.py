@@ -8,6 +8,7 @@ Pin the contract:
   * drift cell is STEADY / FADING (delta) / GROWING (delta) / "-"
   * _build_rows includes recency_weighted_expectancy_r in each row
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -24,7 +25,8 @@ SCRIPT = REPO_ROOT / "scripts" / "regime_report.py"
 @pytest.fixture(scope="module")
 def report_mod():
     spec = importlib.util.spec_from_file_location(
-        "regime_report_recency_test", SCRIPT,
+        "regime_report_recency_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -45,45 +47,51 @@ def test_markdown_header_includes_recency_and_drift(report_mod) -> None:
 
 
 def test_steady_row_shows_steady_label(report_mod) -> None:
-    rows = [{
-        "variant": "v_steady",
-        "sample_size": 30,
-        "expected_expectancy_r": 0.10,
-        "recency_weighted_expectancy_r": 0.105,  # delta +0.005R
-        "regimes_approved": [],
-        "regime_expectancy": {},
-        "provenance": ["cached_backtest"],
-    }]
+    rows = [
+        {
+            "variant": "v_steady",
+            "sample_size": 30,
+            "expected_expectancy_r": 0.10,
+            "recency_weighted_expectancy_r": 0.105,  # delta +0.005R
+            "regimes_approved": [],
+            "regime_expectancy": {},
+            "provenance": ["cached_backtest"],
+        }
+    ]
     md = report_mod._render_markdown(rows)
     assert "v_steady" in md
     assert "STEADY" in md
 
 
 def test_fading_row_shows_fading_label_and_delta(report_mod) -> None:
-    rows = [{
-        "variant": "v_fade",
-        "sample_size": 30,
-        "expected_expectancy_r": 0.50,
-        "recency_weighted_expectancy_r": 0.10,  # delta -0.4R
-        "regimes_approved": [],
-        "regime_expectancy": {},
-        "provenance": ["cached_backtest"],
-    }]
+    rows = [
+        {
+            "variant": "v_fade",
+            "sample_size": 30,
+            "expected_expectancy_r": 0.50,
+            "recency_weighted_expectancy_r": 0.10,  # delta -0.4R
+            "regimes_approved": [],
+            "regime_expectancy": {},
+            "provenance": ["cached_backtest"],
+        }
+    ]
     md = report_mod._render_markdown(rows)
     assert "FADING" in md
     assert "-0.400R" in md
 
 
 def test_growing_row_shows_growing_label_and_delta(report_mod) -> None:
-    rows = [{
-        "variant": "v_grow",
-        "sample_size": 30,
-        "expected_expectancy_r": 0.10,
-        "recency_weighted_expectancy_r": 0.50,  # delta +0.4R
-        "regimes_approved": [],
-        "regime_expectancy": {},
-        "provenance": ["cached_backtest"],
-    }]
+    rows = [
+        {
+            "variant": "v_grow",
+            "sample_size": 30,
+            "expected_expectancy_r": 0.10,
+            "recency_weighted_expectancy_r": 0.50,  # delta +0.4R
+            "regimes_approved": [],
+            "regime_expectancy": {},
+            "provenance": ["cached_backtest"],
+        }
+    ]
     md = report_mod._render_markdown(rows)
     assert "GROWING" in md
     assert "+0.400R" in md
@@ -91,15 +99,17 @@ def test_growing_row_shows_growing_label_and_delta(report_mod) -> None:
 
 def test_no_recency_renders_dashes(report_mod) -> None:
     """recency_weighted_expectancy_r=None -> both cells are '-'."""
-    rows = [{
-        "variant": "v_no_recency",
-        "sample_size": 0,
-        "expected_expectancy_r": 0.0,
-        "recency_weighted_expectancy_r": None,
-        "regimes_approved": [],
-        "regime_expectancy": {},
-        "provenance": ["stub"],
-    }]
+    rows = [
+        {
+            "variant": "v_no_recency",
+            "sample_size": 0,
+            "expected_expectancy_r": 0.0,
+            "recency_weighted_expectancy_r": None,
+            "regimes_approved": [],
+            "regime_expectancy": {},
+            "provenance": ["stub"],
+        }
+    ]
     md = report_mod._render_markdown(rows)
     # Find the data row (skip header rows). The drift cell should be "-".
     # Easier: assert the FADING/GROWING/STEADY tokens are absent.
@@ -110,15 +120,17 @@ def test_no_recency_renders_dashes(report_mod) -> None:
 
 def test_recency_cell_is_signed_3dp_with_R_suffix(report_mod) -> None:
     """E_recency cell renders as `+0.123R` (matches E_total format)."""
-    rows = [{
-        "variant": "v",
-        "sample_size": 30,
-        "expected_expectancy_r": 0.100,
-        "recency_weighted_expectancy_r": 0.123,
-        "regimes_approved": [],
-        "regime_expectancy": {},
-        "provenance": ["cached_backtest"],
-    }]
+    rows = [
+        {
+            "variant": "v",
+            "sample_size": 30,
+            "expected_expectancy_r": 0.100,
+            "recency_weighted_expectancy_r": 0.123,
+            "regimes_approved": [],
+            "regime_expectancy": {},
+            "provenance": ["cached_backtest"],
+        }
+    ]
     md = report_mod._render_markdown(rows)
     assert "+0.123R" in md
     assert "+0.100R" in md
@@ -148,7 +160,8 @@ def test_build_rows_recency_is_float_for_calibrated_variant(
     if "cached_backtest" in rows[0]["provenance"]:
         assert rows[0]["recency_weighted_expectancy_r"] is not None
         assert isinstance(
-            rows[0]["recency_weighted_expectancy_r"], float,
+            rows[0]["recency_weighted_expectancy_r"],
+            float,
         )
 
 
@@ -160,11 +173,15 @@ def test_build_rows_recency_is_float_for_calibrated_variant(
 def test_main_json_includes_recency(report_mod, capsys, tmp_path: Path) -> None:
     """--json output includes the recency field per variant."""
     output = tmp_path / "out.md"
-    report_mod.main([
-        "--variants", "r5_real_wide_target",
-        "--output", str(output),
-        "--json",
-    ])
+    report_mod.main(
+        [
+            "--variants",
+            "r5_real_wide_target",
+            "--output",
+            str(output),
+            "--json",
+        ]
+    )
     parsed = json.loads(capsys.readouterr().out)
     assert parsed["variants"]
     v = parsed["variants"][0]

@@ -19,8 +19,6 @@ Usage:
 
 import argparse
 import csv
-import statistics
-from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -39,7 +37,7 @@ def stage_stats(trades, label):
     """Compute summary stats for a trade list."""
     if not trades:
         return {"label": label, "n": 0}
-    pnls = [float(t['pnl_r']) for t in trades]
+    pnls = [float(t["pnl_r"]) for t in trades]
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p < 0]
     bes = [p for p in pnls if p == 0]
@@ -72,19 +70,19 @@ def stage_stats(trades, label):
 
 def apply_dow_filter(trades, allowed=("Thu", "Fri")):
     """R1: Day of week filter."""
-    return [t for t in trades if t['dow'] in allowed]
+    return [t for t in trades if t["dow"] in allowed]
 
 
 def apply_tod_filter(trades, blocked=("open_30min", "premarket", "after_hours", "weekend")):
     """R2: Time of day filter."""
-    return [t for t in trades if t['tod_bucket'] not in blocked]
+    return [t for t in trades if t["tod_bucket"] not in blocked]
 
 
 def apply_regime_filter(trades):
     """R3: ORB only in RISK-ON, EMA PB any regime, SWEEP any regime."""
     out = []
     for t in trades:
-        if t['setup'] == 'ORB' and t['regime'] != 'RISK-ON':
+        if t["setup"] == "ORB" and t["regime"] != "RISK-ON":
             continue
         out.append(t)
     return out
@@ -96,12 +94,12 @@ def apply_partial_take(trades, partial_R=0.5):
     out = []
     for t in trades:
         new_t = dict(t)
-        outcome = t['outcome']
-        if outcome.startswith('expired'):
-            mfe = float(t.get('mfe_R', 0))
+        outcome = t["outcome"]
+        if outcome.startswith("expired"):
+            mfe = float(t.get("mfe_R", 0))
             if mfe >= partial_R:
-                new_t['pnl_r'] = str(partial_R)
-                new_t['outcome'] = f'partial_take_{partial_R}R'
+                new_t["pnl_r"] = str(partial_R)
+                new_t["outcome"] = f"partial_take_{partial_R}R"
         out.append(new_t)
     return out
 
@@ -112,14 +110,14 @@ def apply_voice_signature_filter(trades):
     Other setups untouched."""
     out = []
     for t in trades:
-        if t['setup'] == 'ORB':
-            v15 = float(t.get('v15', 0))
-            side = t['side']
+        if t["setup"] == "ORB":
+            v15 = float(t.get("v15", 0))
+            side = t["side"]
             # Allow if v15 confirms direction OR if v6 (HTF) strongly confirms
-            v6 = float(t.get('v6', 0))
-            if side == 'long' and not (v15 >= 20 or v6 >= 30):
+            v6 = float(t.get("v6", 0))
+            if side == "long" and not (v15 >= 20 or v6 >= 30):
                 continue
-            if side == 'short' and not (v15 <= -20 or v6 <= -30):
+            if side == "short" and not (v15 <= -20 or v6 <= -30):
                 continue
         out.append(t)
     return out
@@ -153,41 +151,61 @@ def main():
     stages.append(stage_stats(s5, "S5: + Voice signature filter (v15/v6 for ORB)"))
 
     # Print stages table
-    print(f"{'Stage':<55s} {'n':>4s} {'Win%':>5s} {'Strike':>7s} {'TotR':>7s} {'AvgR':>8s} {'PF':>5s} {'MDD':>5s}")
+    print(
+        f"{'Stage':<55s} {'n':>4s} {'Win%':>5s} {'Strike':>7s} {'TotR':>7s} {'AvgR':>8s} {'PF':>5s} {'MDD':>5s}"
+    )
     print("─" * 105)
-    baseline_r = stages[0]['total_r']
+    baseline_r = stages[0]["total_r"]
     for s in stages:
-        if s['n'] == 0:
+        if s["n"] == 0:
             print(f"{s['label']:<55s} {0:>4d}  no trades")
             continue
-        delta = s['total_r'] - baseline_r if s != stages[0] else 0
+        delta = s["total_r"] - baseline_r if s != stages[0] else 0
         delta_str = f"({delta:+.2f})" if delta != 0 else ""
-        print(f"{s['label']:<55s} {s['n']:>4d} {s['win_rate']:>4.1f}% {s['strike']:>6.1f}% "
-              f"{s['total_r']:>+6.2f}{delta_str:>9s} {s['avg_r']:>+8.4f} {str(s['pf']):>5s} {s['max_dd']:>5.2f}")
+        print(
+            f"{s['label']:<55s} {s['n']:>4d} {s['win_rate']:>4.1f}% {s['strike']:>6.1f}% "
+            f"{s['total_r']:>+6.2f}{delta_str:>9s} {s['avg_r']:>+8.4f} {str(s['pf']):>5s} {s['max_dd']:>5.2f}"
+        )
 
     # Final summary
     final = stages[-1]
     baseline = stages[0]
-    print(f"\n{'─'*105}")
-    print(f"V2 PROJECTED PERFORMANCE")
-    print(f"{'─'*105}")
-    print(f"  Trade count:   {baseline['n']:>4d} → {final['n']:>4d}  ({(final['n']-baseline['n'])/baseline['n']*100:+.0f}%)")
-    print(f"  Win rate:      {baseline['win_rate']:>4.1f}% → {final['win_rate']:>4.1f}%  ({final['win_rate']-baseline['win_rate']:+.1f} pts)")
-    print(f"  Strike rate:   {baseline['strike']:>4.1f}% → {final['strike']:>4.1f}%  ({final['strike']-baseline['strike']:+.1f} pts)")
-    print(f"  Total R:       {baseline['total_r']:>+5.2f} → {final['total_r']:>+5.2f}  ({final['total_r']-baseline['total_r']:+.2f}R)")
-    print(f"  Avg R/trade:   {baseline['avg_r']:>+5.4f} → {final['avg_r']:>+5.4f}  ({(final['avg_r']-baseline['avg_r']):+.4f})")
+    print(f"\n{'─' * 105}")
+    print("V2 PROJECTED PERFORMANCE")
+    print(f"{'─' * 105}")
+    print(
+        f"  Trade count:   {baseline['n']:>4d} → {final['n']:>4d}  ({(final['n'] - baseline['n']) / baseline['n'] * 100:+.0f}%)"
+    )
+    print(
+        f"  Win rate:      {baseline['win_rate']:>4.1f}% → {final['win_rate']:>4.1f}%  ({final['win_rate'] - baseline['win_rate']:+.1f} pts)"
+    )
+    print(
+        f"  Strike rate:   {baseline['strike']:>4.1f}% → {final['strike']:>4.1f}%  ({final['strike'] - baseline['strike']:+.1f} pts)"
+    )
+    print(
+        f"  Total R:       {baseline['total_r']:>+5.2f} → {final['total_r']:>+5.2f}  ({final['total_r'] - baseline['total_r']:+.2f}R)"
+    )
+    print(
+        f"  Avg R/trade:   {baseline['avg_r']:>+5.4f} → {final['avg_r']:>+5.4f}  ({(final['avg_r'] - baseline['avg_r']):+.4f})"
+    )
     print(f"  Profit factor: {baseline['pf']} → {final['pf']}")
     print(f"  Max DD:        {baseline['max_dd']:>4.2f}R → {final['max_dd']:>4.2f}R")
 
     # Verdict
-    print(f"\n{'─'*105}")
-    print(f"VERDICT")
-    print(f"{'─'*105}")
+    print(f"\n{'─' * 105}")
+    print("VERDICT")
+    print(f"{'─' * 105}")
     pf_target = 1.5
-    pf_pass = final['pf'] != 'inf' and float(final['pf']) >= pf_target if final['pf'] != 'inf' else True
+    pf_pass = (
+        final["pf"] != "inf" and float(final["pf"]) >= pf_target if final["pf"] != "inf" else True
+    )
     print(f"  ✓ PF >= {pf_target}:        {'PASS' if pf_pass else 'FAIL'}  ({final['pf']})")
-    print(f"  ✓ Total R > +5R:    {'PASS' if final['total_r'] > 5 else 'FAIL'}  ({final['total_r']:+.2f}R)")
-    print(f"  ✓ MDD <= 2.0R:      {'PASS' if final['max_dd'] <= 2.0 else 'FAIL'}  ({final['max_dd']:.2f}R)")
+    print(
+        f"  ✓ Total R > +5R:    {'PASS' if final['total_r'] > 5 else 'FAIL'}  ({final['total_r']:+.2f}R)"
+    )
+    print(
+        f"  ✓ MDD <= 2.0R:      {'PASS' if final['max_dd'] <= 2.0 else 'FAIL'}  ({final['max_dd']:.2f}R)"
+    )
     print(f"  ✓ Sample n >= 50:   {'PASS' if final['n'] >= 50 else 'FAIL'}  ({final['n']})")
 
 

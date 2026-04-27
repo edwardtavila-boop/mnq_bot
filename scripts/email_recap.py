@@ -11,6 +11,7 @@ Usage:
     python scripts/email_recap.py           # dry-run: prints HTML
     python scripts/email_recap.py --send    # actually send
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,15 +34,15 @@ def _build_html(trades, stats) -> str:
     header = f"""
     <div style="font-family:-apple-system,Segoe UI,sans-serif;background:#0a0e14;color:#d4d4d4;padding:32px;border-radius:8px;max-width:720px;margin:auto">
       <h1 style="color:#50fa7b;font-weight:300;margin:0 0 8px 0">The Firm · Daily Recap</h1>
-      <div style="color:#888;font-size:13px;margin-bottom:24px">{datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}</div>
+      <div style="color:#888;font-size:13px;margin-bottom:24px">{datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")}</div>
     """
     kpis = f"""
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
         <tr>
-          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">Trades</div><div style="font-size:22px;color:#d4d4d4;font-family:monospace">{stats['n']}</div></td>
-          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">Win rate</div><div style="font-size:22px;color:#50fa7b;font-family:monospace">{stats['win_rate']:.1%}</div></td>
-          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">PF</div><div style="font-size:22px;color:#d4d4d4;font-family:monospace">{stats['profit_factor']:.2f}</div></td>
-          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">PnL</div><div style="font-size:22px;color:{'#50fa7b' if stats['total_pnl'] >= 0 else '#ff5555'};font-family:monospace">${stats['total_pnl']:+.2f}</div></td>
+          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">Trades</div><div style="font-size:22px;color:#d4d4d4;font-family:monospace">{stats["n"]}</div></td>
+          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">Win rate</div><div style="font-size:22px;color:#50fa7b;font-family:monospace">{stats["win_rate"]:.1%}</div></td>
+          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">PF</div><div style="font-size:22px;color:#d4d4d4;font-family:monospace">{stats["profit_factor"]:.2f}</div></td>
+          <td style="padding:12px;border:1px solid #222;width:25%"><div style="color:#888;font-size:11px;text-transform:uppercase">PnL</div><div style="font-size:22px;color:{"#50fa7b" if stats["total_pnl"] >= 0 else "#ff5555"};font-family:monospace">${stats["total_pnl"]:+.2f}</div></td>
         </tr>
       </table>
     """
@@ -88,10 +89,14 @@ def main() -> int:
 
     trades = load_trades()
     stats = summary_stats(trades)
-    html = _build_html(trades[-30:], stats) if trades else (
-        '<p style="font-family:monospace">No trades in journal.</p>'
+    html = (
+        _build_html(trades[-30:], stats)
+        if trades
+        else ('<p style="font-family:monospace">No trades in journal.</p>')
     )
-    subject = args.subject or f"[The Firm] Daily recap · {stats['n']} trades · ${stats['total_pnl']:+.2f}"
+    subject = (
+        args.subject or f"[The Firm] Daily recap · {stats['n']} trades · ${stats['total_pnl']:+.2f}"
+    )
     send_status = "dry-run (use --send + FIRM_SMTP_* to actually send)"
 
     if args.send:

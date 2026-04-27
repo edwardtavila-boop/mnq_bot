@@ -5,6 +5,7 @@ inner feature instance. Lookahead-safe: only reports the inner
 feature's *previous-complete-HTF* value during an open HTF bar. This
 matches Pine v6 `request.security(... , lookahead = barmerge.lookahead_off)`.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -55,7 +56,14 @@ class HTFWrapper:
     lookahead.
     """
 
-    __slots__ = ("_inner", "_htf_sec", "_cur", "_cur_bucket", "_last_completed_value", "_last_update_bar_ts")
+    __slots__ = (
+        "_inner",
+        "_htf_sec",
+        "_cur",
+        "_cur_bucket",
+        "_last_completed_value",
+        "_last_update_bar_ts",
+    )
 
     def __init__(self, inner: _InnerFeature, timeframe: str) -> None:
         if timeframe not in _HTF_SEC:
@@ -79,8 +87,12 @@ class HTFWrapper:
             # First bar. Start the first HTF bucket.
             self._cur_bucket = bucket
             self._cur = _AggregatingBar(
-                ts=bar.ts, open=bar.open, high=bar.high, low=bar.low,
-                close=bar.close, volume=bar.volume,
+                ts=bar.ts,
+                open=bar.open,
+                high=bar.high,
+                low=bar.low,
+                close=bar.close,
+                volume=bar.volume,
             )
             return self._last_completed_value
 
@@ -96,8 +108,12 @@ class HTFWrapper:
             # Start a new HTF bucket with the current primary bar.
             self._cur_bucket = bucket
             self._cur = _AggregatingBar(
-                ts=bar.ts, open=bar.open, high=bar.high, low=bar.low,
-                close=bar.close, volume=bar.volume,
+                ts=bar.ts,
+                open=bar.open,
+                high=bar.high,
+                low=bar.low,
+                close=bar.close,
+                volume=bar.volume,
             )
             return self._last_completed_value
 

@@ -8,6 +8,7 @@ Usage:
     python scripts/voice_memo.py --seq 42 --text "Chased the breakout, ignored the divergence"
     python scripts/voice_memo.py --list
 """
+
 from __future__ import annotations
 
 import argparse
@@ -58,7 +59,7 @@ def main() -> int:
         for m in memos:
             t = trades.get(m.get("seq"))
             ctx = f"${t.net_pnl:+.2f}" if t else "?"
-            lines.append(f"| {m.get('seq')} | {m['ts'][:19]} | {ctx} | {m.get('text','')[:80]} |")
+            lines.append(f"| {m.get('seq')} | {m['ts'][:19]} | {ctx} | {m.get('text', '')[:80]} |")
         REPORT_PATH.write_text("\n".join(lines) + "\n")
         print(f"voice_memo: {len(memos)} memos")
         return 0

@@ -10,6 +10,7 @@ Pin the contract:
     path doesn't trip on it
   * Errors during classification surface as warn, not crash
 """
+
 from __future__ import annotations
 
 import pytest
@@ -64,7 +65,8 @@ def fake_pruner(monkeypatch):
     repo_root = Path(__file__).resolve().parents[2]
     real_path = repo_root / "scripts" / "variant_pruner.py"
     spec = importlib.util.spec_from_file_location(
-        "_doctor_variant_pruner", real_path,
+        "_doctor_variant_pruner",
+        real_path,
     )
     real_pruner = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(real_pruner)
@@ -78,6 +80,7 @@ def fake_pruner(monkeypatch):
             @staticmethod
             def _build_classified():
                 return rows
+
         return _Stub
 
     yield _make
@@ -86,6 +89,7 @@ def fake_pruner(monkeypatch):
 def _patched_check(monkeypatch, stub_module) -> object:
     """Patch importlib.util.spec_from_file_location to return a
     spec that loads our stub instead of variant_pruner.py."""
+
     class _FakeLoader:
         def exec_module(self, module):
             module.KEEP = stub_module.KEEP
@@ -101,25 +105,38 @@ def _patched_check(monkeypatch, stub_module) -> object:
 
     def _fake_module_from_spec(spec):
         import types
+
         return types.ModuleType("_stubbed_pruner")
 
     monkeypatch.setattr(
-        "importlib.util.spec_from_file_location", _fake_spec_from_file,
+        "importlib.util.spec_from_file_location",
+        _fake_spec_from_file,
     )
     monkeypatch.setattr(
-        "importlib.util.module_from_spec", _fake_module_from_spec,
+        "importlib.util.module_from_spec",
+        _fake_module_from_spec,
     )
     return _check_regime_evidence()
 
 
 def test_keep_variant_yields_ok(fake_pruner, monkeypatch) -> None:
     rows = [
-        {"variant": "v1", "bucket": "KEEP",
-         "reason": "edge", "provenance": ["cached_backtest"],
-         "n_total": 30, "expected_expectancy_r": 0.5},
-        {"variant": "v2", "bucket": "PRUNE",
-         "reason": "no edge", "provenance": ["stub"],
-         "n_total": 0, "expected_expectancy_r": 0.0},
+        {
+            "variant": "v1",
+            "bucket": "KEEP",
+            "reason": "edge",
+            "provenance": ["cached_backtest"],
+            "n_total": 30,
+            "expected_expectancy_r": 0.5,
+        },
+        {
+            "variant": "v2",
+            "bucket": "PRUNE",
+            "reason": "no edge",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
     ]
     stub = fake_pruner(rows)
     result = _patched_check(monkeypatch, stub)
@@ -130,12 +147,22 @@ def test_keep_variant_yields_ok(fake_pruner, monkeypatch) -> None:
 
 def test_only_watch_variants_yields_warn(fake_pruner, monkeypatch) -> None:
     rows = [
-        {"variant": "v1", "bucket": "WATCH",
-         "reason": "thin", "provenance": ["cached_backtest"],
-         "n_total": 30, "expected_expectancy_r": 0.5},
-        {"variant": "v2", "bucket": "PRUNE",
-         "reason": "no edge", "provenance": ["stub"],
-         "n_total": 0, "expected_expectancy_r": 0.0},
+        {
+            "variant": "v1",
+            "bucket": "WATCH",
+            "reason": "thin",
+            "provenance": ["cached_backtest"],
+            "n_total": 30,
+            "expected_expectancy_r": 0.5,
+        },
+        {
+            "variant": "v2",
+            "bucket": "PRUNE",
+            "reason": "no edge",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
     ]
     stub = fake_pruner(rows)
     result = _patched_check(monkeypatch, stub)
@@ -148,12 +175,22 @@ def test_all_prune_yields_warn_not_fail(fake_pruner, monkeypatch) -> None:
     live boot guard doesn't trip. The reason: cached-backtest emptiness
     is a calibration signal, not a structural block on operation."""
     rows = [
-        {"variant": "v1", "bucket": "PRUNE",
-         "reason": "no edge", "provenance": ["stub"],
-         "n_total": 0, "expected_expectancy_r": 0.0},
-        {"variant": "v2", "bucket": "PRUNE",
-         "reason": "no edge", "provenance": ["stub"],
-         "n_total": 0, "expected_expectancy_r": 0.0},
+        {
+            "variant": "v1",
+            "bucket": "PRUNE",
+            "reason": "no edge",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
+        {
+            "variant": "v2",
+            "bucket": "PRUNE",
+            "reason": "no edge",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
     ]
     stub = fake_pruner(rows)
     result = _patched_check(monkeypatch, stub)
@@ -210,6 +247,7 @@ def test_regime_evidence_appears_in_run_all_checks() -> None:
     """Adding a check requires wiring it into run_all_checks. This
     test catches future drift if someone removes it from the list."""
     from mnq.cli.doctor import run_all_checks
+
     results = run_all_checks(strict=False)
     names = {r.name for r in results}
     assert "regime_evidence" in names

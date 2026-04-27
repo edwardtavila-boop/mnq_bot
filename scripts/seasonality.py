@@ -8,6 +8,7 @@ trend, Friday = chop). Helps bias size per day.
 Usage:
     python scripts/seasonality.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,7 +22,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = REPO_ROOT / "reports" / "seasonality.md"
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from _trade_utils import load_trades  # noqa: E402
-
 
 WEEKDAY_CANON = {
     0: "Mon · often mean-revert opening",
@@ -62,7 +62,9 @@ def main() -> int:
         n = len(by_wd.get(wd, []))
         if n:
             e = statistics.fmean(by_wd[wd])
-            lines.append(f"| {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][wd]} | {n} | ${e:+.2f} | {WEEKDAY_CANON.get(wd, '—')} |")
+            lines.append(
+                f"| {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][wd]} | {n} | ${e:+.2f} | {WEEKDAY_CANON.get(wd, '—')} |"
+            )
 
     lines += ["", "## By hour (UTC)", "| Hour | N | Exp $ |", "|---|---:|---:|"]
     for h in sorted(by_hour):

@@ -28,6 +28,7 @@ Levers exposed through :class:`StrategyConfig`:
 
 Each variant we test is just a different ``StrategyConfig``.
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -112,7 +113,7 @@ class _VolEstimator:
             return 0.0
         mean = sum(self._diffs) / n
         var = sum((d - mean) ** 2 for d in self._diffs) / (n - 1)
-        return var ** 0.5
+        return var**0.5
 
 
 class ScriptedStrategyV2:
@@ -447,7 +448,7 @@ VARIANTS: list[StrategyConfig] = [
     StrategyConfig(
         name="r0_real_baseline",
         rr=1.5,
-        risk_ticks=40,       # 10 pts — survives normal 1m noise
+        risk_ticks=40,  # 10 pts — survives normal 1m noise
         time_stop_bars=20,
         cross_magnitude_min=2.0,
         vol_filter_stdev_max=0.0,
@@ -557,8 +558,8 @@ VARIANTS: list[StrategyConfig] = [
     StrategyConfig(
         name="m5_0_baseline",
         rr=1.5,
-        risk_ticks=60,           # 15 pts
-        time_stop_bars=10,       # 50 minutes
+        risk_ticks=60,  # 15 pts
+        time_stop_bars=10,  # 50 minutes
         cross_magnitude_min=3.0,
         trend_align_bars=0,
         vol_filter_stdev_max=0.0,
@@ -630,7 +631,7 @@ VARIANTS: list[StrategyConfig] = [
     #   morning=(30,120), afternoon=(270,375), loss_cooldown=3.
     # -----------------------------------------------------------------------
     StrategyConfig(
-        name="t0_r5_tight_stop",          # risk_ticks 40 -> 32 (8 pts)
+        name="t0_r5_tight_stop",  # risk_ticks 40 -> 32 (8 pts)
         rr=2.0,
         risk_ticks=32,
         cross_magnitude_min=2.0,
@@ -643,7 +644,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t1_r5_wide_stop",           # risk_ticks 40 -> 48 (12 pts)
+        name="t1_r5_wide_stop",  # risk_ticks 40 -> 48 (12 pts)
         rr=2.0,
         risk_ticks=48,
         cross_magnitude_min=2.0,
@@ -656,7 +657,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t2_r5_rr25",                # rr 2.0 -> 2.5
+        name="t2_r5_rr25",  # rr 2.0 -> 2.5
         rr=2.5,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -669,7 +670,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t3_r5_rr175",               # rr 2.0 -> 1.75 (easier target)
+        name="t3_r5_rr175",  # rr 2.0 -> 1.75 (easier target)
         rr=1.75,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -682,7 +683,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t4_r5_tight_cross",         # cross_magnitude_min 2.0 -> 3.0
+        name="t4_r5_tight_cross",  # cross_magnitude_min 2.0 -> 3.0
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=3.0,
@@ -695,7 +696,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t5_r5_loose_flow",          # orderflow_proxy 0.60 -> 0.50
+        name="t5_r5_loose_flow",  # orderflow_proxy 0.60 -> 0.50
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -708,7 +709,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t6_r5_strict_flow",         # orderflow_proxy 0.60 -> 0.70
+        name="t6_r5_strict_flow",  # orderflow_proxy 0.60 -> 0.70
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -721,7 +722,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t7_r5_morning_only",        # kill afternoon window
+        name="t7_r5_morning_only",  # kill afternoon window
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -734,7 +735,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t8_r5_afternoon_only",      # kill morning window
+        name="t8_r5_afternoon_only",  # kill morning window
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -747,7 +748,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t9_r5_short_hold",          # time_stop_bars 20 -> 12
+        name="t9_r5_short_hold",  # time_stop_bars 20 -> 12
         rr=2.0,
         risk_ticks=40,
         time_stop_bars=12,
@@ -761,7 +762,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t10_r5_long_hold",          # time_stop_bars 20 -> 35
+        name="t10_r5_long_hold",  # time_stop_bars 20 -> 35
         rr=2.0,
         risk_ticks=40,
         time_stop_bars=35,
@@ -775,7 +776,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t11_r5_no_cooldown",        # loss_cooldown 3 -> 0
+        name="t11_r5_no_cooldown",  # loss_cooldown 3 -> 0
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -788,7 +789,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=0,
     ),
     StrategyConfig(
-        name="t12_r5_pm_wide",            # afternoon-only, widen window 240..380
+        name="t12_r5_pm_wide",  # afternoon-only, widen window 240..380
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -801,7 +802,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t13_r5_pm_loose_cross",     # afternoon-only + cross 1.5 (more trades)
+        name="t13_r5_pm_loose_cross",  # afternoon-only + cross 1.5 (more trades)
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=1.5,
@@ -814,7 +815,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t14_r5_pm_loose_flow",      # afternoon-only + flow 0.50
+        name="t14_r5_pm_loose_flow",  # afternoon-only + flow 0.50
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,
@@ -827,7 +828,7 @@ VARIANTS: list[StrategyConfig] = [
         loss_cooldown_bars=3,
     ),
     StrategyConfig(
-        name="t15_r5_pm_no_volcap",       # afternoon-only + drop hard vol cap
+        name="t15_r5_pm_no_volcap",  # afternoon-only + drop hard vol cap
         rr=2.0,
         risk_ticks=40,
         cross_magnitude_min=2.0,

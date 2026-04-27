@@ -24,35 +24,56 @@ it but it'd be a churn-heavy refactor that adds zero capability.
 The guard pattern is one line of defensive code + one regression
 test. It catches drift without forcing a rename.
 """
+
 from __future__ import annotations
 
 # Symbols that belong to eta_engine, NOT mnq_bot. Routing any order
 # for these symbols through mnq_bot's venue layer is a category error
 # (the strategy code, journal, and risk caps in this repo are calibrated
 # for MNQ, not MBT/MET).
-ETA_ENGINE_SYMBOLS: frozenset[str] = frozenset({
-    # CME micro crypto futures (layer-3 casino tier).
-    # Quarterly month codes: H (Mar), M (Jun), U (Sep), Z (Dec).
-    "MBT", "MBTH", "MBTM", "MBTU", "MBTZ",  # Micro Bitcoin futures
-    "MET", "METH", "METM", "METU", "METZ",  # Micro Ether futures
-    # Spot crypto cross-references (eta_engine routes these).
-    "BTC/USD", "ETH/USD",
-    "BTCUSD", "ETHUSD",
-})
+ETA_ENGINE_SYMBOLS: frozenset[str] = frozenset(
+    {
+        # CME micro crypto futures (layer-3 casino tier).
+        # Quarterly month codes: H (Mar), M (Jun), U (Sep), Z (Dec).
+        "MBT",
+        "MBTH",
+        "MBTM",
+        "MBTU",
+        "MBTZ",  # Micro Bitcoin futures
+        "MET",
+        "METH",
+        "METM",
+        "METU",
+        "METZ",  # Micro Ether futures
+        # Spot crypto cross-references (eta_engine routes these).
+        "BTC/USD",
+        "ETH/USD",
+        "BTCUSD",
+        "ETHUSD",
+    }
+)
 
 # Symbols this repo is calibrated for. Order routing for these proceeds
 # normally. Anything not in this set AND in ETA_ENGINE_SYMBOLS triggers
 # the redirect. Anything not in EITHER set is allowed (treated as a
 # user-defined custom symbol the operator opted into).
-MNQ_BOT_SYMBOLS: frozenset[str] = frozenset({
-    # MNQ-specific contract codes per quarterly roll.
-    # Quarterly month codes: H (Mar), M (Jun), U (Sep), Z (Dec).
-    "MNQ",
-    "MNQH", "MNQM", "MNQU", "MNQZ",
-    # NQ (Mini Nasdaq), the underlying parent contract.
-    "NQ",
-    "NQH", "NQM", "NQU", "NQZ",
-})
+MNQ_BOT_SYMBOLS: frozenset[str] = frozenset(
+    {
+        # MNQ-specific contract codes per quarterly roll.
+        # Quarterly month codes: H (Mar), M (Jun), U (Sep), Z (Dec).
+        "MNQ",
+        "MNQH",
+        "MNQM",
+        "MNQU",
+        "MNQZ",
+        # NQ (Mini Nasdaq), the underlying parent contract.
+        "NQ",
+        "NQH",
+        "NQM",
+        "NQU",
+        "NQZ",
+    }
+)
 
 
 class WrongRepoSymbolError(RuntimeError):

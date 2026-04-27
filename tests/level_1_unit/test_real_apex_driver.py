@@ -1,4 +1,5 @@
 """Level-1 unit tests for scripts/real_eta_driver.py (Batch 3F)."""
+
 from __future__ import annotations
 
 import sys
@@ -32,15 +33,17 @@ def _make_bars(n: int, *, start_px: float = 18000.0, slope: float = 0.5) -> list
     out: list[MnqBar] = []
     for i in range(n):
         px = start_px + slope * i
-        out.append(MnqBar(
-            ts=t0 + timedelta(minutes=i),
-            open=Decimal(f"{px:.2f}"),
-            high=Decimal(f"{px + 1.0:.2f}"),
-            low=Decimal(f"{px - 0.25:.2f}"),
-            close=Decimal(f"{px + 0.75:.2f}"),
-            volume=1000 + i,
-            timeframe_sec=60,
-        ))
+        out.append(
+            MnqBar(
+                ts=t0 + timedelta(minutes=i),
+                open=Decimal(f"{px:.2f}"),
+                high=Decimal(f"{px + 1.0:.2f}"),
+                low=Decimal(f"{px - 0.25:.2f}"),
+                close=Decimal(f"{px + 0.75:.2f}"),
+                volume=1000 + i,
+                timeframe_sec=60,
+            )
+        )
     return out
 
 
@@ -120,8 +123,13 @@ class TestDayPmOutputShape:
         assert "probability" in out
         apex = out["payload"]["eta_v3"]
         for k in (
-            "consumed", "voice_agree", "pm_final", "engine_live",
-            "base_probability", "adjusted_probability", "delta",
+            "consumed",
+            "voice_agree",
+            "pm_final",
+            "engine_live",
+            "base_probability",
+            "adjusted_probability",
+            "delta",
         ):
             assert k in apex, f"missing key: {k}"
         assert apex["consumed"] is True

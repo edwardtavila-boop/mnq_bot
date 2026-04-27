@@ -25,6 +25,7 @@ Usage:
     python scripts/strategy_ab.py --synthetic     # synthetic 20 days
     python scripts/strategy_ab.py --winner-only   # print only the winner
 """
+
 from __future__ import annotations
 
 import argparse
@@ -183,9 +184,7 @@ def _run_variant(
         # for now; fine since it's a minor secondary knob.
         ledger = engine.run(bars)
 
-        reg_b = per_regime.setdefault(
-            regime_name, {"n": 0, "wins": 0, "pnl": Decimal("0")}
-        )
+        reg_b = per_regime.setdefault(regime_name, {"n": 0, "wins": 0, "pnl": Decimal("0")})
         reg_b["n"] += ledger.n_trades
         reg_b["wins"] += sum(1 for t in ledger.trades if t.pnl_dollars > 0)
         reg_b["pnl"] += ledger.total_pnl_dollars
@@ -230,7 +229,9 @@ def _run_variant(
 # ---------------------------------------------------------------------------
 
 
-def _bootstrap_ci(values: list[float], *, n_boot: int = 2000, seed: int = 42) -> tuple[float, float, float]:
+def _bootstrap_ci(
+    values: list[float], *, n_boot: int = 2000, seed: int = 42
+) -> tuple[float, float, float]:
     if not values:
         return (0.0, 0.0, 0.0)
     rng = random.Random(seed)
@@ -271,9 +272,7 @@ def _fmt_money(d: Decimal) -> str:
     return f"${float(d):+,.2f}"
 
 
-def _render_report(
-    results: list[VariantResult], *, source: str, n_days: int, winner: str
-) -> str:
+def _render_report(results: list[VariantResult], *, source: str, n_days: int, winner: str) -> str:
     lines: list[str] = []
     lines.append("# ScriptedStrategy v2 — A/B Report")
     lines.append("")
@@ -309,9 +308,7 @@ def _render_report(
         n = int(b["n"])
         wins = int(b["wins"])
         wrp = (wins / n) if n > 0 else 0.0
-        lines.append(
-            f"| `{reg}` | {n} | {wins} | {wrp:.1%} | {_fmt_money(Decimal(b['pnl']))} |"
-        )
+        lines.append(f"| `{reg}` | {n} | {wins} | {wrp:.1%} | {_fmt_money(Decimal(b['pnl']))} |")
     lines.append("")
 
     lines.append(f"## Winner `{w.name}` — per exit reason")
@@ -394,9 +391,7 @@ def main(argv: list[str] | None = None) -> int:
     variants_to_run = VARIANTS
     if args.variants:
         prefixes = [p.strip() for p in args.variants.split(",") if p.strip()]
-        variants_to_run = [
-            v for v in VARIANTS if any(v.name.startswith(p) for p in prefixes)
-        ]
+        variants_to_run = [v for v in VARIANTS if any(v.name.startswith(p) for p in prefixes)]
 
     results: list[VariantResult] = []
     for cfg in variants_to_run:

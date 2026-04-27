@@ -61,9 +61,7 @@ def compare(
     ] = 0.05,
     threshold_slip: Annotated[
         float,
-        typer.Option(
-            "--threshold-slip", help="Slippage divergence threshold in ticks"
-        ),
+        typer.Option("--threshold-slip", help="Slippage divergence threshold in ticks"),
     ] = 0.5,
     n_boot: Annotated[
         int,

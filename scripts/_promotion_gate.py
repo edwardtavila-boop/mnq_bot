@@ -59,6 +59,7 @@ ship anyway must edit ``eta_engine/config.json::execution.futures.mode``
 manually with a deliberate operator action -- there is no flag here
 that says "ignore the gates."
 """
+
 from __future__ import annotations
 
 import argparse
@@ -94,6 +95,7 @@ class GateResult:
 # Artifact readers (cheap, return None on missing-or-malformed)
 # ---------------------------------------------------------------------------
 
+
 def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -125,13 +127,15 @@ def _journal_n_trades() -> int | None:
 # Individual gate evaluators
 # ---------------------------------------------------------------------------
 
+
 def _gate_walk_forward_ci_low() -> GateResult:
     """Walk-forward fold-mean CI95 low > +0.05R."""
     artifact = REPO_ROOT / "reports" / "walk_forward.json"
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "walk_forward_ci_low", NO_DATA,
+            "walk_forward_ci_low",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
@@ -139,18 +143,21 @@ def _gate_walk_forward_ci_low() -> GateResult:
     threshold = 0.05
     if ci_low is None:
         return GateResult(
-            "walk_forward_ci_low", NO_DATA,
+            "walk_forward_ci_low",
+            NO_DATA,
             "artifact present but missing 'fold_mean_ci95_low' field",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     if ci_low > threshold:
         return GateResult(
-            "walk_forward_ci_low", PASS,
+            "walk_forward_ci_low",
+            PASS,
             f"CI95 low {ci_low:+.3f}R > {threshold:+.3f}R threshold",
             {"ci_low": ci_low, "threshold": threshold},
         )
     return GateResult(
-        "walk_forward_ci_low", FAIL,
+        "walk_forward_ci_low",
+        FAIL,
         f"CI95 low {ci_low:+.3f}R does NOT exceed {threshold:+.3f}R threshold",
         {"ci_low": ci_low, "threshold": threshold},
     )
@@ -162,7 +169,8 @@ def _gate_block_bootstrap_ci_low() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "block_bootstrap_ci_low", NO_DATA,
+            "block_bootstrap_ci_low",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
@@ -170,18 +178,21 @@ def _gate_block_bootstrap_ci_low() -> GateResult:
     threshold = 0.05
     if ci_low is None:
         return GateResult(
-            "block_bootstrap_ci_low", NO_DATA,
+            "block_bootstrap_ci_low",
+            NO_DATA,
             "artifact present but missing 'ci95_low' field",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     if ci_low > threshold:
         return GateResult(
-            "block_bootstrap_ci_low", PASS,
+            "block_bootstrap_ci_low",
+            PASS,
             f"bootstrap CI95 low {ci_low:+.3f}R > {threshold:+.3f}R",
             {"ci_low": ci_low, "threshold": threshold},
         )
     return GateResult(
-        "block_bootstrap_ci_low", FAIL,
+        "block_bootstrap_ci_low",
+        FAIL,
         f"bootstrap CI95 low {ci_low:+.3f}R does NOT exceed {threshold:+.3f}R",
         {"ci_low": ci_low, "threshold": threshold},
     )
@@ -193,7 +204,8 @@ def _gate_dsr_search() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "dsr_search", NO_DATA,
+            "dsr_search",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
@@ -201,18 +213,21 @@ def _gate_dsr_search() -> GateResult:
     threshold = 0.95
     if dsr is None:
         return GateResult(
-            "dsr_search", NO_DATA,
+            "dsr_search",
+            NO_DATA,
             "artifact missing 'dsr_search' field",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     if dsr > threshold:
         return GateResult(
-            "dsr_search", PASS,
+            "dsr_search",
+            PASS,
             f"DSR(search) {dsr:.4f} > {threshold:.4f}",
             {"dsr": dsr, "threshold": threshold},
         )
     return GateResult(
-        "dsr_search", FAIL,
+        "dsr_search",
+        FAIL,
         f"DSR(search) {dsr:.4f} does NOT exceed {threshold:.4f}",
         {"dsr": dsr, "threshold": threshold},
     )
@@ -224,7 +239,8 @@ def _gate_psr_deployment() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "psr_deployment", NO_DATA,
+            "psr_deployment",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
@@ -232,18 +248,21 @@ def _gate_psr_deployment() -> GateResult:
     threshold = 0.95
     if psr is None:
         return GateResult(
-            "psr_deployment", NO_DATA,
+            "psr_deployment",
+            NO_DATA,
             "artifact missing 'psr_deployment' field",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     if psr > threshold:
         return GateResult(
-            "psr_deployment", PASS,
+            "psr_deployment",
+            PASS,
             f"PSR(deployment) {psr:.4f} > {threshold:.4f}",
             {"psr": psr, "threshold": threshold},
         )
     return GateResult(
-        "psr_deployment", FAIL,
+        "psr_deployment",
+        FAIL,
         f"PSR(deployment) {psr:.4f} does NOT exceed {threshold:.4f}",
         {"psr": psr, "threshold": threshold},
     )
@@ -255,18 +274,21 @@ def _gate_n_trades_min() -> GateResult:
     threshold = 200
     if n is None:
         return GateResult(
-            "n_trades_min", NO_DATA,
+            "n_trades_min",
+            NO_DATA,
             "could not read live_sim journal trade count",
             {},
         )
     if n >= threshold:
         return GateResult(
-            "n_trades_min", PASS,
+            "n_trades_min",
+            PASS,
             f"n_trades = {n} >= {threshold}",
             {"n_trades": n, "threshold": threshold},
         )
     return GateResult(
-        "n_trades_min", FAIL,
+        "n_trades_min",
+        FAIL,
         f"n_trades = {n} < {threshold} (need {threshold - n} more)",
         {"n_trades": n, "threshold": threshold},
     )
@@ -278,19 +300,22 @@ def _gate_regime_stability() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "regime_stability", NO_DATA,
+            "regime_stability",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
     losing_regimes = data.get("losing_regimes", [])
     if isinstance(losing_regimes, list) and len(losing_regimes) >= 1:
         return GateResult(
-            "regime_stability", PASS,
+            "regime_stability",
+            PASS,
             f"{len(losing_regimes)} losing regime(s) observed",
             {"losing_regimes": losing_regimes},
         )
     return GateResult(
-        "regime_stability", FAIL,
+        "regime_stability",
+        FAIL,
         "no losing regime observed; strategy hasn't seen its own "
         "failure mode -- live promotion is regime-cherrypicked.",
         {"losing_regimes": losing_regimes},
@@ -303,7 +328,8 @@ def _gate_dow_filter_placebo() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "dow_filter_placebo", NO_DATA,
+            "dow_filter_placebo",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
@@ -311,18 +337,21 @@ def _gate_dow_filter_placebo() -> GateResult:
     threshold = 0.05
     if margin is None:
         return GateResult(
-            "dow_filter_placebo", NO_DATA,
+            "dow_filter_placebo",
+            NO_DATA,
             "artifact missing 'thu_vs_others_margin_r' field",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     if margin >= threshold:
         return GateResult(
-            "dow_filter_placebo", PASS,
+            "dow_filter_placebo",
+            PASS,
             f"Thu margin over non-Thu = {margin:+.3f}R >= {threshold:+.3f}R",
             {"margin_r": margin, "threshold": threshold},
         )
     return GateResult(
-        "dow_filter_placebo", FAIL,
+        "dow_filter_placebo",
+        FAIL,
         f"Thu margin over non-Thu = {margin:+.3f}R < {threshold:+.3f}R "
         "(filter is not real -- DOW edge could be noise)",
         {"margin_r": margin, "threshold": threshold},
@@ -335,28 +364,31 @@ def _gate_knob_wf_sensitivity() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "knob_wf_sensitivity", NO_DATA,
+            "knob_wf_sensitivity",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
     knobs = data.get("knobs") or []
     if not isinstance(knobs, list) or not knobs:
         return GateResult(
-            "knob_wf_sensitivity", NO_DATA,
+            "knob_wf_sensitivity",
+            NO_DATA,
             "artifact missing 'knobs' list",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     bad = [k for k in knobs if not k.get("at_argmax", False)]
     if not bad:
         return GateResult(
-            "knob_wf_sensitivity", PASS,
+            "knob_wf_sensitivity",
+            PASS,
             f"all {len(knobs)} knobs at walk-forward argmax",
             {"knobs": knobs},
         )
     return GateResult(
-        "knob_wf_sensitivity", FAIL,
-        f"{len(bad)} knob(s) not at WF argmax: "
-        f"{', '.join(k.get('name', '?') for k in bad)}",
+        "knob_wf_sensitivity",
+        FAIL,
+        f"{len(bad)} knob(s) not at WF argmax: {', '.join(k.get('name', '?') for k in bad)}",
         {"knobs": knobs, "off_argmax": bad},
     )
 
@@ -367,7 +399,8 @@ def _gate_paper_soak_min_weeks() -> GateResult:
     data = _read_json(artifact)
     if data is None:
         return GateResult(
-            "paper_soak_min_weeks", NO_DATA,
+            "paper_soak_min_weeks",
+            NO_DATA,
             f"missing artifact: {artifact.relative_to(REPO_ROOT)}",
             {"artifact": str(artifact)},
         )
@@ -375,18 +408,21 @@ def _gate_paper_soak_min_weeks() -> GateResult:
     threshold = 2
     if weeks is None:
         return GateResult(
-            "paper_soak_min_weeks", NO_DATA,
+            "paper_soak_min_weeks",
+            NO_DATA,
             "artifact missing 'weeks_clean' field",
             {"artifact": str(artifact), "keys": list(data.keys())},
         )
     if weeks >= threshold:
         return GateResult(
-            "paper_soak_min_weeks", PASS,
+            "paper_soak_min_weeks",
+            PASS,
             f"{weeks:.1f} weeks of clean paper >= {threshold}",
             {"weeks": weeks, "threshold": threshold},
         )
     return GateResult(
-        "paper_soak_min_weeks", FAIL,
+        "paper_soak_min_weeks",
+        FAIL,
         f"only {weeks:.1f} weeks of clean paper (need {threshold})",
         {"weeks": weeks, "threshold": threshold},
     )
@@ -394,15 +430,15 @@ def _gate_paper_soak_min_weeks() -> GateResult:
 
 # Ordered registry. Each entry is (gate_name, evaluator).
 _GATES = [
-    ("walk_forward_ci_low",      _gate_walk_forward_ci_low),
-    ("block_bootstrap_ci_low",   _gate_block_bootstrap_ci_low),
-    ("dsr_search",               _gate_dsr_search),
-    ("psr_deployment",           _gate_psr_deployment),
-    ("n_trades_min",             _gate_n_trades_min),
-    ("regime_stability",         _gate_regime_stability),
-    ("dow_filter_placebo",       _gate_dow_filter_placebo),
-    ("knob_wf_sensitivity",      _gate_knob_wf_sensitivity),
-    ("paper_soak_min_weeks",     _gate_paper_soak_min_weeks),
+    ("walk_forward_ci_low", _gate_walk_forward_ci_low),
+    ("block_bootstrap_ci_low", _gate_block_bootstrap_ci_low),
+    ("dsr_search", _gate_dsr_search),
+    ("psr_deployment", _gate_psr_deployment),
+    ("n_trades_min", _gate_n_trades_min),
+    ("regime_stability", _gate_regime_stability),
+    ("dow_filter_placebo", _gate_dow_filter_placebo),
+    ("knob_wf_sensitivity", _gate_knob_wf_sensitivity),
+    ("paper_soak_min_weeks", _gate_paper_soak_min_weeks),
 ]
 _GATE_NAMES = [name for name, _ in _GATES]
 
@@ -411,10 +447,7 @@ def evaluate(name: str) -> GateResult:
     for gate_name, fn in _GATES:
         if gate_name == name:
             return fn()
-    msg = (
-        f"unknown gate: {name!r}. Known gates: "
-        f"{', '.join(_GATE_NAMES)}"
-    )
+    msg = f"unknown gate: {name!r}. Known gates: {', '.join(_GATE_NAMES)}"
     raise ValueError(msg)
 
 
@@ -434,6 +467,7 @@ def aggregate_verdict(results: list[GateResult]) -> int:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _print_human(result: GateResult) -> None:
     icon = {"PASS": "[+]", "FAIL": "[-]", "NO_DATA": "[?]"}[result.verdict_name]
     print(f"  {icon} {result.name:<28s} {result.verdict_name:<8s} {result.detail}")
@@ -443,15 +477,18 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument(
-        "--gate", choices=_GATE_NAMES,
+        "--gate",
+        choices=_GATE_NAMES,
         help="evaluate a single gate; exit code = its verdict",
     )
     g.add_argument(
-        "--all", action="store_true",
+        "--all",
+        action="store_true",
         help="evaluate all 9 gates; exit code = aggregate",
     )
     p.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="emit JSON instead of human report",
     )
     args = p.parse_args(argv)
@@ -459,12 +496,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.gate:
         result = evaluate(args.gate)
         if args.json:
-            print(json.dumps({
-                "gate": result.name,
-                "verdict": result.verdict_name,
-                "detail": result.detail,
-                "evidence": result.evidence,
-            }, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "gate": result.name,
+                        "verdict": result.verdict_name,
+                        "detail": result.detail,
+                        "evidence": result.evidence,
+                    },
+                    indent=2,
+                )
+            )
         else:
             print(f"Gate: {result.name}")
             _print_human(result)
@@ -474,22 +516,27 @@ def main(argv: list[str] | None = None) -> int:
     results = evaluate_all()
     rc = aggregate_verdict(results)
     if args.json:
-        print(json.dumps({
-            "rc": rc,
-            "verdict": _VERDICT_NAME[rc] if rc != 1 else "FAIL",
-            "n_pass": sum(1 for r in results if r.verdict == PASS),
-            "n_fail": sum(1 for r in results if r.verdict == FAIL),
-            "n_no_data": sum(1 for r in results if r.verdict == NO_DATA),
-            "gates": [
+        print(
+            json.dumps(
                 {
-                    "name": r.name,
-                    "verdict": r.verdict_name,
-                    "detail": r.detail,
-                    "evidence": r.evidence,
-                }
-                for r in results
-            ],
-        }, indent=2))
+                    "rc": rc,
+                    "verdict": _VERDICT_NAME[rc] if rc != 1 else "FAIL",
+                    "n_pass": sum(1 for r in results if r.verdict == PASS),
+                    "n_fail": sum(1 for r in results if r.verdict == FAIL),
+                    "n_no_data": sum(1 for r in results if r.verdict == NO_DATA),
+                    "gates": [
+                        {
+                            "name": r.name,
+                            "verdict": r.verdict_name,
+                            "detail": r.detail,
+                            "evidence": r.evidence,
+                        }
+                        for r in results
+                    ],
+                },
+                indent=2,
+            )
+        )
     else:
         print("PROMOTION-GATE EVALUATION")
         print("=" * 64)

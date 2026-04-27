@@ -9,6 +9,7 @@ Usage:
     python scripts/encrypted_backup.py
     FIRM_BACKUP_PASS=... python scripts/encrypted_backup.py --encrypt
 """
+
 from __future__ import annotations
 
 import argparse

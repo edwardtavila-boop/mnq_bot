@@ -4,6 +4,7 @@ Resets at session boundary. The session boundary is detected via a
 provided `session_day_key` callable: whenever the key changes relative
 to the previous bar, the cumulative sums reset.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -28,7 +29,15 @@ class VWAP:
     to inspect. The generated strategy passes anchor="session" only.
     """
 
-    __slots__ = ("anchor", "_day_key_fn", "_cum_pv", "_cum_v", "_cur_key", "_value", "_last_update_bar_ts")
+    __slots__ = (
+        "anchor",
+        "_day_key_fn",
+        "_cum_pv",
+        "_cum_v",
+        "_cur_key",
+        "_value",
+        "_last_update_bar_ts",
+    )
 
     def __init__(
         self,

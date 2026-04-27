@@ -15,6 +15,7 @@ that parity goes from "stub PASS" to "PASS with real numbers" — caught
 drift shows up as non-zero dp even on zero-slippage synthetic fills,
 because the live_sim does apply slippage.
 """
+
 from __future__ import annotations
 
 import json
@@ -83,8 +84,9 @@ def _load_live_trades(db: Path) -> list[Trade]:
             ts = datetime.fromisoformat(str(r["ts"]).replace("Z", "+00:00"))
         except ValueError:
             continue
-        fills.append({"seq": r["seq"], "ts": ts, "side": side,
-                      "qty": int(qty), "price": float(price)})
+        fills.append(
+            {"seq": r["seq"], "ts": ts, "side": side, "qty": int(qty), "price": float(price)}
+        )
 
     trades: list[Trade] = []
     for seq, i in enumerate(range(0, len(fills) - 1, 2), start=1):
@@ -95,16 +97,18 @@ def _load_live_trades(db: Path) -> list[Trade]:
         entry = f_in["price"] + SLIPPAGE_MIDPOINT_ADJ
         exit_ = f_out["price"] - SLIPPAGE_MIDPOINT_ADJ
         pnl = (exit_ - entry) * direction * f_in["qty"] * 2.0
-        trades.append(Trade(
-            seq=seq,
-            entry_ts=f_in["ts"],
-            exit_ts=f_out["ts"],
-            side=f_in["side"],
-            qty=f_in["qty"],
-            entry_px=entry,
-            exit_px=exit_,
-            pnl=pnl,
-        ))
+        trades.append(
+            Trade(
+                seq=seq,
+                entry_ts=f_in["ts"],
+                exit_ts=f_out["ts"],
+                side=f_in["side"],
+                qty=f_in["qty"],
+                entry_px=entry,
+                exit_px=exit_,
+                pnl=pnl,
+            )
+        )
     return trades
 
 
@@ -135,16 +139,21 @@ def _write_jsonl(trades: list[Trade], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         for t in trades:
-            f.write(json.dumps({
-                "seq": t.seq,
-                "entry_ts": t.entry_ts.isoformat(),
-                "exit_ts": t.exit_ts.isoformat(),
-                "side": t.side,
-                "qty": t.qty,
-                "entry_px": t.entry_px,
-                "exit_px": t.exit_px,
-                "pnl": t.pnl,
-            }) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "seq": t.seq,
+                        "entry_ts": t.entry_ts.isoformat(),
+                        "exit_ts": t.exit_ts.isoformat(),
+                        "side": t.side,
+                        "qty": t.qty,
+                        "entry_px": t.entry_px,
+                        "exit_px": t.exit_px,
+                        "pnl": t.pnl,
+                    }
+                )
+                + "\n"
+            )
 
 
 def main() -> int:

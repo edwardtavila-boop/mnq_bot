@@ -22,6 +22,7 @@ inline (on the same journal) and reports in-sample + LOOCV metrics.
 
 The script is self-contained — no desktop_app/firm imports.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -153,7 +154,9 @@ def reliability_bins(
 # ---------------------------------------------------------------------------
 
 
-def _loocv_probs(feature_matrix: list[list[float]], labels: list[int], *, l2: float = 0.1) -> list[float]:
+def _loocv_probs(
+    feature_matrix: list[list[float]], labels: list[int], *, l2: float = 0.1
+) -> list[float]:
     """Leave-one-out refit; return held-out probabilities in the original order."""
     # Avoid a heavy dependency; call back into train_scorer's minimal logistic.
     from ml_scorer import _logistic_regression, _sigmoid

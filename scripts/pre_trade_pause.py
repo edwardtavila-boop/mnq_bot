@@ -10,6 +10,7 @@ Usage:
     python scripts/pre_trade_pause.py --clear
     python scripts/pre_trade_pause.py            # show current state
 """
+
 from __future__ import annotations
 
 import argparse

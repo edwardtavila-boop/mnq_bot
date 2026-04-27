@@ -9,6 +9,7 @@ Pin the contract:
   * Threshold is 0.0R (any non-positive regime counts as losing)
   * Variants without backtest data produce empty lists (no crash)
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -25,7 +26,8 @@ SCRIPT = REPO_ROOT / "scripts" / "generate_regime_classification.py"
 @pytest.fixture(scope="module")
 def gen_mod():
     spec = importlib.util.spec_from_file_location(
-        "generate_regime_classification_for_test", SCRIPT,
+        "generate_regime_classification_for_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -42,8 +44,12 @@ def gen_mod():
 def test_build_classification_returns_required_keys(gen_mod) -> None:
     payload = gen_mod.build_classification("r5_real_wide_target")
     required = {
-        "variant", "regimes_seen", "regimes_winning",
-        "losing_regimes", "regime_expectancy", "_threshold_r",
+        "variant",
+        "regimes_seen",
+        "regimes_winning",
+        "losing_regimes",
+        "regime_expectancy",
+        "_threshold_r",
         "provenance",
     }
     missing = required - set(payload.keys())
@@ -92,15 +98,16 @@ def test_bucketing_logic_with_synthetic_payload(gen_mod, monkeypatch) -> None:
     and verify the bucketing."""
     fake_payload = {
         "regime_expectancy": {
-            "winner_pos":   {"n_days": 5.0, "expectancy_r": 0.10},
-            "loser_neg":    {"n_days": 3.0, "expectancy_r": -0.20},
-            "loser_zero":   {"n_days": 7.0, "expectancy_r": 0.00},
-            "no_evidence":  {"n_days": 0.0, "expectancy_r": 0.50},
+            "winner_pos": {"n_days": 5.0, "expectancy_r": 0.10},
+            "loser_neg": {"n_days": 3.0, "expectancy_r": -0.20},
+            "loser_zero": {"n_days": 7.0, "expectancy_r": 0.00},
+            "no_evidence": {"n_days": 0.0, "expectancy_r": 0.50},
         },
         "provenance": ["variant_cfg", "cached_backtest"],
     }
     monkeypatch.setattr(
-        gen_mod, "build_spec_payload",
+        gen_mod,
+        "build_spec_payload",
         lambda variant: fake_payload,
     )
     payload = gen_mod.build_classification("synthetic")
@@ -118,7 +125,8 @@ def test_bucketing_logic_with_synthetic_payload(gen_mod, monkeypatch) -> None:
 
 
 def test_main_writes_artifact_with_required_keys(
-    gen_mod, tmp_path: Path,
+    gen_mod,
+    tmp_path: Path,
 ) -> None:
     output = tmp_path / "out.json"
     rc = gen_mod.main(["--output", str(output), "--quiet"])
@@ -141,16 +149,23 @@ def test_main_default_variant_is_r5(gen_mod, tmp_path: Path) -> None:
 
 def test_main_variant_flag_overrides(gen_mod, tmp_path: Path) -> None:
     output = tmp_path / "out.json"
-    gen_mod.main([
-        "--variant", "r4_real_orderflow",
-        "--output", str(output), "--quiet",
-    ])
+    gen_mod.main(
+        [
+            "--variant",
+            "r4_real_orderflow",
+            "--output",
+            str(output),
+            "--quiet",
+        ]
+    )
     data = json.loads(output.read_text())
     assert data["variant"] == "r4_real_orderflow"
 
 
 def test_main_quiet_suppresses_stdout(
-    gen_mod, tmp_path: Path, capsys,
+    gen_mod,
+    tmp_path: Path,
+    capsys,
 ) -> None:
     output = tmp_path / "out.json"
     gen_mod.main(["--output", str(output), "--quiet"])
@@ -159,7 +174,9 @@ def test_main_quiet_suppresses_stdout(
 
 
 def test_main_verbose_prints_summary(
-    gen_mod, tmp_path: Path, capsys,
+    gen_mod,
+    tmp_path: Path,
+    capsys,
 ) -> None:
     output = tmp_path / "out.json"
     gen_mod.main(["--output", str(output)])

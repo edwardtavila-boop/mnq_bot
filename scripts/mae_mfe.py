@@ -15,6 +15,7 @@ Writes ``reports/mae_mfe.md`` with:
 Usage:
     python scripts/mae_mfe.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,11 +34,18 @@ def percentiles(values: list[float]) -> dict[str, float]:
     if not values:
         return {"p10": 0, "p25": 0, "p50": 0, "p75": 0, "p90": 0}
     s = sorted(values)
+
     def pct(q: float) -> float:
         idx = min(len(s) - 1, int(round(q * (len(s) - 1))))
         return s[idx]
-    return {"p10": pct(0.10), "p25": pct(0.25), "p50": pct(0.50),
-            "p75": pct(0.75), "p90": pct(0.90)}
+
+    return {
+        "p10": pct(0.10),
+        "p25": pct(0.25),
+        "p50": pct(0.50),
+        "p75": pct(0.75),
+        "p90": pct(0.90),
+    }
 
 
 def _histo(values: list[float], bins: int = 10, width: int = 36) -> list[str]:

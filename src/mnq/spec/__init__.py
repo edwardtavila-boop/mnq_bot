@@ -1,4 +1,5 @@
 """[REAL] Strategy spec package: schema, hash, loader, validator."""
+
 from mnq.spec.hash import hash_spec, stamp_hash
 from mnq.spec.loader import HashMismatchError, dump_spec, load_spec
 from mnq.spec.schema import StrategySpec

@@ -1,4 +1,4 @@
-# Apex V3 AgentInput Enrichment — 2026-04-17T01:39:42.994982+00:00
+# Apex V3 AgentInput Enrichment — 2026-04-26T14:26:27.217919+00:00
 
 **Engine available:** 🟢 yes
 **Snapshot source:** eta_v3 firm_engine.evaluate
@@ -7,7 +7,7 @@
 ## Voice summary
 
 ```
-eta_v3: HOLD LONG · regime=NEUTRAL · pm_final=+15.3 · quant=+15.3 · red=0.0 · agree=4/15 · setup=—
+eta_v3: HOLD LONG · regime=NEUTRAL · pm_final=+17.8 · quant=+17.8 · red=0.0 · agree=4/15 · setup=—
 ```
 
 ## AgentInput.payload keys
@@ -23,15 +23,15 @@ eta_v3: HOLD LONG · regime=NEUTRAL · pm_final=+15.3 · quant=+15.3 · red=0.0 
 ```json
 {
   "eta_v3_direction": 1,
-  "eta_v3_pm_final": 15.27,
+  "eta_v3_pm_final": 17.75,
   "eta_v3_regime": "NEUTRAL",
   "eta_v3_voices": {
-    "blocked_reason": "pm_below_threshold (15.3 < 40.0)",
+    "blocked_reason": "pm_below_threshold (17.8 < 40.0)",
     "direction": 1,
     "fire_long": false,
     "fire_short": false,
-    "pm_final": 15.27,
-    "quant_total": 15.27,
+    "pm_final": 17.75,
+    "quant_total": 17.75,
     "red_team": 0.0,
     "red_team_weighted": 0.0,
     "regime": "NEUTRAL",
@@ -43,7 +43,7 @@ eta_v3: HOLD LONG · regime=NEUTRAL · pm_final=+15.3 · quant=+15.3 · red=0.0 
       "v10": 0.0,
       "v11": 0.0,
       "v12": 66.7,
-      "v13": -30.0,
+      "v13": 0.0,
       "v14": 0.0,
       "v15": 0.0,
       "v2": 15.0,

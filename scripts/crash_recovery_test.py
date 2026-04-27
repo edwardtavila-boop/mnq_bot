@@ -20,6 +20,7 @@ Usage:
     python scripts/crash_recovery_test.py
     python scripts/crash_recovery_test.py --n-events 500
 """
+
 from __future__ import annotations
 
 import argparse
@@ -68,31 +69,39 @@ def _spawn_writer_and_kill(jpath: Path, n: int) -> None:
 
 
 def _reopen_and_assert(jpath: Path, n: int) -> dict:
-    """Reopen the journal in a fresh connection and verify durability."""
+    """Reopen the journal in a fresh connection and verify durability.
+
+    Uses a try/finally to close the EventJournal connection before
+    returning — on Windows the parent TemporaryDirectory.cleanup()
+    cannot rmtree the dir while SQLite has the file open (WinError 32).
+    """
     from mnq.storage.journal import EventJournal
 
     j = EventJournal(jpath)
-    rows: list[tuple[int, str, dict]] = []
-    for entry in j.replay():
-        rows.append((entry.seq, entry.event_type, entry.payload))
+    try:
+        rows: list[tuple[int, str, dict]] = []
+        for entry in j.replay():
+            rows.append((entry.seq, entry.event_type, entry.payload))
 
-    errors: list[str] = []
-    if len(rows) != n:
-        errors.append(f"event count mismatch: expected {n}, got {len(rows)}")
-    for i, (_seq, ev_type, payload) in enumerate(rows):
-        if ev_type != "crash.test":
-            errors.append(f"row {i} wrong event_type: {ev_type!r}")
-            break
-        if payload.get("i") != i:
-            errors.append(f"row {i} payload mismatch: {payload!r}")
-            break
+        errors: list[str] = []
+        if len(rows) != n:
+            errors.append(f"event count mismatch: expected {n}, got {len(rows)}")
+        for i, (_seq, ev_type, payload) in enumerate(rows):
+            if ev_type != "crash.test":
+                errors.append(f"row {i} wrong event_type: {ev_type!r}")
+                break
+            if payload.get("i") != i:
+                errors.append(f"row {i} payload mismatch: {payload!r}")
+                break
 
-    return {
-        "events_recovered": len(rows),
-        "expected": n,
-        "errors": errors,
-        "ok": not errors,
-    }
+        return {
+            "events_recovered": len(rows),
+            "expected": n,
+            "errors": errors,
+            "ok": not errors,
+        }
+    finally:
+        j.close()
 
 
 def run(*, n_events: int = 100) -> int:

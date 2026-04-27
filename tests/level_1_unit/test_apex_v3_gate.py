@@ -8,20 +8,21 @@ These tests exercise:
 - Fail-safe paths (missing payload, non-consumed Apex, malformed delta)
 - Symmetry of the skip decision across invalid inputs
 """
+
 from __future__ import annotations
 
 from mnq.eta_v3.gate import (
     DELTA_SOFT_DISSENT,
     DELTA_STRONG_DISSENT,
-    GateAction,
     SIZE_FULL,
     SIZE_REDUCED,
     SIZE_SKIP,
+    GateAction,
     apex_gate,
 )
 
-
 # --- fixtures ----------------------------------------------------------------
+
 
 def _pm_output(
     *,
@@ -51,6 +52,7 @@ def _pm_output(
 
 
 # --- Delta-zone routing -------------------------------------------------------
+
 
 class TestDeltaZones:
     """The four delta bands the gate uses to decide size."""
@@ -113,6 +115,7 @@ class TestDeltaZones:
 
 # --- PM verdict authority -----------------------------------------------------
 
+
 class TestPMVerdictAuthority:
     """Only GO/MODIFY ever ship. Everything else skips regardless of delta."""
 
@@ -156,6 +159,7 @@ class TestPMVerdictAuthority:
 
 
 # --- Fail-safe paths ----------------------------------------------------------
+
 
 class TestFailSafe:
     """Malformed / missing input produces deterministic decisions."""
@@ -209,6 +213,7 @@ class TestFailSafe:
 
 # --- Decision shape contract --------------------------------------------------
 
+
 class TestDecisionShape:
     """Every decision returns the same three keys with expected types."""
 
@@ -227,9 +232,7 @@ class TestDecisionShape:
             assert isinstance(d["action"], str)
             assert isinstance(d["size_mult"], float)
             assert isinstance(d["reason"], str)
-            assert d["action"] in (
-                GateAction.FULL, GateAction.REDUCED, GateAction.SKIP
-            )
+            assert d["action"] in (GateAction.FULL, GateAction.REDUCED, GateAction.SKIP)
             assert d["size_mult"] in (SIZE_FULL, SIZE_REDUCED, SIZE_SKIP)
 
     def test_size_mult_matches_action(self):

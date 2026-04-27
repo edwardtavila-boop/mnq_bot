@@ -25,17 +25,16 @@ import argparse
 import json
 import os
 import sys
-import glob
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
-from typing import Optional, List
 
-from firm_engine import FirmConfig
+from autocalibrator import run_test
+from autocalibrator import score as calib_score
 from backtest import Backtester, V1DetectorConfig, load_csv
-from intermarket import load_with_intermarket, coverage_report
-from firm_meta import MetaContext, run_meta_firm, save_meta_decision, load_recent_meta
-from autocalibrator import run_test, score as calib_score
+from firm_engine import FirmConfig
+from firm_meta import MetaContext, run_meta_firm, save_meta_decision
+from intermarket import coverage_report, load_with_intermarket
 
 ET = ZoneInfo("America/New_York")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -70,10 +69,18 @@ def auto_discover_data():
 
     return {
         "mnq": mnq,
-        "vix":  os.path.join(im_dir, "mnq_vix_5.csv")   if os.path.exists(os.path.join(im_dir, "mnq_vix_5.csv"))   else None,
-        "es":   os.path.join(im_dir, "mnq_es1_5.csv")   if os.path.exists(os.path.join(im_dir, "mnq_es1_5.csv"))   else None,
-        "dxy":  os.path.join(im_dir, "mnq_dxy_5.csv")   if os.path.exists(os.path.join(im_dir, "mnq_dxy_5.csv"))   else None,
-        "tick": os.path.join(im_dir, "mnq_tick_5.csv")  if os.path.exists(os.path.join(im_dir, "mnq_tick_5.csv"))  else None,
+        "vix": os.path.join(im_dir, "mnq_vix_5.csv")
+        if os.path.exists(os.path.join(im_dir, "mnq_vix_5.csv"))
+        else None,
+        "es": os.path.join(im_dir, "mnq_es1_5.csv")
+        if os.path.exists(os.path.join(im_dir, "mnq_es1_5.csv"))
+        else None,
+        "dxy": os.path.join(im_dir, "mnq_dxy_5.csv")
+        if os.path.exists(os.path.join(im_dir, "mnq_dxy_5.csv"))
+        else None,
+        "tick": os.path.join(im_dir, "mnq_tick_5.csv")
+        if os.path.exists(os.path.join(im_dir, "mnq_tick_5.csv"))
+        else None,
     }
 
 
@@ -83,7 +90,7 @@ def auto_discover_data():
 def build_meta_context(bars, recent_trades_snapshot: list) -> MetaContext:
     """Build a MetaContext from current state and recent backtest results."""
     ctx = MetaContext()
-    ctx.now_utc = datetime.now(timezone.utc)
+    ctx.now_utc = datetime.now(UTC)
     et_now = ctx.now_utc.astimezone(ET)
     ctx.hour_et = et_now.hour
     ctx.weekday = et_now.isoweekday()
@@ -93,12 +100,14 @@ def build_meta_context(bars, recent_trades_snapshot: list) -> MetaContext:
 
     if ctx.recent_trades:
         wins = sum(1 for t in ctx.recent_trades if t.get("pnl_r", 0) > 0)
-        losses = sum(1 for t in ctx.recent_trades if t.get("pnl_r", 0) < 0)
+        sum(1 for t in ctx.recent_trades if t.get("pnl_r", 0) < 0)
         ctx.rolling_win_rate = wins / len(ctx.recent_trades)
         gw = sum(t.get("pnl_r", 0) for t in ctx.recent_trades if t.get("pnl_r", 0) > 0)
         gl = abs(sum(t.get("pnl_r", 0) for t in ctx.recent_trades if t.get("pnl_r", 0) < 0))
         ctx.rolling_pf = gw / gl if gl > 0 else 999.0
-        cum = 0; peak = 0; dd = 0
+        cum = 0
+        peak = 0
+        dd = 0
         for t in ctx.recent_trades:
             cum += t.get("pnl_r", 0)
             peak = max(peak, cum)
@@ -108,7 +117,8 @@ def build_meta_context(bars, recent_trades_snapshot: list) -> MetaContext:
         ctx.peak_equity_r = peak
 
         # Streaks
-        streak_l = 0; streak_w = 0
+        streak_l = 0
+        streak_w = 0
         for t in reversed(ctx.recent_trades):
             r = t.get("pnl_r", 0)
             if r < 0 and streak_w == 0:
@@ -124,8 +134,10 @@ def build_meta_context(bars, recent_trades_snapshot: list) -> MetaContext:
     tail = bars[-50:] if len(bars) > 50 else bars
     atrs = [b.atr for b in tail if b.atr is not None]
     adxs = [b.adx for b in tail if b.adx is not None]
-    if atrs: ctx.avg_atr = sum(atrs) / len(atrs)
-    if adxs: ctx.avg_adx = sum(adxs) / len(adxs)
+    if atrs:
+        ctx.avg_atr = sum(atrs) / len(atrs)
+    if adxs:
+        ctx.avg_adx = sum(adxs) / len(adxs)
 
     return ctx
 
@@ -141,7 +153,9 @@ def self_calibrate(bars, n_windows: int = 7, verbose: bool = False):
     ema_s_grid = [4]
 
     if verbose:
-        print(f"  Calibration grid: {len(pm_grid)*len(rw_grid)*len(orb_to_grid)*len(ema_s_grid)} configs")
+        print(
+            f"  Calibration grid: {len(pm_grid) * len(rw_grid) * len(orb_to_grid) * len(ema_s_grid)} configs"
+        )
 
     results = []
     for pm in pm_grid:
@@ -152,10 +166,16 @@ def self_calibrate(bars, n_windows: int = 7, verbose: bool = False):
                     det_cfg = V1DetectorConfig(orb_timeout=orb_to, ema_min_score=ema_s)
                     stats = run_test(bars, cfg, det_cfg, n_windows)
                     sc = calib_score(stats)
-                    results.append({
-                        "pm": pm, "red_w": rw, "orb_to": orb_to, "ema_s": ema_s,
-                        "score": round(sc, 2), **stats,
-                    })
+                    results.append(
+                        {
+                            "pm": pm,
+                            "red_w": rw,
+                            "orb_to": orb_to,
+                            "ema_s": ema_s,
+                            "score": round(sc, 2),
+                            **stats,
+                        }
+                    )
 
     results.sort(key=lambda x: -x["score"])
     return results
@@ -164,29 +184,39 @@ def self_calibrate(bars, n_windows: int = 7, verbose: bool = False):
 # ─────────────────────────────────────────────────────────────────────────────
 # HEALTH CHECKS
 # ─────────────────────────────────────────────────────────────────────────────
-def health_check(bars, summary: dict) -> List[dict]:
+def health_check(bars, summary: dict) -> list[dict]:
     """Return list of issues found. Empty list = all good."""
     issues = []
 
     # Data staleness: last bar should be recent-ish
     if bars:
         last_ts = bars[-1].time
-        last_dt = datetime.fromtimestamp(last_ts, tz=timezone.utc)
-        age_days = (datetime.now(timezone.utc) - last_dt).days
+        last_dt = datetime.fromtimestamp(last_ts, tz=UTC)
+        age_days = (datetime.now(UTC) - last_dt).days
         if age_days > 30:
             issues.append({"severity": "warning", "msg": f"Data is {age_days}d old"})
         if age_days > 90:
-            issues.append({"severity": "critical", "msg": f"Data >90d old — verify source"})
+            issues.append({"severity": "critical", "msg": "Data >90d old — verify source"})
 
     # Trade count sanity
     if summary.get("trades", 0) == 0:
         issues.append({"severity": "warning", "msg": "No trades fired — check PM/filters"})
     elif summary.get("trades", 0) > 200:
-        issues.append({"severity": "warning", "msg": f"Very high trade count ({summary['trades']}) — likely over-trading"})
+        issues.append(
+            {
+                "severity": "warning",
+                "msg": f"Very high trade count ({summary['trades']}) — likely over-trading",
+            }
+        )
 
     # Drawdown check
     if summary.get("max_drawdown_r", 0) > 4:
-        issues.append({"severity": "critical", "msg": f"Max DD {summary['max_drawdown_r']:.1f}R exceeds safety threshold (4R)"})
+        issues.append(
+            {
+                "severity": "critical",
+                "msg": f"Max DD {summary['max_drawdown_r']:.1f}R exceeds safety threshold (4R)",
+            }
+        )
 
     # Profit factor sanity
     pf = summary.get("profit_factor", 0)
@@ -198,7 +228,12 @@ def health_check(bars, summary: dict) -> List[dict]:
         cov = summary["im_coverage"]
         vix_pct = cov.get("with_vix", 0) / max(cov.get("total_bars", 1), 1) * 100
         if vix_pct < 20:
-            issues.append({"severity": "info", "msg": f"VIX coverage only {vix_pct:.0f}% — V8 voice impact limited"})
+            issues.append(
+                {
+                    "severity": "info",
+                    "msg": f"VIX coverage only {vix_pct:.0f}% — V8 voice impact limited",
+                }
+            )
 
     return issues
 
@@ -208,10 +243,10 @@ def health_check(bars, summary: dict) -> List[dict]:
 # ─────────────────────────────────────────────────────────────────────────────
 def save_winning_config(config: dict, stats: dict):
     """Save a winning config to configs/ with timestamp."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     path = os.path.join(CONFIGS_DIR, f"winner_{ts}.json")
     payload = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "config": config,
         "stats": stats,
     }
@@ -222,7 +257,7 @@ def save_winning_config(config: dict, stats: dict):
         json.dump(payload, f, indent=2)
 
 
-def load_latest_config() -> Optional[dict]:
+def load_latest_config() -> dict | None:
     path = os.path.join(CONFIGS_DIR, "latest.json")
     if not os.path.exists(path):
         return None
@@ -236,17 +271,18 @@ def load_latest_config() -> Optional[dict]:
 # ─────────────────────────────────────────────────────────────────────────────
 # REPORT GENERATION
 # ─────────────────────────────────────────────────────────────────────────────
-def generate_report(bars, data_paths, meta_dec, calib_results, final_stats,
-                    health_issues, equity_curve):
+def generate_report(
+    bars, data_paths, meta_dec, calib_results, final_stats, health_issues, equity_curve
+):
     """Write comprehensive JSON + human-readable report."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     report = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "data": {
             "mnq_path": data_paths.get("mnq"),
             "bars": len(bars) if bars else 0,
-            "start": datetime.fromtimestamp(bars[0].time, tz=timezone.utc).isoformat() if bars else None,
-            "end": datetime.fromtimestamp(bars[-1].time, tz=timezone.utc).isoformat() if bars else None,
+            "start": datetime.fromtimestamp(bars[0].time, tz=UTC).isoformat() if bars else None,
+            "end": datetime.fromtimestamp(bars[-1].time, tz=UTC).isoformat() if bars else None,
             "intermarket": {k: bool(data_paths.get(k)) for k in ["vix", "es", "dxy", "tick"]},
         },
         "meta_decision": {
@@ -271,7 +307,9 @@ def generate_report(bars, data_paths, meta_dec, calib_results, final_stats,
             "points": len(equity_curve),
             "peak": max((r for _, r in equity_curve), default=0),
             "final": equity_curve[-1][1] if equity_curve else 0,
-        } if equity_curve else {},
+        }
+        if equity_curve
+        else {},
     }
 
     # Write JSON
@@ -289,8 +327,7 @@ def generate_report(bars, data_paths, meta_dec, calib_results, final_stats,
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN ORCHESTRATOR
 # ─────────────────────────────────────────────────────────────────────────────
-def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
-                  verbose: bool = True):
+def run_autopilot(mode: str = "default", data_override: str | None = None, verbose: bool = True):
     """Main entrypoint. Returns report dict."""
     start_time = time.time()
 
@@ -305,7 +342,7 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     if data_override:
         paths["mnq"] = data_override
     if not paths["mnq"] or not os.path.exists(paths["mnq"]):
-        print(f"  ✗ No data file found. Specify with --data <path>")
+        print("  ✗ No data file found. Specify with --data <path>")
         return None
     print(f"  ✓ MNQ: {os.path.basename(paths['mnq'])}")
     im_found = [k for k in ["vix", "es", "dxy", "tick"] if paths.get(k)]
@@ -314,9 +351,13 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     # 2. Load data
     print("[2/7] Loading bars...")
     if im_found:
-        bars = load_with_intermarket(paths["mnq"],
-                                     vix=paths.get("vix"), es=paths.get("es"),
-                                     dxy=paths.get("dxy"), tick=paths.get("tick"))
+        bars = load_with_intermarket(
+            paths["mnq"],
+            vix=paths.get("vix"),
+            es=paths.get("es"),
+            dxy=paths.get("dxy"),
+            tick=paths.get("tick"),
+        )
         cov = coverage_report(bars)
     else:
         bars = load_csv(paths["mnq"])
@@ -336,10 +377,11 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     bt0 = Backtester(cfg=cfg0, detector_cfg=det_cfg0)
     summary0 = bt0.run(bars)
     recent_trades_snapshot = [
-        {"pnl_r": t.pnl_r, "setup": t.setup, "regime": t.regime}
-        for t in bt0.trades
+        {"pnl_r": t.pnl_r, "setup": t.setup, "regime": t.regime} for t in bt0.trades
     ]
-    print(f"  ✓ Context: {summary0.get('trades', 0)} trades, {summary0.get('win_rate', 0)}% win, {summary0.get('total_r', 0):+.2f}R")
+    print(
+        f"  ✓ Context: {summary0.get('trades', 0)} trades, {summary0.get('win_rate', 0)}% win, {summary0.get('total_r', 0):+.2f}R"
+    )
 
     # 5. Meta-Firm decides system-level params
     print("[5/7] Meta-Firm voting...")
@@ -348,7 +390,9 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     save_meta_decision(meta_dec, os.path.join(STATE_DIR, f"meta_{int(time.time())}.json"))
     print(f"  ✓ Confidence: {meta_dec.confidence}/100")
     print(f"  ✓ Regime vote: {meta_dec.regime_vote}")
-    print(f"  ✓ PM: {meta_dec.pm_threshold}  Budget: {meta_dec.risk_budget_R}R  Size: {meta_dec.size_multiplier}x")
+    print(
+        f"  ✓ PM: {meta_dec.pm_threshold}  Budget: {meta_dec.risk_budget_R}R  Size: {meta_dec.size_multiplier}x"
+    )
     print(f"  ✓ Enabled: {', '.join(meta_dec.enabled_setups)}")
     print(f"  ✓ Decision: {meta_dec.reason}")
 
@@ -364,9 +408,9 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     #   - meta_confidence >= 30 (not alarm mode)
     #   - calibrator has positive score (a real edge)
     # Otherwise meta's caution takes over
-    use_calibrator_pm = (meta_dec.trade_allowed
-                        and meta_dec.confidence >= 30
-                        and best.get("score", -999) > 10)
+    use_calibrator_pm = (
+        meta_dec.trade_allowed and meta_dec.confidence >= 30 and best.get("score", -999) > 10
+    )
 
     if use_calibrator_pm:
         final_pm = best["pm"]
@@ -392,16 +436,22 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     bt_final = Backtester(cfg=final_cfg, detector_cfg=final_det_cfg)
     final_summary = bt_final.run(bars)
     final_summary["im_coverage"] = cov
-    print(f"  ✓ Final backtest: {final_summary.get('trades', 0)} trades, "
-          f"{final_summary.get('win_rate', 0)}% win, "
-          f"{final_summary.get('total_r', 0):+.2f}R, "
-          f"PF {final_summary.get('profit_factor', 0)}")
+    print(
+        f"  ✓ Final backtest: {final_summary.get('trades', 0)} trades, "
+        f"{final_summary.get('win_rate', 0)}% win, "
+        f"{final_summary.get('total_r', 0):+.2f}R, "
+        f"PF {final_summary.get('profit_factor', 0)}"
+    )
 
     # 7. Health checks + report
     print("[7/7] Health checks & report...")
     issues = health_check(bars, final_summary)
     for iss in issues:
-        marker = "⚠ " if iss["severity"] == "warning" else ("✗ " if iss["severity"] == "critical" else "ℹ ")
+        marker = (
+            "⚠ "
+            if iss["severity"] == "warning"
+            else ("✗ " if iss["severity"] == "critical" else "ℹ ")
+        )
         print(f"  {marker}{iss['msg']}")
     if not issues:
         print("  ✓ No issues")
@@ -409,8 +459,12 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
     # Save winning config (only if actually profitable)
     if final_summary.get("total_r", 0) > 0 and final_summary.get("trades", 0) >= 5:
         save_winning_config(
-            config={"pm_threshold": meta_dec.pm_threshold, "red_w": best["red_w"],
-                    "orb_to": best["orb_to"], "ema_s": best["ema_s"]},
+            config={
+                "pm_threshold": meta_dec.pm_threshold,
+                "red_w": best["red_w"],
+                "orb_to": best["orb_to"],
+                "ema_s": best["ema_s"],
+            },
             stats=final_summary,
         )
 
@@ -446,8 +500,7 @@ def run_autopilot(mode: str = "default", data_override: Optional[str] = None,
 
 def main():
     ap = argparse.ArgumentParser(description="Apex v2 Autopilot — single entrypoint")
-    ap.add_argument("--mode", default="default",
-                    choices=["default", "live", "calibrate"])
+    ap.add_argument("--mode", default="default", choices=["default", "live", "calibrate"])
     ap.add_argument("--data", help="Override MNQ CSV path")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()

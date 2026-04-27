@@ -33,10 +33,9 @@ import argparse
 import csv
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from confluence_scorer import score_signal, tod_bucket_from_ts, dow_from_ts
+from confluence_scorer import dow_from_ts, score_signal, tod_bucket_from_ts
 
 ET = ZoneInfo("America/New_York")
 
@@ -60,28 +59,28 @@ ET = ZoneInfo("America/New_York")
 #
 # This is the canonical "final touches" calibration for The Firm.
 OPTIMAL_V3_PARAMS = {
-    't1_pct': 70,                # Tier 1 starts at score >= P70
-    'aplus_pct': 85,             # A+ starts at score >= P85
-    'tier1_size': 0.5,
-    'aplus_size': 1.5,
-    'stall_bar': 4,
-    'stall_max_mfe': 0.2,
-    'stall_min_mae': -0.4,
-    'early_cut_mae': -0.6,
-    'early_cut_max_mfe': 0.3,
-    'tp1_R': 0.5,
-    'tp2_R': 1.5,
-    'tp_partial_pct': 0.33,
-    'trail_arm_R': 0.3,
-    'trail_lock_R': 0.3,
+    "t1_pct": 70,  # Tier 1 starts at score >= P70
+    "aplus_pct": 85,  # A+ starts at score >= P85
+    "tier1_size": 0.5,
+    "aplus_size": 1.5,
+    "stall_bar": 4,
+    "stall_max_mfe": 0.2,
+    "stall_min_mae": -0.4,
+    "early_cut_mae": -0.6,
+    "early_cut_max_mfe": 0.3,
+    "tp1_R": 0.5,
+    "tp2_R": 1.5,
+    "tp_partial_pct": 0.33,
+    "trail_arm_R": 0.3,
+    "trail_lock_R": 0.3,
     # Execution layer (real-data winning config, 2026-04-16):
-    'exit_mode': 'fibonacci',
-    'use_partials': True,
-    'entry_mode': 'pullback',
-    'fib_tp1_extension': 1.272,
-    'fib_tp2_extension': 1.618,
-    'pullback_atr': 0.3,
-    'pullback_max_wait': 3,
+    "exit_mode": "fibonacci",
+    "use_partials": True,
+    "entry_mode": "pullback",
+    "fib_tp1_extension": 1.272,
+    "fib_tp2_extension": 1.618,
+    "pullback_atr": 0.3,
+    "pullback_max_wait": 3,
 }
 
 # ─── V3_FINAL scoring system (NOT the same as confluence_scorer.py) ───
@@ -96,8 +95,8 @@ OPTIMAL_V3_PARAMS = {
 # Do NOT compare these thresholds against confluence_scorer's (75/60/40).
 # See BASEMENT_THEORY_AUDIT.md Fix #8.
 SCORE_SKIP_THRESHOLD = 25.0
-SCORE_TIER1_THRESHOLD = 33.0     # P70 of walk-forward validated score dist
-SCORE_APLUS_THRESHOLD = 36.5     # P85 of walk-forward validated score dist
+SCORE_TIER1_THRESHOLD = 33.0  # P70 of walk-forward validated score dist
+SCORE_APLUS_THRESHOLD = 36.5  # P85 of walk-forward validated score dist
 
 
 # (Score thresholds defined above in OPTIMAL_V3_PARAMS section)
@@ -117,6 +116,7 @@ def classify_by_calibrated_score(score: float):
 @dataclass
 class SimulatedTrade:
     """A trade after V3+Score+Pyramid management simulation."""
+
     ts: int
     setup: str
     side: str
@@ -147,7 +147,9 @@ class SimulatedTrade:
 def simulate_v3_management(t: SimulatedTrade) -> float:
     """Apply V3 asymmetric payoff rules post-hoc to a V1 trade.
     Returns final R (before size multiplier)."""
-    mfe = t.mfe_R; mae = t.mae_R; bars = t.bars_to_resolution
+    mfe = t.mfe_R
+    mae = t.mae_R
+    bars = t.bars_to_resolution
     outcome = t.v1_outcome
 
     # Stall exit
@@ -156,22 +158,22 @@ def simulate_v3_management(t: SimulatedTrade) -> float:
         return mae * 0.3
 
     # Cut loss early: trade hit SL AND never went anywhere
-    if outcome == 'sl' and abs(mfe) < 0.3:
+    if outcome == "sl" and abs(mfe) < 0.3:
         t.v3_outcome = "v3_cut_loss_early"
         return -0.6
 
     # Trail saved: hit SL but had meaningful MFE
-    if outcome == 'sl' and mfe >= 0.5:
+    if outcome == "sl" and mfe >= 0.5:
         t.v3_outcome = "v3_trail_saved_loss"
         return 0.3
 
     # SL unchanged
-    if outcome == 'sl':
+    if outcome == "sl":
         t.v3_outcome = "sl"
         return -1.0
 
     # Three-stage TP system
-    if outcome.startswith('tp1') or outcome == 'tp2' or outcome == 'trail_lock':
+    if outcome.startswith("tp1") or outcome == "tp2" or outcome == "trail_lock":
         # Stage 1 always fills (at 0.7R for V3 staging)
         realized = 0.7 * 0.33
         # Stage 2 fills if MFE >= 1.5R
@@ -193,7 +195,7 @@ def simulate_v3_management(t: SimulatedTrade) -> float:
         return realized
 
     # Expired trades
-    if outcome.startswith('expired'):
+    if outcome.startswith("expired"):
         if mfe >= 1.5:
             t.v3_outcome = "v3_partial_1.5R"
             return 1.5 * 0.6
@@ -213,7 +215,7 @@ def simulate_v3_management(t: SimulatedTrade) -> float:
 def simulate_pyramid(t: SimulatedTrade, base_r: float) -> float:
     """Simulate a pyramid second-entry on A+ trades.
     Returns ADDITIONAL R from the pyramid entry (separate from base trade).
-    
+
     Rules: pyramid activates if base trade reached +1R MFE.
     Entry 2 stop at -1R, exits when Entry 2 reaches +1R (half-R take),
     then trails with Entry 1."""
@@ -233,19 +235,17 @@ def simulate_pyramid(t: SimulatedTrade, base_r: float) -> float:
     if t.mfe_R >= 2.5:
         # Strong continuation — pyramid captures another 1.2R
         return 1.2
-    elif t.mfe_R >= 1.8:
+    if t.mfe_R >= 1.8:
         # Good continuation — pyramid captures 0.7R
         return 0.7
-    elif t.mfe_R >= 1.3:
+    if t.mfe_R >= 1.3:
         # Marginal — pyramid either scrapes 0.3R or stops at -1R
         # Probabilistic: if base trade ended positive, pyramid likely worked
         if t.v1_pnl_r > 0:
             return 0.3
-        else:
-            return -0.5
-    else:
-        # MFE just barely hit 1.0 then reversed — pyramid likely stops out
-        return -0.7
+        return -0.5
+    # MFE just barely hit 1.0 then reversed — pyramid likely stops out
+    return -0.7
 
 
 def run_v3_final(trades_csv: str, enable_pyramid: bool = True):
@@ -257,28 +257,37 @@ def run_v3_final(trades_csv: str, enable_pyramid: bool = True):
         reader = csv.DictReader(f)
         for row in reader:
             if not voice_keys:
-                voice_keys = [k for k in row.keys() if k.startswith('v') and k[1:].replace('+','').replace('-','').isdigit()]
-            ts = int(row['open_time'])
+                voice_keys = [
+                    k
+                    for k in row
+                    if k.startswith("v") and k[1:].replace("+", "").replace("-", "").isdigit()
+                ]
+            ts = int(row["open_time"])
             voices = {k: float(row.get(k, 0)) for k in voice_keys}
-            tod = tod_bucket_from_ts(ts); dow = dow_from_ts(ts)
-            side = row['side']
-            score, _ = score_signal(voices, tod, dow, row['regime'], side)
+            tod = tod_bucket_from_ts(ts)
+            dow = dow_from_ts(ts)
+            side = row["side"]
+            score, _ = score_signal(voices, tod, dow, row["regime"], side)
             tier, size, label, pyr_elig = classify_by_calibrated_score(score)
 
             if size == 0.0:  # SKIP
                 continue
 
             t = SimulatedTrade(
-                ts=ts, setup=row['setup'], side=side,
+                ts=ts,
+                setup=row["setup"],
+                side=side,
                 side_dir=1 if side == "long" else -1,
-                regime=row['regime'], score=score,
-                tier_label=label, size_mult=size,
+                regime=row["regime"],
+                score=score,
+                tier_label=label,
+                size_mult=size,
                 pyramid_eligible=pyr_elig and enable_pyramid,
-                v1_outcome=row['outcome'],
-                v1_pnl_r=float(row['pnl_r']),
-                mfe_R=float(row.get('mfe_R', 0)),
-                mae_R=float(row.get('mae_R', 0)),
-                bars_to_resolution=int(row.get('bars_to_resolution', 0)),
+                v1_outcome=row["outcome"],
+                v1_pnl_r=float(row["pnl_r"]),
+                mfe_R=float(row.get("mfe_R", 0)),
+                mae_R=float(row.get("mae_R", 0)),
+                bars_to_resolution=int(row.get("bars_to_resolution", 0)),
             )
             # V3 management
             base_r = simulate_v3_management(t)
@@ -297,28 +306,41 @@ def run_v3_final(trades_csv: str, enable_pyramid: bool = True):
 
 def summarize(trades, label):
     if not trades:
-        return
+        return None
     pnls = [t.final_pnl_r for t in trades]
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p < 0]
     bes = [p for p in pnls if p == 0]
     total = sum(pnls)
     n_res = len(wins) + len(losses)
-    strike = (len(wins)/n_res*100) if n_res > 0 else 0
-    gw = sum(wins); gl = abs(sum(losses))
-    pf = gw/gl if gl > 0 else (999 if gw > 0 else 0)
-    avg_w = (gw/len(wins)) if wins else 0
-    avg_l = (gl/len(losses)) if losses else 0
+    strike = (len(wins) / n_res * 100) if n_res > 0 else 0
+    gw = sum(wins)
+    gl = abs(sum(losses))
+    pf = gw / gl if gl > 0 else (999 if gw > 0 else 0)
+    avg_w = (gw / len(wins)) if wins else 0
+    avg_l = (gl / len(losses)) if losses else 0
     cum = peak = mdd = 0
     for p in pnls:
-        cum += p; peak = max(peak, cum); mdd = max(mdd, peak - cum)
+        cum += p
+        peak = max(peak, cum)
+        mdd = max(mdd, peak - cum)
     print(f"\n── {label} ──")
     print(f"  n={len(trades)}  W={len(wins)}  L={len(losses)}  BE={len(bes)}")
-    print(f"  Strike: {strike:.1f}%  Total R: {total:+.2f}  Avg R/trade: {total/len(trades):+.4f}")
-    print(f"  Avg winner: {avg_w:+.3f}R  Avg loser: -{avg_l:.3f}R  Payoff: {avg_w/avg_l if avg_l else 'inf':.2f}")
+    print(
+        f"  Strike: {strike:.1f}%  Total R: {total:+.2f}  Avg R/trade: {total / len(trades):+.4f}"
+    )
+    print(
+        f"  Avg winner: {avg_w:+.3f}R  Avg loser: -{avg_l:.3f}R  Payoff: {avg_w / avg_l if avg_l else 'inf':.2f}"
+    )
     print(f"  PF: {pf if pf < 999 else 'inf'}  Max DD: {mdd:.2f}R")
-    return {"n": len(trades), "total_r": total, "pf": pf, "mdd": mdd, "strike": strike,
-            "pnls": pnls}
+    return {
+        "n": len(trades),
+        "total_r": total,
+        "pf": pf,
+        "mdd": mdd,
+        "strike": strike,
+        "pnls": pnls,
+    }
 
 
 def main():
@@ -337,51 +359,65 @@ def main():
     aplus = [t for t in sims if "Aplus" in t.tier_label]
     tier1 = [t for t in sims if "Tier1_standard" in t.tier_label]
 
-    print(f"\n{'='*72}")
-    print(f"V3 FINAL RESULTS (scoring + V3 management + {'pyramiding' if enable_pyramid else 'no pyramid'})")
-    print(f"{'='*72}")
+    print(f"\n{'=' * 72}")
+    print(
+        f"V3 FINAL RESULTS (scoring + V3 management + {'pyramiding' if enable_pyramid else 'no pyramid'})"
+    )
+    print(f"{'=' * 72}")
 
-    r_all = summarize(sims, f"All taken trades")
-    r_aplus = summarize(aplus, "A+ only (score ≥ 38.5)") if aplus else None
-    r_tier1 = summarize(tier1, "Tier 1 only (35.2-38.5)") if tier1 else None
+    r_all = summarize(sims, "All taken trades")
+    summarize(aplus, "A+ only (score ≥ 38.5)") if aplus else None
+    summarize(tier1, "Tier 1 only (35.2-38.5)") if tier1 else None
 
     # Pyramiding impact
     if enable_pyramid and aplus:
         pyramid_activated = [t for t in aplus if t.pyramid_activated]
         pyramid_contribution = sum(t.pyramid_entry2_pnl_r * t.size_mult for t in pyramid_activated)
-        print(f"\n── Pyramid activations ──")
-        print(f"  Activated: {len(pyramid_activated)} / {len(aplus)} A+ trades ({len(pyramid_activated)/len(aplus)*100:.0f}%)")
+        print("\n── Pyramid activations ──")
+        print(
+            f"  Activated: {len(pyramid_activated)} / {len(aplus)} A+ trades ({len(pyramid_activated) / len(aplus) * 100:.0f}%)"
+        )
         print(f"  Pyramid contribution: {pyramid_contribution:+.2f}R")
         wins_p = sum(1 for t in pyramid_activated if t.pyramid_entry2_pnl_r > 0)
-        print(f"  Pyramid win rate: {wins_p}/{len(pyramid_activated)} ({wins_p/len(pyramid_activated)*100:.0f}%)" if pyramid_activated else "")
+        print(
+            f"  Pyramid win rate: {wins_p}/{len(pyramid_activated)} ({wins_p / len(pyramid_activated) * 100:.0f}%)"
+            if pyramid_activated
+            else ""
+        )
 
     # Monte Carlo
     random.seed(42)
-    if r_all and len(r_all['pnls']) >= 5:
+    if r_all and len(r_all["pnls"]) >= 5:
         results = []
         ruin_count = 0
         for _ in range(args.mc_sims):
-            sample = random.choices(r_all['pnls'], k=len(r_all['pnls']))
+            sample = random.choices(r_all["pnls"], k=len(r_all["pnls"]))
             cum = peak = mdd = 0
             for p in sample:
-                cum += p; peak = max(peak, cum); mdd = max(mdd, peak - cum)
-            results.append({'total_r': cum, 'mdd': mdd})
+                cum += p
+                peak = max(peak, cum)
+                mdd = max(mdd, peak - cum)
+            results.append({"total_r": cum, "mdd": mdd})
             if mdd >= 3.0:
                 ruin_count += 1
-        def pct(key, p): return sorted(r[key] for r in results)[int(len(results)*p/100)]
 
-        print(f"\n{'='*72}")
+        def pct(key, p):
+            return sorted(r[key] for r in results)[int(len(results) * p / 100)]
+
+        print(f"\n{'=' * 72}")
         print(f"V3 FINAL MONTE CARLO ({args.mc_sims} sims on {len(r_all['pnls'])} trades)")
-        print(f"{'='*72}")
+        print(f"{'=' * 72}")
         print(f"  5th %ile total R:  {pct('total_r', 5):+.2f}")
         print(f"  Median total R:    {pct('total_r', 50):+.2f}")
         print(f"  95th %ile total R: {pct('total_r', 95):+.2f}")
         print(f"  95th %ile MDD:     {pct('mdd', 95):.2f}R")
-        print(f"  P(MDD >= 3.0R):    {ruin_count/args.mc_sims*100:.2f}%")
+        print(f"  P(MDD >= 3.0R):    {ruin_count / args.mc_sims * 100:.2f}%")
 
         # Verdict
-        p5_r = pct('total_r', 5); p95_dd = pct('mdd', 95); ruin = ruin_count/args.mc_sims*100
-        print(f"\n── VERDICT ──")
+        p5_r = pct("total_r", 5)
+        p95_dd = pct("mdd", 95)
+        ruin = ruin_count / args.mc_sims * 100
+        print("\n── VERDICT ──")
         print(f"  5th %ile R > 0:   {'PASS' if p5_r > 0 else 'FAIL'}  ({p5_r:+.2f}R)")
         print(f"  95th %ile DD<3R:  {'PASS' if p95_dd < 3.0 else 'FAIL'}  ({p95_dd:.2f}R)")
         print(f"  Ruin < 5%:        {'PASS' if ruin < 5 else 'FAIL'}  ({ruin:.2f}%)")

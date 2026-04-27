@@ -8,6 +8,7 @@ Batch 4A. The shadow venue is the future-broker surface — it MUST be:
 - Side/qty/price faithful: records the signal's side/qty, price caller
   provides, venue tag = "shadow"
 """
+
 from __future__ import annotations
 
 import json
@@ -174,9 +175,7 @@ class TestDeterminism:
 class TestMultiQtyAndShort:
     def test_short_side_recorded(self) -> None:
         venue = ShadowVenue()
-        result = venue.place_order(
-            _mk_signal(Side.SHORT), at_price=Decimal("24000"), at_ts=_ts()
-        )
+        result = venue.place_order(_mk_signal(Side.SHORT), at_price=Decimal("24000"), at_ts=_ts())
         assert result.fill.side is Side.SHORT
 
     def test_qty_three_preserved(self) -> None:

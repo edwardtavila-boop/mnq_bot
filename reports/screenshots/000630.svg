@@ -2,8 +2,8 @@
   <rect width="960" height="540" fill="#0a0e14"/>
   <text x="40" y="80" font-family="monospace" font-size="22" fill="#50fa7b">trade #630</text>
   <text x="40" y="120" font-family="monospace" font-size="14" fill="#888">long · 1c · $-7.24 · -7.24R</text>
-  <text x="40" y="150" font-family="monospace" font-size="12" fill="#666">entry: 2026-04-17T01:37:29.805945+00:00 @ $19979.00</text>
-  <text x="40" y="170" font-family="monospace" font-size="12" fill="#666">exit : 2026-04-17T01:37:29.809701+00:00 @ $19975.75</text>
+  <text x="40" y="150" font-family="monospace" font-size="12" fill="#666">entry: 2026-04-26T00:22:37.994979+00:00 @ $19979.00</text>
+  <text x="40" y="170" font-family="monospace" font-size="12" fill="#666">exit : 2026-04-26T00:22:37.998642+00:00 @ $19975.75</text>
   <text x="40" y="500" font-family="monospace" font-size="11" fill="#444">
     [placeholder — wire TradingView Capture API for real bars]
   </text>

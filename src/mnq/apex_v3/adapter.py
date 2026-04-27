@@ -27,6 +27,7 @@ The adapter does NOT import the_firm_complete. It only shapes a dict
 that the existing bridge shim (src/mnq/firm_runtime.py) will pass
 through verbatim.
 """
+
 from __future__ import annotations
 
 import sys
@@ -45,6 +46,7 @@ class ApexVoiceSnapshot:
     Kept small on purpose — AgentInput payloads are passed through
     the journal, so bloat there means bigger events.db.
     """
+
     regime: str
     pm_final: float
     quant_total: float
@@ -79,6 +81,7 @@ def _ensure_eta_v3_on_path() -> bool:
         sys.path.insert(0, p)
     try:
         import firm_engine  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -96,6 +99,7 @@ def probe_eta_v3_engine() -> dict[str, Any]:
         return {"available": False, "reason": "firm_engine import failed"}
     try:
         import firm_engine  # type: ignore
+
         voices = [n for n in dir(firm_engine) if n.startswith("voice_")]
         return {
             "available": True,
@@ -108,8 +112,9 @@ def probe_eta_v3_engine() -> dict[str, Any]:
         return {"available": False, "reason": f"probe raised {type(e).__name__}: {e}"}
 
 
-def run_apex_evaluation(bar: Any, setup: Any, regime: str = "NEUTRAL",
-                        **kwargs: Any) -> ApexVoiceSnapshot | None:
+def run_apex_evaluation(
+    bar: Any, setup: Any, regime: str = "NEUTRAL", **kwargs: Any
+) -> ApexVoiceSnapshot | None:
     """Call eta_v3_framework.firm_engine.evaluate and package result.
 
     ``bar`` must be (or duck-type) firm_engine.Bar.
@@ -145,8 +150,9 @@ def run_apex_evaluation(bar: Any, setup: Any, regime: str = "NEUTRAL",
     )
 
 
-def apex_to_firm_payload(base_payload: dict[str, Any],
-                         snapshot: ApexVoiceSnapshot | None) -> dict[str, Any]:
+def apex_to_firm_payload(
+    base_payload: dict[str, Any], snapshot: ApexVoiceSnapshot | None
+) -> dict[str, Any]:
     """Return a NEW dict with eta_v3_voices enrichment added.
 
     If ``snapshot`` is None (engine unavailable), returns the base
@@ -181,13 +187,13 @@ def summarize_voices(snapshot: ApexVoiceSnapshot | None) -> str:
 # Convenience alias — the __init__ exposes this name, but callers may
 # also want to build enrichment without running a full evaluation
 # (e.g., during testing with a handcrafted snapshot).
-def build_enrichment_payload(base_payload: dict[str, Any],
-                             snapshot: ApexVoiceSnapshot | None) -> dict[str, Any]:
+def build_enrichment_payload(
+    base_payload: dict[str, Any], snapshot: ApexVoiceSnapshot | None
+) -> dict[str, Any]:
     return apex_to_firm_payload(base_payload, snapshot)
 
 
-def enrich_agent_input(agent_input: Any,
-                       snapshot: ApexVoiceSnapshot | None) -> Any:
+def enrich_agent_input(agent_input: Any, snapshot: ApexVoiceSnapshot | None) -> Any:
     """In-place-safe enrichment of a firm.agents.base.AgentInput.
 
     Rather than reaching into AgentInput's dataclass, we rebuild its

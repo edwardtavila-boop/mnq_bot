@@ -39,6 +39,7 @@ per process — idempotent, and a no-op when the shim is healthy.
     ensure_firm_runtime_healthy()
     from mnq.firm_runtime import run_six_stage_review  # now safe
 """
+
 from __future__ import annotations
 
 import ast
@@ -78,9 +79,7 @@ _UPLOAD_BUNDLE_CANDIDATES = (
     _REPO_ROOT / "upload_bundle" / "firm-basement-audit" / "fixes" / "firm_runtime.py",
 )
 
-KNOWN_GOOD_PATH: Path | None = next(
-    (p for p in _UPLOAD_BUNDLE_CANDIDATES if p.exists()), None
-)
+KNOWN_GOOD_PATH: Path | None = next((p for p in _UPLOAD_BUNDLE_CANDIDATES if p.exists()), None)
 
 
 class ShimHealth:
@@ -139,9 +138,7 @@ def check_shim_health(path: Path = SHIM_PATH) -> ShimHealth:
     # The truncation bug leaves a syntactically-valid for-loop body that
     # never reaches the ``return`` statement. Verify the function body
     # contains at least one Return.
-    has_return = any(
-        isinstance(n, ast.Return) for n in ast.walk(target_fn)
-    )
+    has_return = any(isinstance(n, ast.Return) for n in ast.walk(target_fn))
     if not has_return:
         return ShimHealth(False, "truncated_no_return", path, size)
 
@@ -195,7 +192,9 @@ def ensure_firm_runtime_healthy(
 
     logger.warning(
         "firm_runtime.py is %s (%d bytes). Restoring from %s.",
-        initial.reason, initial.size_bytes, source,
+        initial.reason,
+        initial.size_bytes,
+        source,
     )
     # Atomic-ish: write to tmp, rename into place.
     tmp = path.with_suffix(".py.repair.tmp")
@@ -232,14 +231,17 @@ def ensure_firm_runtime_healthy(
 # ---------------------------------------------------------------------------
 
 _FIXES_DIR_CANDIDATES: tuple[Path, ...] = tuple(
-    p for p in (
+    p
+    for p in (
         # Parent of repo (/mnt/upload_bundle/...)
         _REPO_ROOT.parent / "upload_bundle" / "firm-basement-audit" / "fixes",
         # Two levels up — the session-root layout
         # (/sessions/<id>/upload_bundle/...). This is where the real
         # fixes live in the current workspace.
         (_REPO_ROOT.parents[1] if len(_REPO_ROOT.parents) >= 2 else _REPO_ROOT)
-        / "upload_bundle" / "firm-basement-audit" / "fixes",
+        / "upload_bundle"
+        / "firm-basement-audit"
+        / "fixes",
         # Sibling of src/ (in-tree upload bundle)
         _REPO_ROOT / "upload_bundle" / "firm-basement-audit" / "fixes",
     )
@@ -329,8 +331,9 @@ def _ends_with_return(node: ast.stmt) -> bool:
     if isinstance(node, ast.Return):
         return True
     if isinstance(node, ast.If):
-        return bool(node.body and _ends_with_return(node.body[-1])) and \
-               bool(node.orelse and _ends_with_return(node.orelse[-1]))
+        return bool(node.body and _ends_with_return(node.body[-1])) and bool(
+            node.orelse and _ends_with_return(node.orelse[-1])
+        )
     if isinstance(node, (ast.With, ast.AsyncWith, ast.Try)):
         return bool(node.body and _ends_with_return(node.body[-1]))
     return False
@@ -418,7 +421,10 @@ def ensure_file_healthy(
 
     logger.warning(
         "%s is %s (%d bytes). Restoring from %s.",
-        path, initial.reason, initial.size_bytes, known_good,
+        path,
+        initial.reason,
+        initial.size_bytes,
+        known_good,
     )
     tmp = path.with_suffix(path.suffix + ".repair.tmp")
     shutil.copy2(known_good, tmp)
@@ -456,9 +462,7 @@ def ensure_file_healthy(
 # mid-function truncation where the body parses but the return got
 # lopped off).
 
-GUARDED_FILES: tuple[
-    tuple[Path, str, tuple[str, ...], tuple[str, ...], int], ...
-] = (
+GUARDED_FILES: tuple[tuple[Path, str, tuple[str, ...], tuple[str, ...], int], ...] = (
     (
         _HERE / "eta_v3" / "__init__.py",
         "eta_v3_init.py",

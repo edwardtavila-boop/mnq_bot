@@ -10,6 +10,7 @@ A future enhancement will model limit-order queue + market-fallback
 behavior at millisecond resolution; for now a single-bar offset is
 enough to make the sim deterministic and not-look-ahead.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

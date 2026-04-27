@@ -23,6 +23,7 @@ zero fills). The resulting artifact carries n_trades=0 + ci95_low=0
 for the empty case so the gate evaluator correctly transitions from
 NO_DATA to FAIL once the journal exists.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -111,38 +112,55 @@ def _read_per_trade_r(
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument(
-        "--journal", type=Path, default=LIVE_SIM_JOURNAL,
+        "--journal",
+        type=Path,
+        default=LIVE_SIM_JOURNAL,
         help=f"event journal (default: {LIVE_SIM_JOURNAL})",
     )
     p.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT,
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
         help=f"output JSON artifact (default: {DEFAULT_OUTPUT})",
     )
     p.add_argument(
-        "--variant", type=str, default=None,
+        "--variant",
+        type=str,
+        default=None,
         help="filter to fills tagged with this variant name",
     )
     p.add_argument(
-        "--k", type=int, default=10000,
+        "--k",
+        type=int,
+        default=10000,
         help="bootstrap iterations (default 10000)",
     )
     p.add_argument(
-        "--block", type=int, default=5,
+        "--block",
+        type=int,
+        default=5,
         help="block size in trades (default 5)",
     )
     p.add_argument(
-        "--seed", type=int, default=11,
+        "--seed",
+        type=int,
+        default=11,
         help="RNG seed for reproducibility (default 11)",
     )
     p.add_argument(
-        "--threshold-r", type=float, default=0.05,
+        "--threshold-r",
+        type=float,
+        default=0.05,
         help="paper-gate threshold (default +0.05R)",
     )
     args = p.parse_args(argv)
 
     rs = _read_per_trade_r(args.journal, variant_filter=args.variant)
     result = block_bootstrap_ci(
-        rs, k=args.k, block_size=args.block, seed=args.seed,
+        rs,
+        k=args.k,
+        block_size=args.block,
+        seed=args.seed,
         paper_gate_r=args.threshold_r,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

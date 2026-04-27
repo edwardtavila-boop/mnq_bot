@@ -280,6 +280,7 @@ def _check_regime_evidence() -> CheckResult:
         # Add scripts/ to sys.path lazily so doctor stays importable
         # when scripts/ isn't on the path (e.g. CI smoke).
         from pathlib import Path as _Path
+
         repo_root = _Path(__file__).resolve().parents[3]
         scripts = repo_root / "scripts"
         if str(scripts) not in sys.path:
@@ -288,20 +289,23 @@ def _check_regime_evidence() -> CheckResult:
         # to load a non-package script module without polluting
         # sys.modules with the wrong name.
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "_doctor_variant_pruner",
             scripts / "variant_pruner.py",
         )
         if spec is None or spec.loader is None:
             return CheckResult(
-                "regime_evidence", "warn",
+                "regime_evidence",
+                "warn",
                 "variant_pruner.py not found",
             )
         pruner = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(pruner)
     except Exception as e:  # noqa: BLE001 -- diagnostic; never crash doctor
         return CheckResult(
-            "regime_evidence", "warn",
+            "regime_evidence",
+            "warn",
             f"variant_pruner not loadable: {type(e).__name__}: {e}",
         )
 
@@ -309,13 +313,15 @@ def _check_regime_evidence() -> CheckResult:
         rows = pruner._build_classified()  # noqa: SLF001 -- internal API
     except Exception as e:  # noqa: BLE001
         return CheckResult(
-            "regime_evidence", "warn",
+            "regime_evidence",
+            "warn",
             f"classifier raised: {type(e).__name__}: {e}",
         )
 
     if not rows:
         return CheckResult(
-            "regime_evidence", "warn",
+            "regime_evidence",
+            "warn",
             "no variants found in strategy_v2.VARIANTS",
         )
 
@@ -324,14 +330,13 @@ def _check_regime_evidence() -> CheckResult:
     n_watch = sum(1 for r in rows if r["bucket"] == pruner.WATCH)
     n_prune = sum(1 for r in rows if r["bucket"] == pruner.PRUNE)
 
-    summary = (
-        f"variants={n} KEEP={n_keep} WATCH={n_watch} PRUNE={n_prune}"
-    )
+    summary = f"variants={n} KEEP={n_keep} WATCH={n_watch} PRUNE={n_prune}"
     if n_keep > 0:
         return CheckResult("regime_evidence", "ok", summary)
     if n_watch > 0:
         return CheckResult(
-            "regime_evidence", "warn",
+            "regime_evidence",
+            "warn",
             summary + " -- no calibrated edge yet, but WATCH variants "
             "may thicken with more sample. Run scripts/regime_report.py "
             "for per-variant detail.",
@@ -344,7 +349,8 @@ def _check_regime_evidence() -> CheckResult:
     # live; this is the upstream "are we even pointing at the right
     # search space?" signal.
     return CheckResult(
-        "regime_evidence", "warn",
+        "regime_evidence",
+        "warn",
         summary + " -- no variant has positive expectancy in any "
         "regime under the current cached backtest. Run "
         "scripts/variant_pruner.py for the deletion candidate list, "

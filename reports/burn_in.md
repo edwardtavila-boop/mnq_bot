@@ -1,6 +1,6 @@
-# Burn-in Harness — 2026-04-16T22:02:06.981059+00:00
+# Burn-in Harness — 2026-04-26T14:26:26.882614+00:00
 
-**Simulated:** 72h  ·  **Wall time:** 4.0s  ·  **Compression:** 4800.0×
+**Simulated:** 72h  ·  **Wall time:** 4.2s  ·  **Compression:** 4800.0×
 **Verdict:** 🟢 ALL CHECKS GREEN
 
 ## Checks
@@ -9,16 +9,16 @@
 |---|---|---|---|
 | Events emitted (≥ 1/s) | 🟢 | 263,519 | ≥ 259,200 |
 | Sequence monotonic (no gaps) | 🟢 | yes | yes |
-| Deterministic checksum | 🟢 | 71f2339ffd696450 | stable across reads |
+| Deterministic checksum | 🟢 | d16aef7e4005570d | stable across reads |
 | WAL mode preserved | 🟢 | wal | wal |
 | Max heartbeat age | 🟢 | 1.00s | < 5s |
-| Memory drift | 🟢 | +9.5% | < 25% |
+| Memory drift | 🟢 | +0.0% | < 25% |
 
 ## Memory envelope
 
-- Start: 17,536 KiB
-- End:   19,712 KiB
-- Drift: +9.48%
+- Start: 0 KiB
+- End:   0 KiB
+- Drift: +0.00%
 
 ## Notes
 

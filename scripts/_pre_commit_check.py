@@ -23,6 +23,7 @@ As a git pre-commit hook (one-time install):
 The hook lints staged .py files only (legacy code in scripts/ that the
 operator hasn't been maintaining shouldn't gate fresh work).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,13 +49,15 @@ def _run(cmd: list[str], *, cwd: Path) -> int:
 def _staged_python_files(*, root: Path) -> list[str]:
     out = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-        cwd=root, capture_output=True, text=True, check=False,
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if out.returncode != 0:
         return []
     return [
-        line for line in out.stdout.splitlines()
-        if line.endswith(".py") and (root / line).exists()
+        line for line in out.stdout.splitlines() if line.endswith(".py") and (root / line).exists()
     ]
 
 
@@ -75,8 +78,7 @@ def _ruff_check(*, root: Path) -> int:
     rc = _run(cmd, cwd=root)
     if rc != 0:
         print(
-            f"[pre-commit] FAIL: ruff found issues in "
-            f"{len(files)} staged file(s)",
+            f"[pre-commit] FAIL: ruff found issues in {len(files)} staged file(s)",
             file=sys.stderr,
         )
     return rc
@@ -113,10 +115,8 @@ def _install_hook(*, root: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument("--install-hook", action="store_true")
-    p.add_argument("--quick", action="store_true",
-                   help="skip pytest (only run ruff)")
-    p.add_argument("--no-pytest", action="store_true",
-                   help="skip pytest with a loud warning")
+    p.add_argument("--quick", action="store_true", help="skip pytest (only run ruff)")
+    p.add_argument("--no-pytest", action="store_true", help="skip pytest with a loud warning")
     args = p.parse_args(argv)
 
     if args.install_hook:
@@ -177,7 +177,10 @@ def _advisory_audits(*, root: Path) -> None:
         print(f"[pre-commit] advisory: {label}...", file=sys.stderr)
         result = subprocess.run(
             ["python", str(path)],
-            cwd=root, capture_output=True, text=True, check=False,
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if result.returncode != 0:
             tail = result.stdout.rstrip().splitlines()[-15:]
@@ -189,10 +192,7 @@ def _advisory_audits(*, root: Path) -> None:
             for line in tail:
                 print(f"[pre-commit]   {line}", file=sys.stderr)
         else:
-            lines = [
-                ln for ln in result.stdout.rstrip().splitlines()
-                if ln.strip()
-            ]
+            lines = [ln for ln in result.stdout.rstrip().splitlines() if ln.strip()]
             if lines:
                 print(f"[pre-commit]   {lines[-1]}", file=sys.stderr)
 

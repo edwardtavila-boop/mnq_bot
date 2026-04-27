@@ -24,6 +24,7 @@ dormancy, both should flip in the same operator action. Future v0.2.x
 work could promote this to a shared package; today the two-line
 duplication is acceptable.
 """
+
 from __future__ import annotations
 
 # Single source of truth -- one line, code-reviewable in git.

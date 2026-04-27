@@ -1,14 +1,16 @@
-﻿# Firm Integration — Readiness Probe
+# Firm Integration — Readiness Probe
 
-- Firm code path: `C:/Users/edwar/OneDrive/The_Firm/the_firm_complete/desktop_app/firm`
-- Path exists: **False**
-- Ready for integration: **False**
-- Probe error: `Firm code path does not exist`
+- Firm code path: `C:\Users\edwar\projects\firm`
+- Path exists: **True**
+- Ready for integration: **True**
 
 ## Module probe
 
 | Module | Importable | Required names resolved |
 |---|---|---|
+| `firm.types` | yes | 2/2 |
+| `firm.agents.base` | yes | 3/3 |
+| `firm.agents.core` | yes | 6/6 |
 
 ## Gaps blocking integration
 
@@ -16,4 +18,4 @@ _none — contract satisfied._
 
 ## Next step
 
-Continue running the markdown-only Firm review path (`scripts/firm_review.py`). Rerun this probe after each Firm-code fine-tune cycle; integration will auto-enable when the contract is met.
+Run `python scripts/firm_bridge.py --integrate` to emit the runtime shim at `src/mnq/firm_runtime.py`. Live_sim will then delegate the six-stage review to the real Firm agents.

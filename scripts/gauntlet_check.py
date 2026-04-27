@@ -9,6 +9,7 @@ available) or synthesizes a sample trajectory, constructs a
 Exit: 0 always (this is a reporter). Gate vetos in live trading
 happen inside the strategy's ``on_bar`` hook, not here.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,10 +32,10 @@ REPORT = REPO_ROOT / "reports" / "gauntlet.md"
 def _synthetic_context() -> GauntletContext:
     """Synthetic uptrend with realistic noise — most gates should pass."""
     import math
+
     # Uptrend with realistic 1m wobble: ~5pt std over 20 bars
     closes = [
-        21000.0 + i * 0.5 + 3.0 * math.sin(i * 0.7) + 2.0 * math.cos(i * 1.3)
-        for i in range(60)
+        21000.0 + i * 0.5 + 3.0 * math.sin(i * 0.7) + 2.0 * math.cos(i * 1.3) for i in range(60)
     ]
     highs = [c + 1.0 for c in closes]
     lows = [c - 1.0 for c in closes]
@@ -57,7 +58,7 @@ def _synthetic_context() -> GauntletContext:
         ema_fast_prev=ema_fast_prev,
         ema_slow_prev=ema_slow_prev,
         loss_streak=0,
-        high_impact_events_minutes=[],   # clean calendar
+        high_impact_events_minutes=[],  # clean calendar
         regime="trend_up",
         intermarket_corr=0.82,
         spread_ticks=0.5,

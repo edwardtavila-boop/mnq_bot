@@ -29,6 +29,7 @@ Usage:
 Gate chain integration:
     chain = build_default_chain(...)  # includes heat_budget_gate
 """
+
 from __future__ import annotations
 
 import json
@@ -40,8 +41,8 @@ from typing import Any
 
 from mnq.risk.gate_chain import GateResult
 
-
 # ── Canonical regimes (matches firm/regime.py 9 + TRANSITION) ──────────
+
 
 class CanonicalRegime(str, Enum):
     LOW_VOL_TREND = "low-vol-trend"
@@ -60,54 +61,84 @@ class CanonicalRegime(str, Enum):
 class RegimeHeatConfig:
     """Heat parameters for a single regime."""
 
-    max_heat: float          # 0.0–1.0, max aggregate heat allowed
-    max_concurrent: int      # Max simultaneous open positions
+    max_heat: float  # 0.0–1.0, max aggregate heat allowed
+    max_concurrent: int  # Max simultaneous open positions
     vol_multiplier_cap: float  # Cap on vol_multiplier to prevent extreme scaling
-    sizing_fraction: float   # Kelly fraction cap (half-Kelly default)
+    sizing_fraction: float  # Kelly fraction cap (half-Kelly default)
     notes: str = ""
 
 
 # Default regime configs — tuned conservatively for MNQ $5k account
 DEFAULT_REGIME_CONFIGS: dict[CanonicalRegime, RegimeHeatConfig] = {
     CanonicalRegime.LOW_VOL_TREND: RegimeHeatConfig(
-        max_heat=0.8, max_concurrent=3, vol_multiplier_cap=1.5,
-        sizing_fraction=0.5, notes="Best regime — full budget"
+        max_heat=0.8,
+        max_concurrent=3,
+        vol_multiplier_cap=1.5,
+        sizing_fraction=0.5,
+        notes="Best regime — full budget",
     ),
     CanonicalRegime.LOW_VOL_RANGE: RegimeHeatConfig(
-        max_heat=0.6, max_concurrent=2, vol_multiplier_cap=1.3,
-        sizing_fraction=0.4, notes="Good for mean-reversion setups"
+        max_heat=0.6,
+        max_concurrent=2,
+        vol_multiplier_cap=1.3,
+        sizing_fraction=0.4,
+        notes="Good for mean-reversion setups",
     ),
     CanonicalRegime.LOW_VOL_REVERSAL: RegimeHeatConfig(
-        max_heat=0.5, max_concurrent=2, vol_multiplier_cap=1.3,
-        sizing_fraction=0.35, notes="Reversal = higher uncertainty"
+        max_heat=0.5,
+        max_concurrent=2,
+        vol_multiplier_cap=1.3,
+        sizing_fraction=0.35,
+        notes="Reversal = higher uncertainty",
     ),
     CanonicalRegime.HIGH_VOL_TREND: RegimeHeatConfig(
-        max_heat=0.6, max_concurrent=2, vol_multiplier_cap=2.0,
-        sizing_fraction=0.35, notes="Wider stops needed, fewer positions"
+        max_heat=0.6,
+        max_concurrent=2,
+        vol_multiplier_cap=2.0,
+        sizing_fraction=0.35,
+        notes="Wider stops needed, fewer positions",
     ),
     CanonicalRegime.HIGH_VOL_RANGE: RegimeHeatConfig(
-        max_heat=0.4, max_concurrent=1, vol_multiplier_cap=2.0,
-        sizing_fraction=0.25, notes="Choppy — tight budget"
+        max_heat=0.4,
+        max_concurrent=1,
+        vol_multiplier_cap=2.0,
+        sizing_fraction=0.25,
+        notes="Choppy — tight budget",
     ),
     CanonicalRegime.HIGH_VOL_REVERSAL: RegimeHeatConfig(
-        max_heat=0.4, max_concurrent=1, vol_multiplier_cap=2.5,
-        sizing_fraction=0.25, notes="High risk turning points"
+        max_heat=0.4,
+        max_concurrent=1,
+        vol_multiplier_cap=2.5,
+        sizing_fraction=0.25,
+        notes="High risk turning points",
     ),
     CanonicalRegime.CRASH: RegimeHeatConfig(
-        max_heat=0.2, max_concurrent=1, vol_multiplier_cap=3.0,
-        sizing_fraction=0.15, notes="Defensive only — small counter-trend or flat"
+        max_heat=0.2,
+        max_concurrent=1,
+        vol_multiplier_cap=3.0,
+        sizing_fraction=0.15,
+        notes="Defensive only — small counter-trend or flat",
     ),
     CanonicalRegime.EUPHORIA: RegimeHeatConfig(
-        max_heat=0.3, max_concurrent=1, vol_multiplier_cap=2.0,
-        sizing_fraction=0.2, notes="Blow-off risk — tight sizing"
+        max_heat=0.3,
+        max_concurrent=1,
+        vol_multiplier_cap=2.0,
+        sizing_fraction=0.2,
+        notes="Blow-off risk — tight sizing",
     ),
     CanonicalRegime.DEAD_ZONE: RegimeHeatConfig(
-        max_heat=0.0, max_concurrent=0, vol_multiplier_cap=1.0,
-        sizing_fraction=0.0, notes="NO TRADING — liquidity desert"
+        max_heat=0.0,
+        max_concurrent=0,
+        vol_multiplier_cap=1.0,
+        sizing_fraction=0.0,
+        notes="NO TRADING — liquidity desert",
     ),
     CanonicalRegime.TRANSITION: RegimeHeatConfig(
-        max_heat=0.3, max_concurrent=1, vol_multiplier_cap=1.5,
-        sizing_fraction=0.2, notes="Regime changing — minimal exposure"
+        max_heat=0.3,
+        max_concurrent=1,
+        vol_multiplier_cap=1.5,
+        sizing_fraction=0.2,
+        notes="Regime changing — minimal exposure",
     ),
 }
 
@@ -117,7 +148,7 @@ class Position:
     """Represents an open position for heat calculation."""
 
     symbol: str
-    qty: int                 # Positive = long, negative = short
+    qty: int  # Positive = long, negative = short
     entry_price: float
     point_value: float = 5.0  # MNQ = $5 per point
     current_atr: float = 0.0  # Current ATR in points
@@ -130,8 +161,8 @@ class HeatCheckResult:
 
     allow: bool
     current_heat: float
-    new_heat: float          # Heat if position is added
-    budget: float            # Max heat for this regime
+    new_heat: float  # Heat if position is added
+    budget: float  # Max heat for this regime
     heat_remaining: float
     current_positions: int
     max_positions: int
@@ -199,10 +230,7 @@ def compute_aggregate_heat(
         return 0.0
 
     # Individual heats
-    heats = [
-        compute_position_heat(p, account_equity, vol_multiplier_cap)
-        for p in positions
-    ]
+    heats = [compute_position_heat(p, account_equity, vol_multiplier_cap) for p in positions]
 
     # Sum of individual heats (base case)
     base_heat = sum(heats)
@@ -278,7 +306,7 @@ class HeatBudget:
                 current_positions=n_existing,
                 max_positions=cfg.max_concurrent,
                 regime=self.regime.value,
-                reason=f"Dead-zone regime: no trading allowed",
+                reason="Dead-zone regime: no trading allowed",
             )
 
         # Concurrency check
@@ -303,9 +331,7 @@ class HeatBudget:
             existing_positions, account_equity, cfg.vol_multiplier_cap
         )
         proposed_book = existing_positions + [new_position]
-        new_heat = compute_aggregate_heat(
-            proposed_book, account_equity, cfg.vol_multiplier_cap
-        )
+        new_heat = compute_aggregate_heat(proposed_book, account_equity, cfg.vol_multiplier_cap)
 
         heat_remaining = max(0, cfg.max_heat - new_heat)
 
@@ -324,9 +350,9 @@ class HeatBudget:
                     "position_heat": compute_position_heat(
                         new_position, account_equity, cfg.vol_multiplier_cap
                     ),
-                    "correlation_impact": new_heat - current_heat - compute_position_heat(
-                        new_position, account_equity, cfg.vol_multiplier_cap
-                    ),
+                    "correlation_impact": new_heat
+                    - current_heat
+                    - compute_position_heat(new_position, account_equity, cfg.vol_multiplier_cap),
                 },
             )
 
@@ -362,9 +388,9 @@ class HeatBudget:
             "regime": self.regime.value,
             "current_heat": round(current_heat, 4),
             "budget": self.config.max_heat,
-            "utilization_pct": round(
-                current_heat / self.config.max_heat * 100, 1
-            ) if self.config.max_heat > 0 else 0.0,
+            "utilization_pct": round(current_heat / self.config.max_heat * 100, 1)
+            if self.config.max_heat > 0
+            else 0.0,
             "positions": len(existing_positions),
             "max_concurrent": self.config.max_concurrent,
             "sizing_fraction": self.config.sizing_fraction,
@@ -374,6 +400,7 @@ class HeatBudget:
 
 
 # ── Gate chain integration ─────────────────────────────────────────────
+
 
 def heat_budget_gate(
     budget: HeatBudget,

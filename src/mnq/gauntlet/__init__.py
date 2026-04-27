@@ -24,6 +24,7 @@ GATE ORDER (must execute in this sequence):
 
 NEW (this commit): gates 13 and 14 are the attribution gates.
 """
+
 from __future__ import annotations
 
 GATE_ORDER: tuple[str, ...] = (

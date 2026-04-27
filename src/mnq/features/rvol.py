@@ -3,6 +3,7 @@
 Pine v6 equivalent: `volume / ta.sma(volume, length)`, guarded against
 divide-by-zero.
 """
+
 from __future__ import annotations
 
 from collections import deque

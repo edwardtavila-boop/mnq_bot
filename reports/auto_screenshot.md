@@ -1,7 +1,7 @@
-# Auto-Screenshot · 2026-04-17 01:39:39 UTC
+# Auto-Screenshot · 2026-04-26 14:26:00 UTC
 
 - captured: **5** placeholder SVGs
-- location: `reports/screenshots`
+- location: `reports\screenshots`
 
 ## Files
 - `000594.svg`

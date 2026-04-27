@@ -31,6 +31,7 @@ Stdlib-only: no numpy dependency. The runtime imports this for
 artifact generation; we don't want to drag numpy into the live
 runtime path.
 """
+
 from __future__ import annotations
 
 import math
@@ -113,9 +114,14 @@ def block_bootstrap_ci(
     n = len(returns)
     if n == 0:
         return {
-            "n_trades": 0, "k": k, "block_size": block_size,
-            "mean": 0.0, "ci95_low": 0.0, "ci95_high": 0.0,
-            "p_above_paper_gate": 0.0, "paper_gate_r": paper_gate_r,
+            "n_trades": 0,
+            "k": k,
+            "block_size": block_size,
+            "mean": 0.0,
+            "ci95_low": 0.0,
+            "ci95_high": 0.0,
+            "p_above_paper_gate": 0.0,
+            "paper_gate_r": paper_gate_r,
         }
     rng = random.Random(seed)
     means: list[float] = []

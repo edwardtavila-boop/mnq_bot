@@ -34,6 +34,7 @@ Usage:
     a_decision = apex_gate(pm_output)
     final = combine_gates(a_decision, g_decision)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -65,8 +66,8 @@ class GauntletHardGateConfig:
             weights in [0, 1]. Gates with zero weight are ignored.
     """
 
-    skip_threshold: float = 0.40       # < 5/12 gates → skip
-    reduce_threshold: float = 0.60     # < 8/12 gates → reduced
+    skip_threshold: float = 0.40  # < 5/12 gates → skip
+    reduce_threshold: float = 0.60  # < 8/12 gates → reduced
     critical_gates: frozenset[str] = frozenset({"gate_regime"})
     reduced_size: float = 0.5
     gate_weights: dict[str, float] | None = None
@@ -112,8 +113,7 @@ def gauntlet_hard_gate(
         from mnq.gauntlet.outcome_weights import outcome_weighted_pass_rate
 
         gate_passed = {
-            name: name not in day_score.failed_gates
-            for name in list(cfg.gate_weights.keys())
+            name: name not in day_score.failed_gates for name in list(cfg.gate_weights.keys())
         }
         # Also include gates that aren't in weights (they'll get 0 weight)
         for name in day_score.failed_gates:

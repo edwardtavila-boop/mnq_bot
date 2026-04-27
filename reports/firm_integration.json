@@ -1,8 +1,38 @@
 {
-  "firm_path": "C:/Users/edwar/OneDrive/the_firm_complete/desktop_app/firm",
-  "path_exists": false,
-  "modules": {},
+  "firm_path": "C:\\Users\\edwar\\projects\\firm",
+  "path_exists": true,
+  "modules": {
+    "firm.types": {
+      "importable": true,
+      "file": "C:\\Users\\edwar\\projects\\firm\\types.py",
+      "resolved": [
+        "Verdict",
+        "Quadrant"
+      ]
+    },
+    "firm.agents.base": {
+      "importable": true,
+      "file": "C:\\Users\\edwar\\projects\\firm\\agents\\base.py",
+      "resolved": [
+        "Agent",
+        "AgentInput",
+        "AgentOutput"
+      ]
+    },
+    "firm.agents.core": {
+      "importable": true,
+      "file": "C:\\Users\\edwar\\projects\\firm\\agents\\core.py",
+      "resolved": [
+        "QuantAgent",
+        "RedTeamAgent",
+        "RiskManagerAgent",
+        "MacroAgent",
+        "MicrostructureAgent",
+        "PMAgent"
+      ]
+    }
+  },
   "missing": [],
-  "ready": false,
-  "error": "Firm code path does not exist"
+  "ready": true,
+  "error": null
 }

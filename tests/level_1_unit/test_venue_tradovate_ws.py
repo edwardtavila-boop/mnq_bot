@@ -3,6 +3,7 @@
 The async connection manager is exercised in the level-5 integration test;
 here we cover only the deterministic pure functions.
 """
+
 from __future__ import annotations
 
 from datetime import UTC
@@ -81,11 +82,15 @@ class TestBuildAuthorize:
         from datetime import datetime
 
         from mnq.venues.tradovate.auth import Token
+
         tok = Token(
             access_token="XYZ",
             expires_at=datetime(2026, 4, 14, 13, 30, tzinfo=UTC),
             issued_at=datetime(2026, 4, 14, 12, 0, tzinfo=UTC),
-            user_id=1, user_name="u", has_live=False, user_status="Active",
+            user_id=1,
+            user_name="u",
+            has_live=False,
+            user_status="Active",
         )
         assert build_authorize(tok) == "authorize\n1\n\nXYZ"
 

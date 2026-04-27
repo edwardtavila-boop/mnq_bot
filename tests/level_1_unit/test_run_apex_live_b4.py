@@ -11,6 +11,7 @@ Pin the contract the operator's locked plan demanded:
 Each test instantiates ApexRuntime directly with hand-built deps so we
 don't depend on argparse, the journal SQLite, or the real firm package.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -138,7 +139,8 @@ def _make_runtime(
 
 
 def test_firm_review_fires_per_bar_when_enabled(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """With review_enabled=True and rollout at tier 1, every bar triggers
     a six-stage review and the PM verdict drives stats."""
@@ -146,11 +148,12 @@ def test_firm_review_fires_per_bar_when_enabled(
 
     def _fake_review(**kwargs):
         calls.append(kwargs)
-        return {"pm": {"verdict": "APPROVE", "probability": 0.7,
-                       "reasoning": "ok"}}
+        return {"pm": {"verdict": "APPROVE", "probability": 0.7, "reasoning": "ok"}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     # compute_confluence is fine to keep real (it's stub-fast); but make
     # sure it doesn't raise.
@@ -172,16 +175,18 @@ def test_firm_review_fires_per_bar_when_enabled(
 
 
 def test_firm_reject_blocks_order(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A PM REJECT verdict increments orders_blocked and firm_rejected."""
 
     def _fake_review(**_):
-        return {"pm": {"verdict": "REJECT", "probability": 0.2,
-                       "reasoning": "too risky"}}
+        return {"pm": {"verdict": "REJECT", "probability": 0.2, "reasoning": "too risky"}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     runtime = _make_runtime(runtime_mod, n_bars=2)
     asyncio.run(runtime.run())
@@ -192,15 +197,18 @@ def test_firm_reject_blocks_order(
 
 
 def test_firm_kill_verdict_also_blocks(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """KILL / BLOCK PM verdicts route through the same block path as REJECT."""
+
     def _fake_review(**_):
-        return {"pm": {"verdict": "KILL", "probability": 0.0,
-                       "reasoning": "emergency stop"}}
+        return {"pm": {"verdict": "KILL", "probability": 0.0, "reasoning": "emergency stop"}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     runtime = _make_runtime(runtime_mod, n_bars=1)
     asyncio.run(runtime.run())
@@ -209,7 +217,8 @@ def test_firm_kill_verdict_also_blocks(
 
 
 def test_firm_review_disabled_skips_review(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """With ``--no-firm-review``, no shim call happens even when bars flow."""
     called = {"n": 0}
@@ -219,7 +228,9 @@ def test_firm_review_disabled_skips_review(
         return {"pm": {"verdict": "APPROVE", "probability": 1.0}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     runtime = _make_runtime(runtime_mod, n_bars=3, review_enabled=False)
     asyncio.run(runtime.run())
@@ -229,7 +240,8 @@ def test_firm_review_disabled_skips_review(
 
 
 def test_firm_review_every_n(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """review_every=3 fires exactly on bars 0, 3, 6, ..."""
     fired_at: list[int] = []
@@ -240,11 +252,12 @@ def test_firm_review_every_n(
         # We need to know which bar this is; the decision_context has it.
         ctx = kwargs.get("decision_context", "")
         fired_at.append(counter["i"])
-        return {"pm": {"verdict": "APPROVE", "probability": 0.5,
-                       "reasoning": ctx}}
+        return {"pm": {"verdict": "APPROVE", "probability": 0.5, "reasoning": ctx}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     runtime = _make_runtime(runtime_mod, n_bars=10, review_every=3)
     asyncio.run(runtime.run())
@@ -253,11 +266,13 @@ def test_firm_review_every_n(
 
 
 def test_firm_shim_import_error_fail_open(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """If ``mnq.firm_runtime`` fails to import, the runtime latches and
     keeps draining bars; no exception escapes to the caller."""
     import builtins
+
     real_import = builtins.__import__
 
     def _raise_for_firm_runtime(name, *args, **kwargs):
@@ -276,7 +291,8 @@ def test_firm_shim_import_error_fail_open(
 
 
 def test_rollout_qty_zero_skips_review(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Rollout HALT / qty=0 short-circuits BEFORE the firm review. We
     don't want to spend compute reviewing when no order could flow."""
@@ -287,7 +303,9 @@ def test_rollout_qty_zero_skips_review(
         return {"pm": {"verdict": "APPROVE", "probability": 1.0}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     runtime = _make_runtime(runtime_mod, n_bars=3, rollout_tier=0)
     asyncio.run(runtime.run())
@@ -297,7 +315,8 @@ def test_rollout_qty_zero_skips_review(
 
 
 def test_breaker_block_skips_review(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Circuit breaker block also short-circuits before the review."""
     called = {"n": 0}
@@ -307,7 +326,9 @@ def test_breaker_block_skips_review(
         return {"pm": {"verdict": "APPROVE", "probability": 1.0}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     runtime = _make_runtime(runtime_mod, n_bars=3, breaker_allow=False)
     asyncio.run(runtime.run())
@@ -317,7 +338,8 @@ def test_breaker_block_skips_review(
 
 
 def test_tape_exhausted_drains_cleanly(
-    runtime_mod: Any, monkeypatch: pytest.MonkeyPatch,
+    runtime_mod: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When the tape iterator runs out, the runtime exits with EX_OK."""
 
@@ -325,22 +347,31 @@ def test_tape_exhausted_drains_cleanly(
         return {"pm": {"verdict": "APPROVE", "probability": 0.8}}
 
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     # Tape has only 2 bars, but max_bars=10. Expect drain after 2.
     cfg = runtime_mod.RuntimeConfig(
-        live=False, max_bars=10, tick_interval_s=0.0,
+        live=False,
+        max_bars=10,
+        tick_interval_s=0.0,
         variant="r5_real_wide_target",
         state_dir=Path("/tmp/_b4_test_state"),
         journal_path=Path("/tmp/_b4_test_state/journal.sqlite"),
         skip_promotion_gate=True,
-        tape_path=None, firm_review_every=1, firm_review_enabled=True,
+        tape_path=None,
+        firm_review_every=1,
+        firm_review_enabled=True,
     )
     rollout = TieredRollout.initial(cfg.variant)
     rollout.tier = 1
     runtime = runtime_mod.ApexRuntime(
-        cfg=cfg, journal=_FakeJournal(), book=_FakeBook(),
-        breaker=_FakeBreaker(allow=True), rollout=rollout,
+        cfg=cfg,
+        journal=_FakeJournal(),
+        book=_FakeBook(),
+        breaker=_FakeBreaker(allow=True),
+        rollout=rollout,
         tape=_bars_iter(2),
     )
     asyncio.run(runtime.run())

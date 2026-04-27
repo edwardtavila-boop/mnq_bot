@@ -10,6 +10,7 @@ operationally off-limits." Tests pin:
 * case-insensitive matching
 * whitespace-tolerant matching
 """
+
 from __future__ import annotations
 
 import pytest
@@ -23,7 +24,6 @@ from mnq.venues.dormancy import (
 
 
 class TestDormantBrokersSet:
-
     def test_tradovate_is_dormant(self) -> None:
         # Per CLAUDE.md operator mandate (2026-04-24)
         assert "tradovate" in DORMANT_BROKERS
@@ -41,7 +41,6 @@ class TestDormantBrokersSet:
 
 
 class TestAssertBrokerActive:
-
     def test_active_broker_passes(self) -> None:
         # Should not raise.
         assert_broker_active("ibkr")
@@ -73,7 +72,6 @@ class TestAssertBrokerActive:
 
 
 class TestIsBrokerDormant:
-
     def test_returns_true_for_dormant(self) -> None:
         assert is_broker_dormant("tradovate") is True
 
@@ -96,34 +94,40 @@ class TestDormancyDoctorIntegration:
     """Verify the doctor check picks up env-configured brokers."""
 
     def test_doctor_check_passes_with_no_broker_env(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         # Strip any inherited env vars
         for var in ("BROKER_TYPE", "APEX_BROKER", "MNQ_LIVE_BROKER"):
             monkeypatch.delenv(var, raising=False)
         from mnq.cli.doctor import _check_broker_dormancy
+
         result = _check_broker_dormancy()
         assert result.status == "ok"
         assert "no live broker" in result.detail
 
     def test_doctor_check_fails_with_dormant_broker(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         for var in ("APEX_BROKER", "MNQ_LIVE_BROKER"):
             monkeypatch.delenv(var, raising=False)
         monkeypatch.setenv("BROKER_TYPE", "tradovate")
         from mnq.cli.doctor import _check_broker_dormancy
+
         result = _check_broker_dormancy()
         assert result.status == "fail"
         assert "tradovate" in result.detail.lower()
 
     def test_doctor_check_passes_with_active_broker(
-        self, monkeypatch: pytest.MonkeyPatch,
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         for var in ("APEX_BROKER", "MNQ_LIVE_BROKER"):
             monkeypatch.delenv(var, raising=False)
         monkeypatch.setenv("BROKER_TYPE", "ibkr")
         from mnq.cli.doctor import _check_broker_dormancy
+
         result = _check_broker_dormancy()
         assert result.status == "ok"
         assert "ibkr" in result.detail

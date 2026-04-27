@@ -15,16 +15,15 @@ Usage:
 
 import argparse
 import json
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from collections import defaultdict
-from typing import List, Dict
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 
-def load_trades(log_path: Path, days: int) -> List[Dict]:
+def load_trades(log_path: Path, days: int) -> list[dict]:
     if not log_path.exists():
         return []
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(UTC) - timedelta(days=days)
     trades = []
     with log_path.open() as f:
         for line in f:
@@ -46,7 +45,7 @@ def load_trades(log_path: Path, days: int) -> List[Dict]:
     return trades
 
 
-def attach_outcomes(trades: List[Dict]) -> List[Dict]:
+def attach_outcomes(trades: list[dict]) -> list[dict]:
     """If outcomes aren't logged yet, mark as 'pending'.
     In production, you'd join with broker fills; for now we use the outcome
     field if it exists in the log, else 'pending'."""
@@ -72,22 +71,26 @@ def section_header(title: str) -> str:
     return f"\n## {title}\n\n"
 
 
-def format_trade_row(t: Dict) -> str:
+def format_trade_row(t: dict) -> str:
     p = t["payload"]
     recv = datetime.fromisoformat(t["received_at"].replace("Z", "+00:00"))
     pnl = t.get("pnl_r")
     pnl_str = f"{pnl:+.2f}R" if pnl is not None else "pending"
     voices_str = ",".join(str(int(v)) for v in p["voices"])
-    return (f"| {recv.strftime('%a %m/%d %H:%M')} | {p['side']:5s} | {p['setup']:6s} | "
-            f"{p['regime']:8s} | {p['pm_final']:5.0f} | {p['red_team']:4.0f} | "
-            f"`[{voices_str}]` | {t.get('outcome', '—'):>8s} | {pnl_str:>8s} |")
+    return (
+        f"| {recv.strftime('%a %m/%d %H:%M')} | {p['side']:5s} | {p['setup']:6s} | "
+        f"{p['regime']:8s} | {p['pm_final']:5.0f} | {p['red_team']:4.0f} | "
+        f"`[{voices_str}]` | {t.get('outcome', '—'):>8s} | {pnl_str:>8s} |"
+    )
 
 
-def build_report(trades: List[Dict], days: int) -> str:
+def build_report(trades: list[dict], days: int) -> str:
     out = []
-    out.append(f"# The Firm · Court of Appeals\n")
-    out.append(f"_Trade replay for the last {days} days. "
-               f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}._\n")
+    out.append("# The Firm · Court of Appeals\n")
+    out.append(
+        f"_Trade replay for the last {days} days. "
+        f"Generated {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}._\n"
+    )
 
     if not trades:
         out.append("\n**No trades fired in this period.**\n")
@@ -142,10 +145,12 @@ def build_report(trades: List[Dict], days: int) -> str:
         out.append(f"- **Lower-half PM trades:** win rate {low_wr:.1f}%, avg {low_r:+.2f}R\n")
         out.append(f"- **Upper-half PM trades:** win rate {high_wr:.1f}%, avg {high_r:+.2f}R\n")
         if high_wr > low_wr:
-            out.append(f"- ✓ **Calibration holds:** higher PM correctly predicts more wins.\n")
+            out.append("- ✓ **Calibration holds:** higher PM correctly predicts more wins.\n")
         else:
-            out.append(f"- ✗ **CALIBRATION FAILURE:** higher PM does NOT predict more wins. "
-                       f"Investigate voice weights and Red Team scoring.\n")
+            out.append(
+                "- ✗ **CALIBRATION FAILURE:** higher PM does NOT predict more wins. "
+                "Investigate voice weights and Red Team scoring.\n"
+            )
     else:
         out.append("_Need at least 4 resolved trades for calibration check._\n")
 
@@ -163,8 +168,10 @@ def build_report(trades: List[Dict], days: int) -> str:
         wr_s = wins_s / len(resolved) * 100 if resolved else 0
         avg_pm_s = sum(t["payload"]["pm_final"] for t in ts) / len(ts)
         avg_red_s = sum(t["payload"]["red_team"] for t in ts) / len(ts)
-        out.append(f"| {setup} | {len(ts)} | {len(resolved)} | "
-                   f"{wr_s:.0f}% | {total_r_s:+.2f} | {avg_pm_s:.0f} | {avg_red_s:.0f} |\n")
+        out.append(
+            f"| {setup} | {len(ts)} | {len(resolved)} | "
+            f"{wr_s:.0f}% | {total_r_s:+.2f} | {avg_pm_s:.0f} | {avg_red_s:.0f} |\n"
+        )
 
     # ── Per-regime breakdown ──
     out.append(section_header("By regime"))
@@ -183,26 +190,27 @@ def build_report(trades: List[Dict], days: int) -> str:
     # ── Verdict ──
     out.append(section_header("Verdict"))
     if win_rate >= 60 and total_r > 0:
-        out.append(f"✓ **The Firm performed.** Continue current configuration.\n")
+        out.append("✓ **The Firm performed.** Continue current configuration.\n")
     elif win_rate >= 50 and total_r > 0:
-        out.append(f"◉ **Marginal week.** Watch for drift over next 5 trading days.\n")
+        out.append("◉ **Marginal week.** Watch for drift over next 5 trading days.\n")
     else:
-        out.append(f"✗ **The Firm underperformed.** Convene the desk:\n")
-        out.append(f"  - Review the bottom-5 trades — were any obviously bad?\n")
-        out.append(f"  - Check if a single regime accounts for most losses\n")
-        out.append(f"  - Consider raising PM threshold by 5 points if this persists\n")
+        out.append("✗ **The Firm underperformed.** Convene the desk:\n")
+        out.append("  - Review the bottom-5 trades — were any obviously bad?\n")
+        out.append("  - Check if a single regime accounts for most losses\n")
+        out.append("  - Consider raising PM threshold by 5 points if this persists\n")
 
     return "".join(out)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Apex v2 Court of Appeals")
-    parser.add_argument("--log", default="logs/trades.jsonl",
-                        help="Path to trades log (default ./logs/trades.jsonl)")
-    parser.add_argument("--days", type=int, default=7,
-                        help="Look-back window in days (default 7)")
-    parser.add_argument("--out", default="court_of_appeals.md",
-                        help="Output report path")
+    parser.add_argument(
+        "--log",
+        default="logs/trades.jsonl",
+        help="Path to trades log (default ./logs/trades.jsonl)",
+    )
+    parser.add_argument("--days", type=int, default=7, help="Look-back window in days (default 7)")
+    parser.add_argument("--out", default="court_of_appeals.md", help="Output report path")
     args = parser.parse_args()
 
     log_path = Path(args.log)

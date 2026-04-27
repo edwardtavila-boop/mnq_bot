@@ -234,6 +234,7 @@ class RiskContext:
         last_bar_ts: Timestamp of the most recent bar.
         feature_staleness_bars: Map of feature name to bars since last update.
     """
+
     open_positions: int
     session_pnl: Decimal
     account_equity: Decimal
@@ -298,9 +299,7 @@ class MaxOpenContractsCheck:
         """Check if opening a new position would exceed max contracts."""
         open_qty = abs(context.open_positions)
         if open_qty >= self.max_contracts:
-            detail = (
-                f"Open position {open_qty} >= max {self.max_contracts}"
-            )
+            detail = f"Open position {open_qty} >= max {self.max_contracts}"
             self.logger.warning("max_contracts_check_blocked", detail=detail)
             return SafetyDecision(False, "max_contracts", detail)
         return SafetyDecision(True, "ok")
@@ -368,10 +367,7 @@ class MarginBufferCheck:
         projected_margin = self.per_contract_margin_usd * Decimal(qty)
         required = self.min_buffer_usd + projected_margin
         if context.margin_available < required:
-            detail = (
-                f"Margin available {context.margin_available} < "
-                f"required {required}"
-            )
+            detail = f"Margin available {context.margin_available} < required {required}"
             self.logger.warning("margin_buffer_check_blocked", detail=detail)
             return SafetyDecision(False, "margin_buffer", detail)
         return SafetyDecision(True, "ok")
@@ -459,7 +455,7 @@ class FeatureStalenessCheck:
         """
         for feature in self.critical_features:
             # Missing features are treated as infinitely stale
-            staleness = context.feature_staleness_bars.get(feature, float('inf'))
+            staleness = context.feature_staleness_bars.get(feature, float("inf"))
             if staleness > self.max_bars:
                 detail = f"Feature '{feature}' is {staleness} bars stale (max {self.max_bars})"
                 self.logger.warning("feature_staleness_check_blocked", detail=detail)

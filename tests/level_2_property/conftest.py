@@ -1,4 +1,5 @@
 """Level-2 property tests. Tag everything with `level2`."""
+
 from __future__ import annotations
 
 import pytest

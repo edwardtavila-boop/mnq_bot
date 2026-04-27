@@ -11,6 +11,7 @@ Pin the contract:
   * The Firm-payload key is "regime_expectancy" and lives alongside
     "regimes_approved" (key contract)
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -40,9 +41,16 @@ def test_regime_expectancy_keys_match_classification() -> None:
     a subset of the canonical regime labels."""
     payload = build_spec_payload("r5_real_wide_target")
     valid = {
-        "low-vol-trend", "low-vol-range", "low-vol-reversal",
-        "high-vol-trend", "high-vol-range", "high-vol-reversal",
-        "crash", "euphoria", "dead-zone", "transition",
+        "low-vol-trend",
+        "low-vol-range",
+        "low-vol-reversal",
+        "high-vol-trend",
+        "high-vol-range",
+        "high-vol-reversal",
+        "crash",
+        "euphoria",
+        "dead-zone",
+        "transition",
     }
     for regime in payload["regime_expectancy"]:
         assert regime in valid, f"unexpected regime key: {regime}"

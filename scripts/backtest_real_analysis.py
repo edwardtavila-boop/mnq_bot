@@ -14,6 +14,7 @@ and t16_r5_long_only (best net PnL).
 
 Output: reports/backtest_real_analysis.md
 """
+
 from __future__ import annotations
 
 import csv
@@ -29,6 +30,7 @@ if not hasattr(_dt, "UTC"):
     _dt.UTC = timezone.utc  # type: ignore[attr-defined]  # noqa: UP017
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 @dataclass
 class Trade:
@@ -52,21 +54,23 @@ def load_trades(path: Path) -> list[Trade]:
     with open(path) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            trades.append(Trade(
-                variant=row["variant"],
-                date=row["date"],
-                side=row["side"],
-                entry_ix=int(row["entry_ix"]),
-                exit_ix=int(row["exit_ix"]),
-                entry_px=float(row["entry_px"]),
-                exit_px=float(row["exit_px"]),
-                stop=float(row["stop"]),
-                tp=float(row["tp"]),
-                exit_reason=row["exit_reason"],
-                pnl_ticks=float(row["pnl_ticks"]),
-                pnl_dollars=float(row["pnl_dollars"]),
-                bars_held=int(row["bars_held"]),
-            ))
+            trades.append(
+                Trade(
+                    variant=row["variant"],
+                    date=row["date"],
+                    side=row["side"],
+                    entry_ix=int(row["entry_ix"]),
+                    exit_ix=int(row["exit_ix"]),
+                    entry_px=float(row["entry_px"]),
+                    exit_px=float(row["exit_px"]),
+                    stop=float(row["stop"]),
+                    tp=float(row["tp"]),
+                    exit_reason=row["exit_reason"],
+                    pnl_ticks=float(row["pnl_ticks"]),
+                    pnl_dollars=float(row["pnl_dollars"]),
+                    bars_held=int(row["bars_held"]),
+                )
+            )
     return trades
 
 
@@ -91,9 +95,15 @@ def analyze_variant(name: str, trades: list[Trade]) -> list[str]:
     payoff = abs(avg_win / avg_loss) if avg_loss else 0
     expectancy = net / total
 
-    lines.append(f"**Trades:** {total} | **W:** {len(winners)} | **L:** {len(losers)} | **S:** {len(scratches)}")
-    lines.append(f"**Win Rate:** {wr:.1f}% | **Net PnL:** ${net:+,.2f} | **Expectancy/trade:** ${expectancy:+.2f}")
-    lines.append(f"**Avg Winner:** ${avg_win:+.2f} | **Avg Loser:** ${avg_loss:+.2f} | **Payoff Ratio:** {payoff:.2f}")
+    lines.append(
+        f"**Trades:** {total} | **W:** {len(winners)} | **L:** {len(losers)} | **S:** {len(scratches)}"
+    )
+    lines.append(
+        f"**Win Rate:** {wr:.1f}% | **Net PnL:** ${net:+,.2f} | **Expectancy/trade:** ${expectancy:+.2f}"
+    )
+    lines.append(
+        f"**Avg Winner:** ${avg_win:+.2f} | **Avg Loser:** ${avg_loss:+.2f} | **Payoff Ratio:** {payoff:.2f}"
+    )
     lines.append("")
 
     # By year
@@ -111,7 +121,9 @@ def analyze_variant(name: str, trades: list[Trade]) -> list[str]:
         ynet = sum(t.pnl_dollars for t in yt)
         ywr = yw / len(yt) * 100 if yt else 0
         yavg = ynet / len(yt) if yt else 0
-        lines.append(f"| {year} | {len(yt)} | {yw} | {yl} | {ywr:.1f} | ${ynet:+,.2f} | ${yavg:+.2f} |")
+        lines.append(
+            f"| {year} | {len(yt)} | {yw} | {yl} | {ywr:.1f} | ${ynet:+,.2f} | ${yavg:+.2f} |"
+        )
     lines.append("")
 
     # By exit type
@@ -152,7 +164,11 @@ def analyze_variant(name: str, trades: list[Trade]) -> list[str]:
     lines.append("")
     lines.append("| Window | Trades | Net PnL | WR% | Avg/Trade |")
     lines.append("|---|---:|---:|---:|---:|")
-    for label, lo, hi in [("Morning (30-120)", 30, 120), ("Afternoon (270-375)", 270, 375), ("Other", 0, 29)]:
+    for label, lo, hi in [
+        ("Morning (30-120)", 30, 120),
+        ("Afternoon (270-375)", 270, 375),
+        ("Other", 0, 29),
+    ]:
         wt = [t for t in trades if lo <= t.entry_ix <= hi]
         if not wt:
             continue
@@ -182,7 +198,9 @@ def analyze_variant(name: str, trades: list[Trade]) -> list[str]:
     stop_count = sum(1 for t in trades if t.exit_reason == "stop")
     if tp_count + stop_count > 0:
         tp_pct = tp_count / (tp_count + stop_count) * 100
-        lines.append(f"**TP hit rate (of stop+TP exits):** {tp_pct:.1f}% ({tp_count}/{tp_count + stop_count})")
+        lines.append(
+            f"**TP hit rate (of stop+TP exits):** {tp_pct:.1f}% ({tp_count}/{tp_count + stop_count})"
+        )
         lines.append("")
 
     return lines
@@ -198,8 +216,14 @@ def main() -> None:
     print(f"Loaded {len(all_trades)} trades")
 
     # Focus variants
-    focus = ["r5_real_wide_target", "t16_r5_long_only", "t7_r5_morning_only",
-             "r4_real_orderflow", "t0_r5_tight_stop", "t6_r5_strict_flow"]
+    focus = [
+        "r5_real_wide_target",
+        "t16_r5_long_only",
+        "t7_r5_morning_only",
+        "r4_real_orderflow",
+        "t0_r5_tight_stop",
+        "t6_r5_strict_flow",
+    ]
 
     lines = [
         "# Real-Tape Backtest — Deep Analysis (Batch 12A)",
@@ -239,19 +263,31 @@ def main() -> None:
     lines.append("")
     lines.append("## Verdict")
     lines.append("")
-    lines.append("The EMA 9/21 cross strategy is **net negative across all variants** on 1,724 days "
-                 "of real MNQ 1m data (2019-05 → 2026-04). Key findings:")
+    lines.append(
+        "The EMA 9/21 cross strategy is **net negative across all variants** on 1,724 days "
+        "of real MNQ 1m data (2019-05 → 2026-04). Key findings:"
+    )
     lines.append("")
 
     # Find best
     best_exp, best_name, best_n, best_wr, best_net = ranked[0]
-    lines.append(f"1. **Best variant:** {best_name} (${best_exp:+.2f}/trade, {best_wr:.1f}% WR, ${best_net:+,.2f} net)")
-    lines.append("2. **Filtering helps massively:** r0 (no filter) loses $15/trade; r5 (full stack) loses $6/trade")
-    lines.append("3. **The base signal has no edge.** Filters reduce damage but can't create alpha from a losing signal.")
-    lines.append("4. **Long bias confirmed:** t16_long_only consistently outperforms t17_short_only")
-    lines.append("5. **Next step:** The gauntlet/OW architecture is validated as working code, but needs a "
-                 "profitable base signal to filter. Candidate sources: Apex V3 15-voice engine, "
-                 "ORB/sweep/pin-bar setups from microstructure.py, or external ML signals.")
+    lines.append(
+        f"1. **Best variant:** {best_name} (${best_exp:+.2f}/trade, {best_wr:.1f}% WR, ${best_net:+,.2f} net)"
+    )
+    lines.append(
+        "2. **Filtering helps massively:** r0 (no filter) loses $15/trade; r5 (full stack) loses $6/trade"
+    )
+    lines.append(
+        "3. **The base signal has no edge.** Filters reduce damage but can't create alpha from a losing signal."
+    )
+    lines.append(
+        "4. **Long bias confirmed:** t16_long_only consistently outperforms t17_short_only"
+    )
+    lines.append(
+        "5. **Next step:** The gauntlet/OW architecture is validated as working code, but needs a "
+        "profitable base signal to filter. Candidate sources: Apex V3 15-voice engine, "
+        "ORB/sweep/pin-bar setups from microstructure.py, or external ML signals."
+    )
 
     report_path = REPO_ROOT / "reports" / "backtest_real_analysis.md"
     report_path.write_text("\n".join(lines))

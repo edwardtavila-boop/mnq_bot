@@ -1,23 +1,23 @@
 """Tests for scripts/watchdog.py — Phase 0 process watchdog."""
+
 from __future__ import annotations
 
 import json
+
+# Import the script functions directly
+import sys
 import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
-# Import the script functions directly
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 from watchdog import (
     check_heartbeat,
     check_journal,
     check_pid,
-    run_checks,
     render_report,
+    run_checks,
 )
 
 
@@ -30,9 +30,7 @@ class TestCheckHeartbeat:
     def test_fresh_heartbeat_is_ok(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "hb.json"
-            path.write_text(json.dumps({
-                "ts": datetime.now(tz=UTC).isoformat()
-            }))
+            path.write_text(json.dumps({"ts": datetime.now(tz=UTC).isoformat()}))
             with patch("watchdog.HEARTBEAT_PATH", path):
                 ok, msg, ctx = check_heartbeat()
                 assert ok

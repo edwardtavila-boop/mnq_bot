@@ -10,6 +10,7 @@ gauntlet weight actually shifts a day from allow→block or vice versa.
 
 Output: ``reports/gauntlet_weight_sweep_full.md``
 """
+
 from __future__ import annotations
 
 import argparse
@@ -130,23 +131,28 @@ def _run_sweep(
                 for tr in ledger.trades:
                     eff_qty = max(1, int(round(tr.qty * mult)))
                     from decimal import Decimal
+
                     scale = Decimal(eff_qty) / Decimal(tr.qty) if tr.qty else Decimal(1)
                     total_pnl += float(tr.pnl_dollars * scale)
                     n_trades += 1
 
         avg = total_pnl / n_trades if n_trades > 0 else 0.0
-        results.append(SweepResult(
-            weight=weight,
-            total_pnl=round(total_pnl, 2),
-            n_trades=n_trades,
-            n_full=n_full,
-            n_reduced=n_reduced,
-            n_skip=n_skip,
-            avg_pnl_per_trade=round(avg, 2),
-            n_days=len(days),
-        ))
-        print(f"  w={weight:.2f} → PnL=${total_pnl:+,.2f}, "
-              f"trades={n_trades}, full={n_full}/red={n_reduced}/skip={n_skip}")
+        results.append(
+            SweepResult(
+                weight=weight,
+                total_pnl=round(total_pnl, 2),
+                n_trades=n_trades,
+                n_full=n_full,
+                n_reduced=n_reduced,
+                n_skip=n_skip,
+                avg_pnl_per_trade=round(avg, 2),
+                n_days=len(days),
+            )
+        )
+        print(
+            f"  w={weight:.2f} → PnL=${total_pnl:+,.2f}, "
+            f"trades={n_trades}, full={n_full}/red={n_reduced}/skip={n_skip}"
+        )
 
     return results
 
@@ -170,8 +176,9 @@ def _render(results: list[SweepResult]) -> str:
         )
 
     lines.append("")
-    lines.append(f"**Best weight:** {best.weight:.2f} "
-                 f"(PnL ${best.total_pnl:+,.2f}, {best.n_trades} trades)")
+    lines.append(
+        f"**Best weight:** {best.weight:.2f} (PnL ${best.total_pnl:+,.2f}, {best.n_trades} trades)"
+    )
     lines.append("")
 
     # Compare best vs baseline (w=0.00)
@@ -214,10 +221,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--filtered", type=str, default="r5_real_wide_target")
     parser.add_argument("--output", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--max-days", type=int, default=200,
-                        help="Max days to evaluate (random sample if exceeded)")
-    parser.add_argument("--days-tail", type=int, default=None,
-                        help="Only use the last N days from the tape")
+    parser.add_argument(
+        "--max-days", type=int, default=200, help="Max days to evaluate (random sample if exceeded)"
+    )
+    parser.add_argument(
+        "--days-tail", type=int, default=None, help="Only use the last N days from the tape"
+    )
     args = parser.parse_args(argv)
 
     print("=== Full-sample Gauntlet V16 weight sweep (Batch 8A) ===")

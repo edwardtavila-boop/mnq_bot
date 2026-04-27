@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """72h burn-in harness (compressed-time).
 
 Closes Phase 1 (Harden Foundation) to 100%.
@@ -23,6 +23,7 @@ Usage:
   python scripts/burn_in_72h.py --compression 1   # true 72h (don't)
   python scripts/burn_in_72h.py --compression 100 # ~43m medium burn
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,15 +48,23 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # Prefer session workspace for scratch DB — avoids permission issues when
 # the repo-local data/ dir is locked from a prior aborted run.
 _SESSION_DATA = Path("C:/Users/edwar/OneDrive/The_Firm/eta_engine/data/burn_in/journal.sqlite")
-_REPO_LOCAL   = REPO_ROOT / "data" / "burn_in" / "journal.sqlite"
-BURN_DB = _SESSION_DATA if _SESSION_DATA.parent.exists() or not _REPO_LOCAL.exists() else _REPO_LOCAL
+_REPO_LOCAL = REPO_ROOT / "data" / "burn_in" / "journal.sqlite"
+BURN_DB = (
+    _SESSION_DATA if _SESSION_DATA.parent.exists() or not _REPO_LOCAL.exists() else _REPO_LOCAL
+)
 REPORT = REPO_ROOT / "reports" / "burn_in.md"
 
 SEED = 20260416
-HEARTBEAT_INTERVAL_S = 1.0            # 1 Hz
-EVENT_TYPES = ("heartbeat", "order.submitted", "order.filled",
-               "order.cancelled", "pnl.update", "position.update",
-               "safety.decision")
+HEARTBEAT_INTERVAL_S = 1.0  # 1 Hz
+EVENT_TYPES = (
+    "heartbeat",
+    "order.submitted",
+    "order.filled",
+    "order.cancelled",
+    "pnl.update",
+    "position.update",
+    "safety.decision",
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -78,8 +87,9 @@ def _open_db(path: Path) -> sqlite3.Connection:
     return conn
 
 
-def _append_event(conn: sqlite3.Connection, ts: datetime, event_type: str,
-                  trace_id: str, payload: dict) -> None:
+def _append_event(
+    conn: sqlite3.Connection, ts: datetime, event_type: str, trace_id: str, payload: dict
+) -> None:
     conn.execute(
         "INSERT INTO events (ts, event_type, trace_id, payload) VALUES (?,?,?,?)",
         (ts.isoformat(), event_type, trace_id, json.dumps(payload)),
@@ -113,9 +123,12 @@ def burn_in(hours: int, compression: float, verbose: bool = False) -> dict:
 
     # Remove any prior run artifacts. Tolerate sandboxed filesystems where
     # unlink is denied — fall back to truncate so we still get a clean DB.
-    for p in (BURN_DB, BURN_DB.with_suffix(".sqlite-journal"),
-              BURN_DB.with_suffix(".sqlite-wal"),
-              BURN_DB.with_suffix(".sqlite-shm")):
+    for p in (
+        BURN_DB,
+        BURN_DB.with_suffix(".sqlite-journal"),
+        BURN_DB.with_suffix(".sqlite-wal"),
+        BURN_DB.with_suffix(".sqlite-shm"),
+    ):
         if p.exists():
             try:
                 p.unlink()
@@ -141,8 +154,9 @@ def burn_in(hours: int, compression: float, verbose: bool = False) -> dict:
         sim_ts = start_sim + timedelta(seconds=t)
 
         # 1 Hz heartbeat
-        _append_event(conn, sim_ts, "heartbeat", f"hb-{t}",
-                      {"age_sec": (sim_ts - last_hb_ts).total_seconds()})
+        _append_event(
+            conn, sim_ts, "heartbeat", f"hb-{t}", {"age_sec": (sim_ts - last_hb_ts).total_seconds()}
+        )
         last_hb_ts = sim_ts
 
         # Every minute, emit 1 random non-hb event
@@ -159,7 +173,9 @@ def burn_in(hours: int, compression: float, verbose: bool = False) -> dict:
             rss_samples.append(_rss_kib())
             if verbose:
                 elapsed = time.monotonic() - start_wall
-                print(f"  sim_hour={t // 3600:02d}/{hours} · events={t} · rss={rss_samples[-1]}KiB · wall={elapsed:.1f}s")
+                print(
+                    f"  sim_hour={t // 3600:02d}/{hours} · events={t} · rss={rss_samples[-1]}KiB · wall={elapsed:.1f}s"
+                )
 
         # Track the max heartbeat age that would have been observed —
         # in a real system this is the dead-man's switch trigger.
@@ -180,7 +196,7 @@ def burn_in(hours: int, compression: float, verbose: bool = False) -> dict:
     conn2 = sqlite3.connect(f"file:{BURN_DB}?mode=ro", uri=True)
     seqs = [r[0] for r in conn2.execute("SELECT seq FROM events ORDER BY seq")]
     total = len(seqs)
-    gaps = [seqs[i] - seqs[i-1] for i in range(1, len(seqs))]
+    gaps = [seqs[i] - seqs[i - 1] for i in range(1, len(seqs))]
     monotonic = all(g == 1 for g in gaps) if gaps else True
     checksum = _checksum_events(conn2)
 
@@ -222,6 +238,7 @@ def burn_in(hours: int, compression: float, verbose: bool = False) -> dict:
 def _render_report(r: dict) -> str:
     def ok(b: bool) -> str:
         return "🟢" if b else "🔴"
+
     now = datetime.now(tz=UTC).isoformat()
 
     events_ok = r["actual_events"] >= r["expected_hb"]  # at least 1 hb/sec
@@ -269,10 +286,15 @@ def _render_report(r: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="72h compressed-time burn-in.")
-    parser.add_argument("--hours", type=int, default=72,
-                        help="Simulated hours to burn. Default 72.")
-    parser.add_argument("--compression", type=float, default=4800.0,
-                        help="Wall-time compression. 4800 = ~54s for 72h. Min 1.")
+    parser.add_argument(
+        "--hours", type=int, default=72, help="Simulated hours to burn. Default 72."
+    )
+    parser.add_argument(
+        "--compression",
+        type=float,
+        default=4800.0,
+        help="Wall-time compression. 4800 = ~54s for 72h. Min 1.",
+    )
     parser.add_argument("--verbose", action="store_true", help="Per-hour progress.")
     args = parser.parse_args(argv)
 
@@ -280,11 +302,15 @@ def main(argv: list[str] | None = None) -> int:
         print("compression must be >= 1.0", file=sys.stderr)
         return 2
 
-    print(f"burn_in_72h: {args.hours}h @ {args.compression}× compression ...", flush=True)
+    # stdout/stderr on a default Windows console is cp1252 — keep the banner
+    # ASCII-safe so the harness doesn't die on the way into run.
+    print(f"burn_in_72h: {args.hours}h @ {args.compression}x compression ...", flush=True)
     r = burn_in(args.hours, args.compression, verbose=args.verbose)
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT.write_text(_render_report(r))
+    # Report embeds emoji / math symbols — write UTF-8 explicitly so it works
+    # on Windows (cp1252 default) as well as POSIX locales.
+    REPORT.write_text(_render_report(r), encoding="utf-8")
 
     all_green = (
         r["actual_events"] >= r["expected_hb"]
@@ -295,10 +321,17 @@ def main(argv: list[str] | None = None) -> int:
         and r["rss_drift_pct"] < 25.0
     )
 
+    # Prefer a repo-relative path for the summary line, but fall back to the
+    # absolute path if REPORT has been monkeypatched to a location outside the
+    # repo (e.g. tests redirecting to tmp_path).
+    try:
+        report_display = REPORT.relative_to(REPO_ROOT)
+    except ValueError:
+        report_display = REPORT
     print(
-        f"burn_in_72h: {'🟢 ALL GREEN' if all_green else '🔴 FAIL'}  "
-        f"· events={r['actual_events']:,} · rss_drift={r['rss_drift_pct']:+.1f}% "
-        f"· wall={r['wall_elapsed_s']:.1f}s · report={REPORT.relative_to(REPO_ROOT)}"
+        f"burn_in_72h: {'[OK] ALL GREEN' if all_green else '[FAIL]'}  "
+        f"- events={r['actual_events']:,} - rss_drift={r['rss_drift_pct']:+.1f}% "
+        f"- wall={r['wall_elapsed_s']:.1f}s - report={report_display}"
     )
     return 0 if all_green else 1
 

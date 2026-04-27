@@ -7,6 +7,7 @@ contains the two order.filled events (entry + exit), a separate trace
 contains the pnl.update for that trade, and a third trace contains the
 position.update. We reconstruct trades by pairing them in sequence order.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,11 +42,11 @@ class Trade:
 
     @property
     def hour(self) -> int | None:
-        return (self.exit_ts.hour if self.exit_ts else None)
+        return self.exit_ts.hour if self.exit_ts else None
 
     @property
     def weekday(self) -> int | None:
-        return (self.exit_ts.weekday() if self.exit_ts else None)
+        return self.exit_ts.weekday() if self.exit_ts else None
 
     @property
     def duration_s(self) -> float:
@@ -121,13 +122,9 @@ def load_trades(journal_path: Path = DEFAULT_JOURNAL) -> list[Trade]:
             if entry[1] and exit_[1]:
                 if net_pnl > 0 and exit_[1] > entry[1]:
                     side = "long"
-                elif net_pnl > 0 and exit_[1] < entry[1]:
+                elif net_pnl > 0 and exit_[1] < entry[1] or net_pnl < 0 and exit_[1] > entry[1]:
                     side = "short"
-                elif net_pnl < 0 and exit_[1] > entry[1]:
-                    side = "short"
-                elif net_pnl < 0 and exit_[1] < entry[1]:
-                    side = "long"
-                elif exit_[1] >= entry[1]:
+                elif net_pnl < 0 and exit_[1] < entry[1] or exit_[1] >= entry[1]:
                     side = "long"
                 else:
                     side = "short"
@@ -158,10 +155,17 @@ def summary_stats(trades: list[Trade]) -> dict:
     """KPI roll-up used across all downstream reporters."""
     if not trades:
         return {
-            "n": 0, "wins": 0, "losses": 0, "win_rate": 0.0,
-            "total_pnl": 0.0, "avg_win": 0.0, "avg_loss": 0.0,
-            "profit_factor": 0.0, "expectancy": 0.0,
-            "avg_r": 0.0, "sum_r": 0.0,
+            "n": 0,
+            "wins": 0,
+            "losses": 0,
+            "win_rate": 0.0,
+            "total_pnl": 0.0,
+            "avg_win": 0.0,
+            "avg_loss": 0.0,
+            "profit_factor": 0.0,
+            "expectancy": 0.0,
+            "avg_r": 0.0,
+            "sum_r": 0.0,
         }
     wins = [t for t in trades if t.net_pnl > 0]
     losses = [t for t in trades if t.net_pnl < 0]

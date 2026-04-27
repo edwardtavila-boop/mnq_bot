@@ -16,17 +16,16 @@ Usage:
 import argparse
 import statistics
 from itertools import product
-from datetime import datetime, timezone
-from typing import List
 
-from firm_engine import FirmConfig, Bar
 from backtest import Backtester, V1DetectorConfig, load_csv
+from firm_engine import FirmConfig
 
 
 def split_windows(bars, n):
-    if n < 2: return [bars]
+    if n < 2:
+        return [bars]
     size = len(bars) // n
-    return [bars[i*size : (i+1)*size if i < n-1 else len(bars)] for i in range(n)]
+    return [bars[i * size : (i + 1) * size if i < n - 1 else len(bars)] for i in range(n)]
 
 
 def run_test(bars, cfg, det_cfg, n_windows):
@@ -80,17 +79,24 @@ def main():
     p = argparse.ArgumentParser(description="Apex v2 Auto-Calibrator")
     p.add_argument("csv")
     p.add_argument("--windows", type=int, default=7)
-    p.add_argument("--vix"); p.add_argument("--es")
-    p.add_argument("--dxy"); p.add_argument("--tick")
-    p.add_argument("--quick", action="store_true",
-                   help="Smaller grid (5x5x3 = 75 configs, ~2 min) vs full (~10 min)")
+    p.add_argument("--vix")
+    p.add_argument("--es")
+    p.add_argument("--dxy")
+    p.add_argument("--tick")
+    p.add_argument(
+        "--quick",
+        action="store_true",
+        help="Smaller grid (5x5x3 = 75 configs, ~2 min) vs full (~10 min)",
+    )
     args = p.parse_args()
 
     print(f"Loading {args.csv}...")
     if args.vix or args.es or args.dxy or args.tick:
         from intermarket import load_with_intermarket
-        bars = load_with_intermarket(args.csv, vix=args.vix, es=args.es,
-                                     dxy=args.dxy, tick=args.tick)
+
+        bars = load_with_intermarket(
+            args.csv, vix=args.vix, es=args.es, dxy=args.dxy, tick=args.tick
+        )
     else:
         bars = load_csv(args.csv)
     print(f"Loaded {len(bars)} bars\n")
@@ -123,10 +129,16 @@ def main():
         det_cfg = V1DetectorConfig(orb_timeout=orb_to, ema_min_score=ema_s)
         stats = run_test(bars, cfg, det_cfg, args.windows)
         sc = score(stats)
-        results.append({
-            "pm": pm, "red_w": rw, "orb_to": orb_to, "ema_s": ema_s,
-            "score": round(sc, 2), **stats,
-        })
+        results.append(
+            {
+                "pm": pm,
+                "red_w": rw,
+                "orb_to": orb_to,
+                "ema_s": ema_s,
+                "score": round(sc, 2),
+                **stats,
+            }
+        )
         if count % 10 == 0:
             print(f"  Progress: {count}/{total}", end="\r", flush=True)
     print(f"  Progress: {total}/{total} done.")
@@ -134,37 +146,43 @@ def main():
     # Sort by composite score
     results.sort(key=lambda x: -x["score"])
 
-    print(f"\n{'='*92}")
-    print(f"TOP 10 CONFIGURATIONS  (scored by profitability + DD penalty)")
-    print(f"{'='*92}")
-    print(f"{'Rank':>4s}  {'PM':>3s}  {'RW':>4s}  {'ORB-to':>6s}  {'EMA-s':>5s}  "
-          f"{'Trades':>6s}  {'Win%':>5s}  {'TotR':>7s}  {'PF':>5s}  {'MDD':>5s}  "
-          f"{'%Prof':>5s}  {'Score':>7s}")
+    print(f"\n{'=' * 92}")
+    print("TOP 10 CONFIGURATIONS  (scored by profitability + DD penalty)")
+    print(f"{'=' * 92}")
+    print(
+        f"{'Rank':>4s}  {'PM':>3s}  {'RW':>4s}  {'ORB-to':>6s}  {'EMA-s':>5s}  "
+        f"{'Trades':>6s}  {'Win%':>5s}  {'TotR':>7s}  {'PF':>5s}  {'MDD':>5s}  "
+        f"{'%Prof':>5s}  {'Score':>7s}"
+    )
     print("─" * 92)
     for i, r in enumerate(results[:10], 1):
-        print(f"{i:>4d}  {r['pm']:>3d}  {r['red_w']:>4.1f}  {r['orb_to']:>6d}  {r['ema_s']:>5d}  "
-              f"{r['total_trades']:>6d}  {r['avg_win_rate']:>4.1f}%  {r['total_r']:>+7.2f}  "
-              f"{r['avg_pf']:>5.1f}  {r['worst_dd']:>5.2f}  {r['pct_profitable']:>4.0f}%  "
-              f"{r['score']:>+7.2f}")
+        print(
+            f"{i:>4d}  {r['pm']:>3d}  {r['red_w']:>4.1f}  {r['orb_to']:>6d}  {r['ema_s']:>5d}  "
+            f"{r['total_trades']:>6d}  {r['avg_win_rate']:>4.1f}%  {r['total_r']:>+7.2f}  "
+            f"{r['avg_pf']:>5.1f}  {r['worst_dd']:>5.2f}  {r['pct_profitable']:>4.0f}%  "
+            f"{r['score']:>+7.2f}"
+        )
 
     best = results[0]
-    print(f"\n{'='*60}")
-    print(f"OPTIMAL CONFIGURATION")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("OPTIMAL CONFIGURATION")
+    print(f"{'=' * 60}")
     print(f"PM threshold:        {best['pm']}")
     print(f"Red Team weight:     {best['red_w']}")
     print(f"ORB timeout:         {best['orb_to']} bars")
     print(f"EMA min score:       {best['ema_s']}")
-    print(f"\nExpected performance:")
+    print("\nExpected performance:")
     print(f"  Total trades:      {best['total_trades']}")
     print(f"  Avg win rate:      {best['avg_win_rate']}%")
     print(f"  Total R:           {best['total_r']:+.2f}")
     print(f"  Avg PF:            {best['avg_pf']}")
     print(f"  Worst DD:          {best['worst_dd']}R")
     print(f"  % profitable wins: {best['pct_profitable']}%")
-    print(f"\nApply with: --pm {best['pm']} --red-weight {best['red_w']}  "
-          f"(and update detector_cfg.orb_timeout={best['orb_to']}, "
-          f"ema_min_score={best['ema_s']})")
+    print(
+        f"\nApply with: --pm {best['pm']} --red-weight {best['red_w']}  "
+        f"(and update detector_cfg.orb_timeout={best['orb_to']}, "
+        f"ema_min_score={best['ema_s']})"
+    )
 
 
 if __name__ == "__main__":

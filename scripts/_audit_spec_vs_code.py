@@ -33,6 +33,7 @@ Exit codes
 1 -- ``--strict`` and at least one variant lacks a spec
 2 -- could not parse strategy_v2.py / specs/ dir missing
 """
+
 from __future__ import annotations
 
 import argparse
@@ -70,17 +71,15 @@ def _walk_strategy_configs(text: str) -> list[tuple[str, int]]:
         if not isinstance(node, ast.Call):
             continue
         # Match ``StrategyConfig(...)`` -- bare callable
-        if not (
-            isinstance(node.func, ast.Name)
-            and node.func.id == "StrategyConfig"
-        ):
+        if not (isinstance(node.func, ast.Name) and node.func.id == "StrategyConfig"):
             continue
         # Find name= keyword
         for kw in node.keywords:
             if kw.arg != "name":
                 continue
             if isinstance(kw.value, ast.Constant) and isinstance(
-                kw.value.value, str,
+                kw.value.value,
+                str,
             ):
                 hits.append((kw.value.value, node.lineno))
             break
@@ -127,12 +126,14 @@ def scan() -> list[VariantHit]:
             continue
         seen.add(name)
         evidence = _spec_evidence_for(name)
-        out.append(VariantHit(
-            name=name,
-            line=line,
-            has_spec=evidence is not None,
-            spec_evidence=evidence,
-        ))
+        out.append(
+            VariantHit(
+                name=name,
+                line=line,
+                has_spec=evidence is not None,
+                spec_evidence=evidence,
+            )
+        )
     return out
 
 
@@ -162,26 +163,30 @@ def main(argv: list[str] | None = None) -> int:
     unbacked = [h for h in hits if not h.has_spec]
 
     if args.json:
-        print(json.dumps({
-            "total": len(hits),
-            "backed": len(backed),
-            "unbacked": len(unbacked),
-            "hits": [
+        print(
+            json.dumps(
                 {
-                    "name": h.name,
-                    "line": h.line,
-                    "has_spec": h.has_spec,
-                    "spec_evidence": h.spec_evidence,
-                }
-                for h in hits
-            ],
-        }, indent=2))
+                    "total": len(hits),
+                    "backed": len(backed),
+                    "unbacked": len(unbacked),
+                    "hits": [
+                        {
+                            "name": h.name,
+                            "line": h.line,
+                            "has_spec": h.has_spec,
+                            "spec_evidence": h.spec_evidence,
+                        }
+                        for h in hits
+                    ],
+                },
+                indent=2,
+            )
+        )
     else:
         print("SPEC-VS-CODE AUDIT (mnq_bot)")
         print("=" * 50)
         print(
-            f"Variants found: {len(hits)}  spec-backed: {len(backed)}  "
-            f"unbacked: {len(unbacked)}",
+            f"Variants found: {len(hits)}  spec-backed: {len(backed)}  unbacked: {len(unbacked)}",
         )
         print()
         if backed:

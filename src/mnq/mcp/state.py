@@ -4,6 +4,7 @@ Abstractions here let tests inject in-memory implementations without
 standing up a real executor. The live executor will implement the same
 interfaces in a later step.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -145,19 +146,23 @@ class StrategyRepository:
             try:
                 spec = load_spec(p)
             except Exception as e:
-                out.append({
-                    "file": str(p.relative_to(self.root)),
-                    "error": f"{type(e).__name__}: {e}",
-                })
+                out.append(
+                    {
+                        "file": str(p.relative_to(self.root)),
+                        "error": f"{type(e).__name__}: {e}",
+                    }
+                )
                 continue
-            out.append({
-                "id": spec.strategy.id,
-                "semver": spec.strategy.semver,
-                "tier": spec.strategy.tier,
-                "content_hash": spec.strategy.content_hash,
-                "experimental": str(spec.strategy.experimental).lower(),
-                "file": str(p.relative_to(self.root)),
-            })
+            out.append(
+                {
+                    "id": spec.strategy.id,
+                    "semver": spec.strategy.semver,
+                    "tier": spec.strategy.tier,
+                    "content_hash": spec.strategy.content_hash,
+                    "experimental": str(spec.strategy.experimental).lower(),
+                    "file": str(p.relative_to(self.root)),
+                }
+            )
         return out
 
     def get(self, version: str) -> dict[str, Any]:

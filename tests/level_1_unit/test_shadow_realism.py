@@ -3,6 +3,7 @@
 Tests the slippage models, latency models, partial-fill models, and
 position-limit rejection logic added in Batch 4B.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -111,25 +112,19 @@ class TestStochasticSlippage:
 class TestSlippageIntegration:
     def test_long_pays_more_with_slippage(self) -> None:
         venue = ShadowVenue(slippage=FixedTickSlippage(tick_count=2))
-        result = venue.place_order(
-            _mk_signal(Side.LONG), at_price=Decimal("24000"), at_ts=_ts()
-        )
+        result = venue.place_order(_mk_signal(Side.LONG), at_price=Decimal("24000"), at_ts=_ts())
         assert result.fill.price == Decimal("24000.50")  # +0.50
         assert result.slippage_ticks == Decimal("0.50")
 
     def test_short_receives_less_with_slippage(self) -> None:
         venue = ShadowVenue(slippage=FixedTickSlippage(tick_count=2))
-        result = venue.place_order(
-            _mk_signal(Side.SHORT), at_price=Decimal("24000"), at_ts=_ts()
-        )
+        result = venue.place_order(_mk_signal(Side.SHORT), at_price=Decimal("24000"), at_ts=_ts())
         assert result.fill.price == Decimal("23999.50")  # -0.50
         assert result.slippage_ticks == Decimal("0.50")
 
     def test_zero_slippage_no_price_change(self) -> None:
         venue = ShadowVenue(slippage=ZeroSlippage())
-        result = venue.place_order(
-            _mk_signal(), at_price=Decimal("24000"), at_ts=_ts()
-        )
+        result = venue.place_order(_mk_signal(), at_price=Decimal("24000"), at_ts=_ts())
         assert result.fill.price == Decimal("24000")
         assert result.slippage_ticks == Decimal(0)
 
@@ -171,18 +166,14 @@ class TestLatencyIntegration:
     def test_fill_ts_shifted_forward(self) -> None:
         base = _ts(0)
         venue = ShadowVenue(latency=FixedLatency(ms=100))
-        result = venue.place_order(
-            _mk_signal(), at_price=Decimal("24000"), at_ts=base
-        )
+        result = venue.place_order(_mk_signal(), at_price=Decimal("24000"), at_ts=base)
         assert result.fill.ts == base + timedelta(milliseconds=100)
         assert result.latency_ms == 100.0
 
     def test_zero_latency_no_shift(self) -> None:
         base = _ts(0)
         venue = ShadowVenue(latency=ZeroLatency())
-        result = venue.place_order(
-            _mk_signal(), at_price=Decimal("24000"), at_ts=base
-        )
+        result = venue.place_order(_mk_signal(), at_price=Decimal("24000"), at_ts=base)
         assert result.fill.ts == base
         assert result.latency_ms == 0.0
 
@@ -211,9 +202,7 @@ class TestStochasticPartialFill:
     def test_partial_fill_reduces_qty(self) -> None:
         import random
 
-        pf = StochasticPartialFill(
-            partial_prob=1.0, min_fill_pct=0.5, _rng=random.Random(0)
-        )
+        pf = StochasticPartialFill(partial_prob=1.0, min_fill_pct=0.5, _rng=random.Random(0))
         results = [pf.filled_qty(10) for _ in range(30)]
         # With 100% partial prob and min_fill_pct=0.5, expect some < 10
         assert any(r < 10 for r in results)
@@ -232,13 +221,9 @@ class TestPartialFillIntegration:
     def test_fill_marked_partial(self) -> None:
         import random
 
-        pf = StochasticPartialFill(
-            partial_prob=1.0, min_fill_pct=0.5, _rng=random.Random(0)
-        )
+        pf = StochasticPartialFill(partial_prob=1.0, min_fill_pct=0.5, _rng=random.Random(0))
         venue = ShadowVenue(partial_fill=pf)
-        result = venue.place_order(
-            _mk_signal(qty=10), at_price=Decimal("24000"), at_ts=_ts()
-        )
+        result = venue.place_order(_mk_signal(qty=10), at_price=Decimal("24000"), at_ts=_ts())
         assert result.requested_qty == 10
         # The fill.qty may or may not be 10 depending on RNG, but is_partial
         # flag should be correct
@@ -333,9 +318,7 @@ class TestCombinedRealism:
         """A venue with no models behaves exactly like the 4A scaffold."""
         venue = ShadowVenue()
         base = _ts(0)
-        r = venue.place_order(
-            _mk_signal(Side.LONG), at_price=Decimal("24000"), at_ts=base
-        )
+        r = venue.place_order(_mk_signal(Side.LONG), at_price=Decimal("24000"), at_ts=base)
         assert r.fill.price == Decimal("24000")
         assert r.fill.ts == base
         assert r.fill.qty == 1

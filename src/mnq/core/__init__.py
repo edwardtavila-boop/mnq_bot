@@ -1,4 +1,5 @@
 """[REAL] Core domain types and constants. See types.py."""
+
 from mnq.core.calendar import CMEFuturesCalendar, SessionWindow
 from mnq.core.contracts import FuturesContract
 from mnq.core.types import (

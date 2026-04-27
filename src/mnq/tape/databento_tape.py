@@ -34,6 +34,7 @@ Both honor an optional ``rth_only`` filter (default True) restricting
 to the 13:30-20:00 UTC RTH window so the runtime only reviews
 liquid hours.
 """
+
 from __future__ import annotations
 
 import csv
@@ -55,7 +56,7 @@ DEFAULT_DATABENTO_1M: Path = BARS_DATABENTO_DIR / "mnq1_1m.csv"
 # RTH window in UTC: 13:30-20:00 (= 9:30 ET to 16:00 ET, ignoring DST).
 # Conservative for live: skips the open/close gap noise and overnight chop.
 RTH_START_MIN_UTC: int = 13 * 60 + 30  # 810
-RTH_END_MIN_UTC: int = 20 * 60          # 1200
+RTH_END_MIN_UTC: int = 20 * 60  # 1200
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,5 @@
 """[REAL] `mnq mcp serve ...` CLI command."""
+
 from __future__ import annotations
 
 import asyncio
@@ -22,7 +23,9 @@ def serve(
     """
     t = transport.lower()
     if t != "stdio":
-        console.print(f"[red]unsupported transport:[/red] {transport!r} (only 'stdio' is implemented)")
+        console.print(
+            f"[red]unsupported transport:[/red] {transport!r} (only 'stdio' is implemented)"
+        )
         raise typer.Exit(code=2)
 
     from mnq.mcp.server import serve_stdio

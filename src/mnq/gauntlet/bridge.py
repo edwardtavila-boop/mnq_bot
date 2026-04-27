@@ -19,6 +19,7 @@ Usage:
     if summary["allow"]:
         # forward the trade
 """
+
 from __future__ import annotations
 
 from mnq.core.types import Bar, Side
@@ -122,7 +123,7 @@ def context_from_bars(
 
     # Window of bars up to and including bar_idx
     start = max(0, bar_idx - lookback)
-    window = bars[start: bar_idx + 1]
+    window = bars[start : bar_idx + 1]
 
     closes = [float(b.close) for b in window]
     highs = [float(b.high) for b in window]

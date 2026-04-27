@@ -1,4 +1,5 @@
 """Level-1 unit tests for mnq.calibration.recorder."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -121,9 +122,7 @@ class TestSlippageRecorder:
         # For SHORT: expected < realized is worse: (18234.00 - 18233.75) / 0.25 = 1.0
         assert result.slippage_ticks == pytest.approx(1.0)
 
-    def test_slippage_ticks_sign_long(
-        self, sample_expected_ctx: ExpectedFillContext
-    ) -> None:
+    def test_slippage_ticks_sign_long(self, sample_expected_ctx: ExpectedFillContext) -> None:
         rec = SlippageRecorder()
         rec.record_expected(sample_expected_ctx)
 
@@ -167,9 +166,7 @@ class TestSlippageRecorder:
         assert "test_order_1" in dropped
         assert rec.pending_count() == 0
 
-    def test_pending_count_tracks_multiple(
-        self, sample_expected_ctx: ExpectedFillContext
-    ) -> None:
+    def test_pending_count_tracks_multiple(self, sample_expected_ctx: ExpectedFillContext) -> None:
         rec = SlippageRecorder()
         rec.record_expected(sample_expected_ctx)
         assert rec.pending_count() == 1
@@ -230,9 +227,7 @@ class TestSlippageRecorder:
         assert events[0].payload["order_id"] == "test_order_1"
         assert events[0].payload["slippage_ticks"] == pytest.approx(1.0)
 
-    def test_journal_emits_fill_orphaned_event(
-        self, temp_journal_path: Path
-    ) -> None:
+    def test_journal_emits_fill_orphaned_event(self, temp_journal_path: Path) -> None:
         journal = EventJournal(temp_journal_path)
         rec = SlippageRecorder(journal=journal)
 
@@ -249,9 +244,7 @@ class TestSlippageRecorder:
         assert len(events) == 1
         assert events[0].payload["reason"] == "no_matching_expectation"
 
-    def test_latency_ms_calculation(
-        self, sample_expected_ctx: ExpectedFillContext
-    ) -> None:
+    def test_latency_ms_calculation(self, sample_expected_ctx: ExpectedFillContext) -> None:
         rec = SlippageRecorder()
         rec.record_expected(sample_expected_ctx)
 
@@ -266,9 +259,7 @@ class TestSlippageRecorder:
         assert result is not None
         assert result.latency_ms == pytest.approx(2500.0)
 
-    def test_partial_fills_accumulate(
-        self, sample_expected_ctx: ExpectedFillContext
-    ) -> None:
+    def test_partial_fills_accumulate(self, sample_expected_ctx: ExpectedFillContext) -> None:
         rec = SlippageRecorder()
         rec.record_expected(sample_expected_ctx)
 

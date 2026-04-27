@@ -7,6 +7,7 @@ Available venues:
 The executor imports only from base types. Venue selection happens at
 startup via config — the executor never knows which broker it's talking to.
 """
+
 from .base import (
     AccountSnapshot,
     BarUpdate,

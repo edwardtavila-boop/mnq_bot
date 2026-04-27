@@ -28,6 +28,7 @@ Usage::
 
 The variant name must exist in :data:`strategy_v2.VARIANTS`.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -143,9 +144,7 @@ def _render_memo(
     journal: JournalSummary | None,
 ) -> str:
     total, lo, hi = ci
-    exp_per_trade = (
-        float(result.net_pnl) / result.n_trades if result.n_trades else 0.0
-    )
+    exp_per_trade = float(result.net_pnl) / result.n_trades if result.n_trades else 0.0
     exp_r = exp_per_trade / (cfg_dict["risk_ticks"] * 0.5)  # 1 tick = $0.50 MNQ
     wr_pct = result.win_rate * 100
 
@@ -173,13 +172,13 @@ def _render_memo(
     lines.append("")
     lines.append(f"- **Sample size:** {result.n_trades} trades over {n_days} days")
     lines.append(f"- **Net PnL:** {_fmt_money(result.net_pnl)}")
-    lines.append(f"- **Expectancy / trade:** {_fmt_money(exp_per_trade)} "
-                 f"(= {exp_r:+.3f} R)")
+    lines.append(f"- **Expectancy / trade:** {_fmt_money(exp_per_trade)} (= {exp_r:+.3f} R)")
     lines.append(f"- **Win rate:** {wr_pct:.1f}%")
-    lines.append(f"- **95% bootstrap CI on total PnL:** "
-                 f"${lo:+.2f} / ${hi:+.2f}")
-    lines.append(f"- **Risk per trade (spec):** "
-                 f"{cfg_dict['risk_ticks']} ticks = ${cfg_dict['risk_ticks']*0.5:.2f}")
+    lines.append(f"- **95% bootstrap CI on total PnL:** ${lo:+.2f} / ${hi:+.2f}")
+    lines.append(
+        f"- **Risk per trade (spec):** "
+        f"{cfg_dict['risk_ticks']} ticks = ${cfg_dict['risk_ticks'] * 0.5:.2f}"
+    )
     lines.append("")
     lines.append("### Per-regime breakdown")
     lines.append("")
@@ -189,16 +188,14 @@ def _render_memo(
         n = int(b["n"])
         wn = int(b["wins"])
         wrp = (wn / n) if n else 0.0
-        lines.append(f"| `{reg}` | {n} | {wn} | {wrp:.1%} | "
-                     f"{_fmt_money(Decimal(b['pnl']))} |")
+        lines.append(f"| `{reg}` | {n} | {wn} | {wrp:.1%} | {_fmt_money(Decimal(b['pnl']))} |")
     lines.append("")
     lines.append("### Per exit reason")
     lines.append("")
     lines.append("| Reason | n | net PnL |")
     lines.append("|---|---:|---:|")
     for k, b in sorted(result.per_exit_reason.items()):
-        lines.append(f"| `{k}` | {int(b['n'])} | "
-                     f"{_fmt_money(Decimal(b['pnl']))} |")
+        lines.append(f"| `{k}` | {int(b['n'])} | {_fmt_money(Decimal(b['pnl']))} |")
     lines.append("")
 
     # ----- Red Team (stage 2) -----
@@ -261,12 +258,14 @@ def _render_memo(
     else:
         kelly_full = 0.0
         kelly_quarter = 0.0
-    lines.append(f"- **Full Kelly estimate:** {kelly_full:.3f} "
-                 "(uses observed WR and spec rr)")
-    lines.append(f"- **Fractional Kelly (1/4, capped 2%):** "
-                 f"{kelly_quarter*100:.2f}% of equity per trade")
-    lines.append(f"- **Risk per trade in dollars:** "
-                 f"${cfg_dict['risk_ticks']*0.5:.2f} per contract, 1 contract")
+    lines.append(f"- **Full Kelly estimate:** {kelly_full:.3f} (uses observed WR and spec rr)")
+    lines.append(
+        f"- **Fractional Kelly (1/4, capped 2%):** {kelly_quarter * 100:.2f}% of equity per trade"
+    )
+    lines.append(
+        f"- **Risk per trade in dollars:** "
+        f"${cfg_dict['risk_ticks'] * 0.5:.2f} per contract, 1 contract"
+    )
     lines.append("- **Daily stop:** -3R (hard breaker at -$60 on a 40-tick risk)")
     lines.append("- **Weekly stop:** -8R")
     lines.append("- **Drawdown kill:** -15R peak-to-trough")
@@ -281,11 +280,15 @@ def _render_memo(
     lines.append("## Stage 4 — Macro (Regime)")
     lines.append("")
     lines.append("- **Instrument:** MNQ (micro E-mini Nasdaq-100)")
-    lines.append(f"- **Session filter:** {cfg_dict.get('morning_window')} AM "
-                 f"/ {cfg_dict.get('afternoon_window')} PM (bar index, 1m)")
-    lines.append(f"- **Volatility gate:** "
-                 f"stdev_max={cfg_dict.get('vol_filter_stdev_max', 0)}, "
-                 f"hard_pause={cfg_dict.get('vol_hard_pause_stdev', 0)}")
+    lines.append(
+        f"- **Session filter:** {cfg_dict.get('morning_window')} AM "
+        f"/ {cfg_dict.get('afternoon_window')} PM (bar index, 1m)"
+    )
+    lines.append(
+        f"- **Volatility gate:** "
+        f"stdev_max={cfg_dict.get('vol_filter_stdev_max', 0)}, "
+        f"hard_pause={cfg_dict.get('vol_hard_pause_stdev', 0)}"
+    )
     lines.append(
         "- **Competence:** per-regime table above is the competence matrix. "
         "Do NOT trade this variant when realized 1m stdev exceeds the hard-pause "
@@ -302,9 +305,11 @@ def _render_memo(
         lines.append(f"- **p95 slippage:** {journal.p95_slip_ticks:+.2f} ticks")
         lines.append(f"- **Journal net PnL:** {_fmt_money(journal.total_pnl)}")
     else:
-        lines.append("- **Journal:** not yet populated for this variant. "
-                     "Run `scripts/live_sim.py --real --variant "
-                     f"{variant_name}` to populate.")
+        lines.append(
+            "- **Journal:** not yet populated for this variant. "
+            "Run `scripts/live_sim.py --real --variant "
+            f"{variant_name}` to populate."
+        )
     lines.append(
         "- **Fill assumption:** limit entries with 1-tick simulated slippage, "
         "market exits on stop/target. Production must match this assumption "
@@ -316,9 +321,7 @@ def _render_memo(
     lines.append("## Stage 6 — PM (Decide)")
     lines.append("")
     ship = (
-        result.n_trades >= 8
-        and exp_per_trade > 0
-        and hi > 0  # CI upper bound positive
+        result.n_trades >= 8 and exp_per_trade > 0 and hi > 0  # CI upper bound positive
     )
     if ship:
         verdict = (
@@ -331,8 +334,9 @@ def _render_memo(
             "(n≥8, E[trade]>0, CI upper>0)."
         )
     lines.append(f"- **Verdict:** {verdict}")
-    lines.append("- **Monitoring:** every 10 new trades, rerun this review and "
-                 "diff against prior memo")
+    lines.append(
+        "- **Monitoring:** every 10 new trades, rerun this review and diff against prior memo"
+    )
     lines.append("")
 
     # ----- Decision memo (template) -----
@@ -341,26 +345,30 @@ def _render_memo(
     lines.append("```")
     lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     lines.append("STRATEGY DECISION MEMO")
-    lines.append(f"ID: {variant_name}   Date: {date.today().isoformat()}   "
-                 "Author: edward avila")
+    lines.append(f"ID: {variant_name}   Date: {date.today().isoformat()}   Author: edward avila")
     lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     lines.append("")
     lines.append("THESIS (one sentence)")
-    lines.append(f"  EMA9/EMA21 cross on MNQ 1m RTH with vol + flow gates, "
-                 f"rr={cfg_dict['rr']}, risk={cfg_dict['risk_ticks']}t, "
-                 "captures afternoon drift more than morning noise.")
+    lines.append(
+        f"  EMA9/EMA21 cross on MNQ 1m RTH with vol + flow gates, "
+        f"rr={cfg_dict['rr']}, risk={cfg_dict['risk_ticks']}t, "
+        "captures afternoon drift more than morning noise."
+    )
     lines.append("")
     lines.append("EVIDENCE (3 bullets, numeric)")
-    lines.append(f"  • {result.n_trades} trades / {n_days} days, "
-                 f"net {_fmt_money(result.net_pnl)}, "
-                 f"WR {wr_pct:.1f}%, E[trade] {_fmt_money(exp_per_trade)}")
-    lines.append(f"  • 95% boot CI on total PnL: "
-                 f"${lo:+.2f} / ${hi:+.2f}")
+    lines.append(
+        f"  • {result.n_trades} trades / {n_days} days, "
+        f"net {_fmt_money(result.net_pnl)}, "
+        f"WR {wr_pct:.1f}%, E[trade] {_fmt_money(exp_per_trade)}"
+    )
+    lines.append(f"  • 95% boot CI on total PnL: ${lo:+.2f} / ${hi:+.2f}")
     if result.per_regime:
         best = max(result.per_regime.items(), key=lambda kv: float(kv[1]["pnl"]))
-        lines.append(f"  • Best regime bucket: `{best[0]}` "
-                     f"({int(best[1]['n'])} trades, "
-                     f"{_fmt_money(Decimal(best[1]['pnl']))})")
+        lines.append(
+            f"  • Best regime bucket: `{best[0]}` "
+            f"({int(best[1]['n'])} trades, "
+            f"{_fmt_money(Decimal(best[1]['pnl']))})"
+        )
     else:
         lines.append("  • (regime attribution pending)")
     lines.append("")
@@ -369,23 +377,24 @@ def _render_memo(
     lines.append("")
     lines.append("RESOLUTION")
     lines.append("  [ ] Fixed — how: _______")
-    lines.append("  [x] Accepted as surviving risk — monitoring: "
-                 "rerun memo every 10 trades")
+    lines.append("  [x] Accepted as surviving risk — monitoring: rerun memo every 10 trades")
     lines.append("  [ ] Overridden — rationale: _______")
     lines.append("")
     lines.append("SIZING")
-    lines.append(f"  Risk per trade: {kelly_quarter*100:.2f}%   "
-                 f"Kelly fraction: {kelly_quarter:.3f} (1/4 capped)")
+    lines.append(
+        f"  Risk per trade: {kelly_quarter * 100:.2f}%   "
+        f"Kelly fraction: {kelly_quarter:.3f} (1/4 capped)"
+    )
     lines.append("  Daily stop: -3R   Weekly: -8R   DD kill: -15R")
     lines.append("")
     lines.append("FALSIFICATION")
     lines.append(f"  I abandon this by {review_date.isoformat()} if ANY of:")
     lines.append("  • Live expectancy < +0.05R across first 30 new trades")
     lines.append("  • Slippage p95 exceeds +3.0 ticks over any 10-trade window")
-    lines.append("  • Net PnL < lower-CI bound "
-                 f"(${lo:+.2f}) for trailing 15 days")
-    lines.append("  • Any single loss exceeds "
-                 f"{cfg_dict['risk_ticks']*3} ticks (= 3x intended risk)")
+    lines.append(f"  • Net PnL < lower-CI bound (${lo:+.2f}) for trailing 15 days")
+    lines.append(
+        f"  • Any single loss exceeds {cfg_dict['risk_ticks'] * 3} ticks (= 3x intended risk)"
+    )
     lines.append("")
     lines.append("MONITORING")
     lines.append("  First review: after 10 trades")
@@ -409,15 +418,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--timeframe", choices=["1m", "5m"], default="1m")
     ap.add_argument("--journal", default=str(DEFAULT_JOURNAL))
-    ap.add_argument("--out", default=None,
-                    help="output md path (default reports/firm_reviews/<variant>.md)")
+    ap.add_argument(
+        "--out", default=None, help="output md path (default reports/firm_reviews/<variant>.md)"
+    )
     ap.add_argument("--summary-json", default=None, help="optional JSON summary path")
     args = ap.parse_args(argv)
 
     cfg = next((v for v in VARIANTS if v.name == args.variant), None)
     if cfg is None:
-        print(f"ERROR: variant {args.variant!r} not found. "
-              f"Known variants:", file=sys.stderr)
+        print(f"ERROR: variant {args.variant!r} not found. Known variants:", file=sys.stderr)
         for v in VARIANTS:
             print(f"  - {v.name}", file=sys.stderr)
         return 2
@@ -442,11 +451,19 @@ def main(argv: list[str] | None = None) -> int:
     # Convert dataclass fields to dict for rendering.
     cfg_dict = {
         k: getattr(cfg, k)
-        for k in ("rr", "risk_ticks", "time_stop_bars",
-                  "cross_magnitude_min", "vol_filter_stdev_max",
-                  "vol_hard_pause_stdev", "trend_align_bars",
-                  "orderflow_proxy_min", "morning_window",
-                  "afternoon_window", "loss_cooldown_bars")
+        for k in (
+            "rr",
+            "risk_ticks",
+            "time_stop_bars",
+            "cross_magnitude_min",
+            "vol_filter_stdev_max",
+            "vol_hard_pause_stdev",
+            "trend_align_bars",
+            "orderflow_proxy_min",
+            "morning_window",
+            "afternoon_window",
+            "loss_cooldown_bars",
+        )
         if hasattr(cfg, k)
     }
 
@@ -464,9 +481,11 @@ def main(argv: list[str] | None = None) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(md)
     print(f"Wrote Firm review to {out_path}")
-    print(f"  net_pnl={_fmt_money(result.net_pnl)}  "
-          f"n={result.n_trades}  wr={result.win_rate:.1%}  "
-          f"CI=[${ci[1]:+.2f}, ${ci[2]:+.2f}]")
+    print(
+        f"  net_pnl={_fmt_money(result.net_pnl)}  "
+        f"n={result.n_trades}  wr={result.win_rate:.1%}  "
+        f"CI=[${ci[1]:+.2f}, ${ci[2]:+.2f}]"
+    )
 
     if args.summary_json:
         Path(args.summary_json).parent.mkdir(parents=True, exist_ok=True)

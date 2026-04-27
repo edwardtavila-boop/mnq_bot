@@ -11,20 +11,19 @@ Usage:
         # bar.atr, bar.ema9, etc. are now populated
 """
 
+import math
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional, Deque
-import math
 
 from firm_engine import Bar
 
 
-def _ema(prev: Optional[float], value: float, length: int) -> float:
+def _ema(prev: float | None, value: float, length: int) -> float:
     alpha = 2.0 / (length + 1)
     return value if prev is None else prev + alpha * (value - prev)
 
 
-def _rma(prev: Optional[float], value: float, length: int) -> float:
+def _rma(prev: float | None, value: float, length: int) -> float:
     """Wilder's smoothing (used by RSI / ADX)."""
     alpha = 1.0 / length
     return value if prev is None else prev + alpha * (value - prev)
@@ -40,44 +39,44 @@ class IndicatorState:
     ema_50: int = 50
 
     # State
-    _prev_close: Optional[float] = None
-    _atr: Optional[float] = None
-    _ema9: Optional[float] = None
-    _ema21: Optional[float] = None
-    _ema50: Optional[float] = None
-    _rsi_avg_gain: Optional[float] = None
-    _rsi_avg_loss: Optional[float] = None
-    _adx: Optional[float] = None
-    _di_plus_smooth: Optional[float] = None
-    _di_minus_smooth: Optional[float] = None
-    _tr_smooth: Optional[float] = None
+    _prev_close: float | None = None
+    _atr: float | None = None
+    _ema9: float | None = None
+    _ema21: float | None = None
+    _ema50: float | None = None
+    _rsi_avg_gain: float | None = None
+    _rsi_avg_loss: float | None = None
+    _adx: float | None = None
+    _di_plus_smooth: float | None = None
+    _di_minus_smooth: float | None = None
+    _tr_smooth: float | None = None
 
     # VWAP (resets daily)
-    _current_day: Optional[int] = None
+    _current_day: int | None = None
     _vwap_sum_pv: float = 0.0
     _vwap_sum_v: float = 0.0
 
     # Rolling windows for computed-from-history features
-    _adx_history: Deque[float] = field(default_factory=lambda: deque(maxlen=10))
-    _atr_history: Deque[float] = field(default_factory=lambda: deque(maxlen=20))
-    _vol_history: Deque[float] = field(default_factory=lambda: deque(maxlen=50))
-    _range_history: Deque[float] = field(default_factory=lambda: deque(maxlen=20))
-    _high_history: Deque[float] = field(default_factory=lambda: deque(maxlen=10))
-    _low_history: Deque[float] = field(default_factory=lambda: deque(maxlen=10))
+    _adx_history: deque[float] = field(default_factory=lambda: deque(maxlen=10))
+    _atr_history: deque[float] = field(default_factory=lambda: deque(maxlen=20))
+    _vol_history: deque[float] = field(default_factory=lambda: deque(maxlen=50))
+    _range_history: deque[float] = field(default_factory=lambda: deque(maxlen=20))
+    _high_history: deque[float] = field(default_factory=lambda: deque(maxlen=10))
+    _low_history: deque[float] = field(default_factory=lambda: deque(maxlen=10))
 
     # Daily prev values
-    _prev_day_high: Optional[float] = None
-    _prev_day_low: Optional[float] = None
-    _today_high: Optional[float] = None
-    _today_low: Optional[float] = None
-    _today_open: Optional[float] = None
+    _prev_day_high: float | None = None
+    _prev_day_low: float | None = None
+    _today_high: float | None = None
+    _today_low: float | None = None
+    _today_open: float | None = None
 
     # 15m HTF aggregator (5-min bars → 15-min)
     _htf_bars_in_window: int = 0
-    _htf_high: Optional[float] = None
-    _htf_low: Optional[float] = None
-    _htf_close: Optional[float] = None
-    _htf_ema50: Optional[float] = None
+    _htf_high: float | None = None
+    _htf_low: float | None = None
+    _htf_close: float | None = None
+    _htf_ema50: float | None = None
 
     def _update_vwap(self, bar: Bar) -> None:
         day = bar.time // 86400
@@ -104,9 +103,11 @@ class IndicatorState:
         if self._prev_close is None:
             tr = bar.high - bar.low
         else:
-            tr = max(bar.high - bar.low,
-                     abs(bar.high - self._prev_close),
-                     abs(bar.low - self._prev_close))
+            tr = max(
+                bar.high - bar.low,
+                abs(bar.high - self._prev_close),
+                abs(bar.low - self._prev_close),
+            )
         self._atr = _rma(self._atr, tr, self.atr_period)
         bar.atr = self._atr
         self._atr_history.append(self._atr)
@@ -138,13 +139,19 @@ class IndicatorState:
         if self._prev_close is None:
             bar.adx = 20.0
             return
-        up_move = bar.high - (bar.high if not hasattr(self, '_prev_high') or self._prev_high is None else self._prev_high)
-        down_move = (bar.low if not hasattr(self, '_prev_low') or self._prev_low is None else self._prev_low) - bar.low
+        up_move = bar.high - (
+            bar.high
+            if not hasattr(self, "_prev_high") or self._prev_high is None
+            else self._prev_high
+        )
+        down_move = (
+            bar.low if not hasattr(self, "_prev_low") or self._prev_low is None else self._prev_low
+        ) - bar.low
         plus_dm = up_move if (up_move > down_move and up_move > 0) else 0.0
         minus_dm = down_move if (down_move > up_move and down_move > 0) else 0.0
-        tr = max(bar.high - bar.low,
-                 abs(bar.high - self._prev_close),
-                 abs(bar.low - self._prev_close))
+        tr = max(
+            bar.high - bar.low, abs(bar.high - self._prev_close), abs(bar.low - self._prev_close)
+        )
         self._tr_smooth = _rma(self._tr_smooth, tr, self.adx_period)
         self._di_plus_smooth = _rma(self._di_plus_smooth, plus_dm, self.adx_period)
         self._di_minus_smooth = _rma(self._di_minus_smooth, minus_dm, self.adx_period)
@@ -181,12 +188,12 @@ class IndicatorState:
     # Williams Alligator (Bill Williams) - 3 SMMA's displaced into future
     # Jaw: SMMA(13, +8 bars), Teeth: SMMA(8, +5 bars), Lips: SMMA(5, +3 bars)
     # Used for trend-end detection (price closing back through Lips = momentum stall)
-    _alligator_jaw_buf: Deque[float] = field(default_factory=lambda: deque(maxlen=21))
-    _alligator_teeth_buf: Deque[float] = field(default_factory=lambda: deque(maxlen=13))
-    _alligator_lips_buf: Deque[float] = field(default_factory=lambda: deque(maxlen=8))
-    _alligator_jaw: Optional[float] = None
-    _alligator_teeth: Optional[float] = None
-    _alligator_lips: Optional[float] = None
+    _alligator_jaw_buf: deque[float] = field(default_factory=lambda: deque(maxlen=21))
+    _alligator_teeth_buf: deque[float] = field(default_factory=lambda: deque(maxlen=13))
+    _alligator_lips_buf: deque[float] = field(default_factory=lambda: deque(maxlen=8))
+    _alligator_jaw: float | None = None
+    _alligator_teeth: float | None = None
+    _alligator_lips: float | None = None
 
     def _update_alligator(self, bar: Bar) -> None:
         """SMMA = Wilder's smoothing on median price. Displaced shift handled
@@ -201,9 +208,21 @@ class IndicatorState:
         self._alligator_lips_buf.append(self._alligator_lips or median)
         # Expose displaced (look-back) values as bar attributes
         # Lips displaced 3 bars (use value from 3 bars ago)
-        bar.alligator_lips = self._alligator_lips_buf[-4] if len(self._alligator_lips_buf) >= 4 else self._alligator_lips
-        bar.alligator_teeth = self._alligator_teeth_buf[-6] if len(self._alligator_teeth_buf) >= 6 else self._alligator_teeth
-        bar.alligator_jaw = self._alligator_jaw_buf[-9] if len(self._alligator_jaw_buf) >= 9 else self._alligator_jaw
+        bar.alligator_lips = (
+            self._alligator_lips_buf[-4]
+            if len(self._alligator_lips_buf) >= 4
+            else self._alligator_lips
+        )
+        bar.alligator_teeth = (
+            self._alligator_teeth_buf[-6]
+            if len(self._alligator_teeth_buf) >= 6
+            else self._alligator_teeth
+        )
+        bar.alligator_jaw = (
+            self._alligator_jaw_buf[-9]
+            if len(self._alligator_jaw_buf) >= 9
+            else self._alligator_jaw
+        )
 
     def update(self, bar: Bar) -> Bar:
         """Compute all indicators for this bar in-place."""
@@ -277,9 +296,9 @@ class IndicatorState:
         return min(list(self._low_history)[-6:-1])
 
     @property
-    def prev_day_high(self) -> Optional[float]:
+    def prev_day_high(self) -> float | None:
         return self._prev_day_high
 
     @property
-    def prev_day_low(self) -> Optional[float]:
+    def prev_day_low(self) -> float | None:
         return self._prev_day_low

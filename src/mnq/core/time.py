@@ -9,6 +9,7 @@ Conventions:
 For MNQ scalping during RTH only, we use the simpler 09:30-16:00 ET
 windows defined in specs. ETH support is here but unused by v0.x specs.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, time, timedelta

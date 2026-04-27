@@ -1,4 +1,4 @@
-# Apex V3 Meta-Firm — 2026-04-17T01:39:43.104300+00:00
+# Apex V3 Meta-Firm — 2026-04-26T14:26:27.577258+00:00
 
 **Engine available:** yes
 **Snapshot source:** eta_v3 firm_meta.run_meta_firm

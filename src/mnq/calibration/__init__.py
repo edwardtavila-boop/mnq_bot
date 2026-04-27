@@ -2,6 +2,7 @@
 
 Currently exposes `fit_slippage` which fits per-regime OLS on shadow fills.
 """
+
 from mnq.calibration.fit_slippage import (
     SlippageFit,
     SlippageModel,

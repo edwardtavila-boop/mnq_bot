@@ -40,6 +40,7 @@ are documented inline. They CAN be wrong; if a downstream consumer
 sees a clearly mis-classified day the right move is to widen the
 test fixture, not to silently shift the threshold.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -82,12 +83,12 @@ class RegimeFeatures:
     n_bars: int
     atr_mean: float
     atr_window: float
-    vol_ratio: float            # atr_window / atr_mean
-    slope_per_bar: float        # OLS slope of close vs bar index
-    slope_norm: float           # slope_per_bar / atr_mean
-    total_return: float         # last_close - first_close (signed)
-    leg1_extreme: float         # min/max close in first half (vs first)
-    leg2_extreme: float         # min/max close in second half (vs last)
+    vol_ratio: float  # atr_window / atr_mean
+    slope_per_bar: float  # OLS slope of close vs bar index
+    slope_norm: float  # slope_per_bar / atr_mean
+    total_return: float  # last_close - first_close (signed)
+    leg1_extreme: float  # min/max close in first half (vs first)
+    leg2_extreme: float  # min/max close in second half (vs last)
     classification: CanonicalRegime
 
 
@@ -199,7 +200,8 @@ def _compute_features(bars: Sequence[Bar]) -> RegimeFeatures:
 
 
 def _classify(
-    *, n: int,
+    *,
+    n: int,
     vol_ratio: float,
     atr_mean: float,
     slope_norm: float,
@@ -210,14 +212,14 @@ def _classify(
 ) -> CanonicalRegime:
     """Map features -> CanonicalRegime. Precedence:
 
-      1. Too few bars -> TRANSITION
-      2. Extreme vol + strong direction -> CRASH or EUPHORIA
-      3. Extremely low vol -> DEAD_ZONE
-      4. Reversal pattern (large leg1 + large leg2 in opposite signs)
-         -> {LOW,HIGH}_VOL_REVERSAL
-      5. Trend (|slope_norm| >= _SLOPE_TREND) -> {LOW,HIGH}_VOL_TREND
-      6. Range (|slope_norm| < _SLOPE_RANGE) -> {LOW,HIGH}_VOL_RANGE
-      7. Otherwise -> TRANSITION
+    1. Too few bars -> TRANSITION
+    2. Extreme vol + strong direction -> CRASH or EUPHORIA
+    3. Extremely low vol -> DEAD_ZONE
+    4. Reversal pattern (large leg1 + large leg2 in opposite signs)
+       -> {LOW,HIGH}_VOL_REVERSAL
+    5. Trend (|slope_norm| >= _SLOPE_TREND) -> {LOW,HIGH}_VOL_TREND
+    6. Range (|slope_norm| < _SLOPE_RANGE) -> {LOW,HIGH}_VOL_RANGE
+    7. Otherwise -> TRANSITION
     """
     if n < _MIN_BARS:
         return CanonicalRegime.TRANSITION
@@ -256,21 +258,14 @@ def _classify(
     )
     if is_reversal:
         return (
-            CanonicalRegime.HIGH_VOL_REVERSAL if is_high_vol
-            else CanonicalRegime.LOW_VOL_REVERSAL
+            CanonicalRegime.HIGH_VOL_REVERSAL if is_high_vol else CanonicalRegime.LOW_VOL_REVERSAL
         )
 
     # Trend / Range based on normalized slope
     if abs(slope_norm) >= _SLOPE_TREND:
-        return (
-            CanonicalRegime.HIGH_VOL_TREND if is_high_vol
-            else CanonicalRegime.LOW_VOL_TREND
-        )
+        return CanonicalRegime.HIGH_VOL_TREND if is_high_vol else CanonicalRegime.LOW_VOL_TREND
     if abs(slope_norm) < _SLOPE_RANGE:
-        return (
-            CanonicalRegime.HIGH_VOL_RANGE if is_high_vol
-            else CanonicalRegime.LOW_VOL_RANGE
-        )
+        return CanonicalRegime.HIGH_VOL_RANGE if is_high_vol else CanonicalRegime.LOW_VOL_RANGE
 
     # Mid-zone: in between trend and range -> TRANSITION
     return CanonicalRegime.TRANSITION

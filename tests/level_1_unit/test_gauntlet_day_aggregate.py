@@ -1,4 +1,5 @@
 """Tests for mnq.gauntlet.day_aggregate — per-day gauntlet scoring."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

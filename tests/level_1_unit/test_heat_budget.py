@@ -1,4 +1,5 @@
 """Tests for mnq.risk.heat_budget — Phase 5 per-regime heat caps."""
+
 from __future__ import annotations
 
 import json
@@ -10,26 +11,35 @@ import pytest
 from mnq.risk.heat_budget import (
     CanonicalRegime,
     HeatBudget,
-    HeatCheckResult,
     Position,
-    RegimeHeatConfig,
     compute_aggregate_heat,
     compute_position_heat,
     heat_budget_gate,
 )
 
-
 # ── Position fixtures ──────────────────────────────────────────────────
 
-def _pos(symbol: str = "MNQ", qty: int = 1, price: float = 20000.0,
-         point_value: float = 5.0, atr: float = 50.0, baseline_atr: float = 50.0) -> Position:
+
+def _pos(
+    symbol: str = "MNQ",
+    qty: int = 1,
+    price: float = 20000.0,
+    point_value: float = 5.0,
+    atr: float = 50.0,
+    baseline_atr: float = 50.0,
+) -> Position:
     return Position(
-        symbol=symbol, qty=qty, entry_price=price,
-        point_value=point_value, current_atr=atr, baseline_atr=baseline_atr,
+        symbol=symbol,
+        qty=qty,
+        entry_price=price,
+        point_value=point_value,
+        current_atr=atr,
+        baseline_atr=baseline_atr,
     )
 
 
 # ── compute_position_heat ──────────────────────────────────────────────
+
 
 class TestComputePositionHeat:
     def test_basic_heat(self):
@@ -64,6 +74,7 @@ class TestComputePositionHeat:
 
 # ── compute_aggregate_heat ─────────────────────────────────────────────
 
+
 class TestComputeAggregateHeat:
     def test_empty_positions(self):
         assert compute_aggregate_heat([], 5000.0) == 0.0
@@ -79,15 +90,13 @@ class TestComputeAggregateHeat:
         """Two correlated positions should have higher aggregate than sum."""
         p1 = _pos("MNQ", qty=1)
         p2 = _pos("MES", qty=1, price=5000.0)
-        individual_sum = (
-            compute_position_heat(p1, 5000.0) +
-            compute_position_heat(p2, 5000.0)
-        )
+        individual_sum = compute_position_heat(p1, 5000.0) + compute_position_heat(p2, 5000.0)
         aggregate = compute_aggregate_heat([p1, p2], 5000.0)
         assert aggregate > individual_sum  # Correlation penalty
 
 
 # ── HeatBudget ─────────────────────────────────────────────────────────
+
 
 class TestHeatBudget:
     def test_dead_zone_always_denies(self):
@@ -137,6 +146,7 @@ class TestHeatBudget:
 
 
 # ── heat_budget_gate ───────────────────────────────────────────────────
+
 
 class TestHeatBudgetGate:
     def test_gate_returns_gate_result(self):

@@ -12,6 +12,7 @@ The generated file imports only from the stdlib, `mnq.core.types`,
 `mnq.features`, and `mnq.generators.python_exec.base`. No third-party
 imports, no side effects at import time.
 """
+
 from __future__ import annotations
 
 import re
@@ -166,7 +167,9 @@ def _history_accessor(node: Any) -> str:
         return f"('b', {node.name!r})"
     if isinstance(node, Number):
         return f"('n', {float(node.value)!r})"
-    raise PythonGenerationError(f"comparator operand must be feature/builtin/number, got {type(node).__name__}")
+    raise PythonGenerationError(
+        f"comparator operand must be feature/builtin/number, got {type(node).__name__}"
+    )
 
 
 def _mirror_condition_str(cond: str) -> str:
@@ -256,7 +259,9 @@ def _feature_build_line(f: Any) -> str:
     elif isinstance(f, RelativeVolume):
         base = f"RelativeVolume(length={int(f.length)})"
     else:
-        raise PythonGenerationError(f"feature type not supported in Python generator: {type(f).__name__}")
+        raise PythonGenerationError(
+            f"feature type not supported in Python generator: {type(f).__name__}"
+        )
 
     if f.timeframe is not None and f.timeframe != "" and f.timeframe != "primary":
         return f"HTFWrapper({base}, timeframe={f.timeframe!r})"
@@ -292,8 +297,7 @@ def render_python(spec: StrategySpec) -> str:
         stop_expr = "10  # swing_low_high placeholder"
 
     features_lines = ",\n        ".join(
-        f"{f.id!r}: {_feature_build_line(f)}"
-        for f in spec.features
+        f"{f.id!r}: {_feature_build_line(f)}" for f in spec.features
     )
 
     source = f'''\

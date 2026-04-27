@@ -11,6 +11,7 @@ and a recommendation.
 Usage:
     python scripts/hot_hand_detector.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -39,11 +40,15 @@ def main() -> int:
     tt = tf = ft = ff = 0
     for i in range(1, len(wins)):
         if wins[i - 1]:
-            if wins[i]: tt += 1
-            else: tf += 1
+            if wins[i]:
+                tt += 1
+            else:
+                tf += 1
         else:
-            if wins[i]: ft += 1
-            else: ff += 1
+            if wins[i]:
+                ft += 1
+            else:
+                ff += 1
     p_w_given_w = tt / (tt + tf) if (tt + tf) else 0
     p_w_given_l = ft / (ft + ff) if (ft + ff) else 0
     base_wr = sum(wins) / len(wins)

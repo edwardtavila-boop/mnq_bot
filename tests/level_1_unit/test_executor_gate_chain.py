@@ -1,4 +1,5 @@
 """Executor ↔ gate-chain integration — verifies `OrderBook` blocks on DENY."""
+
 from __future__ import annotations
 
 import pytest
@@ -12,6 +13,7 @@ from mnq.storage.journal import EventJournal
 def _deny(name: str, reason: str):
     def _g() -> GateResult:
         return GateResult(False, name, reason)
+
     _g.name = name  # type: ignore[attr-defined]
     return _g
 
@@ -19,6 +21,7 @@ def _deny(name: str, reason: str):
 def _allow(name: str = "ok"):
     def _g() -> GateResult:
         return GateResult(True, name, "ok")
+
     _g.name = name  # type: ignore[attr-defined]
     return _g
 
@@ -108,6 +111,7 @@ class TestGateChainIntegration:
             )
         # Verify the journal got an ORDER_REJECTED with gate_blocked=True
         import sqlite3
+
         conn = sqlite3.connect(str(journal.path))
         rows = conn.execute(
             "SELECT event_type, payload FROM events WHERE event_type = 'order.rejected'"
@@ -115,6 +119,7 @@ class TestGateChainIntegration:
         conn.close()
         assert len(rows) == 1
         import json
+
         payload = json.loads(rows[0][1])
         assert payload["gate_blocked"] is True
         assert payload["gate"] == "heartbeat"

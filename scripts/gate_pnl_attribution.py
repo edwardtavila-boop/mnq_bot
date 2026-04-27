@@ -13,6 +13,7 @@ Key questions answered:
   2. Which gates are anti-correlated? (zero-weight or invert)
   3. What does the outcome-weighted hard-gate look like vs raw pass_rate?
 """
+
 from __future__ import annotations
 
 import json
@@ -95,7 +96,8 @@ def main() -> int:
         # Run gauntlet for per-gate verdicts
         bar_idx = _peak_volume_bar_idx(bars)
         ctx = context_from_bars(
-            bars, bar_idx,
+            bars,
+            bar_idx,
             side="long",
             regime=regime if regime != "unknown" else None,
         )
@@ -104,12 +106,14 @@ def main() -> int:
         gate_passed = {v.name: v.pass_ for v in verdicts}
         gate_scores = {v.name: v.score for v in verdicts}
 
-        records.append(GateDayRecord(
-            day_idx=i,
-            gate_passed=gate_passed,
-            gate_scores=gate_scores,
-            pnl=round(day_pnl, 2),
-        ))
+        records.append(
+            GateDayRecord(
+                day_idx=i,
+                gate_passed=gate_passed,
+                gate_scores=gate_scores,
+                pnl=round(day_pnl, 2),
+            )
+        )
 
         g = gauntlet_day_score(bars, regime=regime if regime != "unknown" else None)
         raw_pass_rates.append(g.pass_rate)
@@ -191,56 +195,72 @@ def main() -> int:
             f"{r.pass_count} | {r.fail_count} | {r.information_value:.3f} |"
         )
 
-    lines.extend([
-        "",
-        "## Gate classification",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Gate classification",
+            "",
+        ]
+    )
 
     value_adding = [r for r in sorted_results if r.weight > 0.05]
     neutral = [r for r in sorted_results if 0 < r.weight <= 0.05]
     value_destroying = [r for r in sorted_results if r.weight == 0 and r.raw_correlation < -0.01]
-    insufficient = [r for r in sorted_results if r.weight == 0 and r.raw_correlation >= -0.01 and r.fail_count < 5]
+    insufficient = [
+        r
+        for r in sorted_results
+        if r.weight == 0 and r.raw_correlation >= -0.01 and r.fail_count < 5
+    ]
 
     if value_adding:
-        lines.append(f"**Value-adding** (positive PnL correlation, weight > 0.05): "
-                      f"{', '.join(r.name for r in value_adding)}")
+        lines.append(
+            f"**Value-adding** (positive PnL correlation, weight > 0.05): "
+            f"{', '.join(r.name for r in value_adding)}"
+        )
         lines.append("")
     if neutral:
-        lines.append(f"**Neutral** (weak positive correlation, weight ≤ 0.05): "
-                      f"{', '.join(r.name for r in neutral)}")
+        lines.append(
+            f"**Neutral** (weak positive correlation, weight ≤ 0.05): "
+            f"{', '.join(r.name for r in neutral)}"
+        )
         lines.append("")
     if value_destroying:
-        lines.append(f"**Value-destroying** (anti-correlated with PnL): "
-                      f"{', '.join(r.name for r in value_destroying)}")
+        lines.append(
+            f"**Value-destroying** (anti-correlated with PnL): "
+            f"{', '.join(r.name for r in value_destroying)}"
+        )
         lines.append("")
     if insufficient:
-        lines.append(f"**Insufficient data** (< 5 failures, can't evaluate): "
-                      f"{', '.join(r.name for r in insufficient)}")
+        lines.append(
+            f"**Insufficient data** (< 5 failures, can't evaluate): "
+            f"{', '.join(r.name for r in insufficient)}"
+        )
         lines.append("")
 
-    lines.extend([
-        "## Filtering comparison: raw vs outcome-weighted",
-        "",
-        f"Thresholds: skip={cfg.skip_threshold}, reduce={cfg.reduce_threshold}",
-        "",
-        "### Raw pass_rate filtering",
-        "",
-        "| Action | Days | PnL | Avg PnL/day |",
-        "|---|---:|---:|---:|",
-        f"| Full | {raw_full_n} | ${raw_full_pnl:+,.2f} | ${raw_full_pnl / max(1, raw_full_n):+,.2f} |",
-        f"| Reduced | {raw_reduced_n} | ${raw_reduced_pnl:+,.2f} | ${raw_reduced_pnl / max(1, raw_reduced_n):+,.2f} |",
-        f"| Skipped | {raw_skipped_n} | ${raw_skipped_pnl:+,.2f} | ${raw_skipped_pnl / max(1, raw_skipped_n):+,.2f} |",
-        "",
-        "### Outcome-weighted pass_rate filtering",
-        "",
-        "| Action | Days | PnL | Avg PnL/day |",
-        "|---|---:|---:|---:|",
-        f"| Full | {ow_full_n} | ${ow_full_pnl:+,.2f} | ${ow_full_pnl / max(1, ow_full_n):+,.2f} |",
-        f"| Reduced | {ow_reduced_n} | ${ow_reduced_pnl:+,.2f} | ${ow_reduced_pnl / max(1, ow_reduced_n):+,.2f} |",
-        f"| Skipped | {ow_skipped_n} | ${ow_skipped_pnl:+,.2f} | ${ow_skipped_pnl / max(1, ow_skipped_n):+,.2f} |",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Filtering comparison: raw vs outcome-weighted",
+            "",
+            f"Thresholds: skip={cfg.skip_threshold}, reduce={cfg.reduce_threshold}",
+            "",
+            "### Raw pass_rate filtering",
+            "",
+            "| Action | Days | PnL | Avg PnL/day |",
+            "|---|---:|---:|---:|",
+            f"| Full | {raw_full_n} | ${raw_full_pnl:+,.2f} | ${raw_full_pnl / max(1, raw_full_n):+,.2f} |",
+            f"| Reduced | {raw_reduced_n} | ${raw_reduced_pnl:+,.2f} | ${raw_reduced_pnl / max(1, raw_reduced_n):+,.2f} |",
+            f"| Skipped | {raw_skipped_n} | ${raw_skipped_pnl:+,.2f} | ${raw_skipped_pnl / max(1, raw_skipped_n):+,.2f} |",
+            "",
+            "### Outcome-weighted pass_rate filtering",
+            "",
+            "| Action | Days | PnL | Avg PnL/day |",
+            "|---|---:|---:|---:|",
+            f"| Full | {ow_full_n} | ${ow_full_pnl:+,.2f} | ${ow_full_pnl / max(1, ow_full_n):+,.2f} |",
+            f"| Reduced | {ow_reduced_n} | ${ow_reduced_pnl:+,.2f} | ${ow_reduced_pnl / max(1, ow_reduced_n):+,.2f} |",
+            f"| Skipped | {ow_skipped_n} | ${ow_skipped_pnl:+,.2f} | ${ow_skipped_pnl / max(1, ow_skipped_n):+,.2f} |",
+            "",
+        ]
+    )
 
     # Compute effective filtering value
     ow_kept_pnl = ow_full_pnl + ow_reduced_pnl * 0.5  # reduced = half size
@@ -248,16 +268,18 @@ def main() -> int:
     ow_lost_pnl = ow_skipped_pnl + ow_reduced_pnl * 0.5
     raw_lost_pnl = raw_skipped_pnl + raw_reduced_pnl * 0.5
 
-    lines.extend([
-        "### Effective PnL after filtering",
-        "",
-        f"- Raw filtering effective PnL: ${raw_kept_pnl:+,.2f} (lost ${raw_lost_pnl:+,.2f} to skip/reduce)",
-        f"- OW filtering effective PnL: ${ow_kept_pnl:+,.2f} (lost ${ow_lost_pnl:+,.2f} to skip/reduce)",
-        f"- Delta: ${ow_kept_pnl - raw_kept_pnl:+,.2f}",
-        "",
-        "## Interpretation",
-        "",
-    ])
+    lines.extend(
+        [
+            "### Effective PnL after filtering",
+            "",
+            f"- Raw filtering effective PnL: ${raw_kept_pnl:+,.2f} (lost ${raw_lost_pnl:+,.2f} to skip/reduce)",
+            f"- OW filtering effective PnL: ${ow_kept_pnl:+,.2f} (lost ${ow_lost_pnl:+,.2f} to skip/reduce)",
+            f"- Delta: ${ow_kept_pnl - raw_kept_pnl:+,.2f}",
+            "",
+            "## Interpretation",
+            "",
+        ]
+    )
 
     if ow_kept_pnl > raw_kept_pnl:
         lines.append(

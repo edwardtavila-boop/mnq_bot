@@ -26,6 +26,7 @@ The harness also exercises the kill-switch / consecutive-loss / daily-drawdown
 breakers implicitly — they simply don't fire on the scripted strategy, which
 is 80% winners by construction.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -312,9 +313,7 @@ def _close_trade(
             "commission_dollars": str(commission),
             "exit_reason": exit_reason,
             "regime": regime.name,
-            "slippage_ticks": (
-                realized_exit.slippage_ticks if realized_exit else 0.0
-            ),
+            "slippage_ticks": (realized_exit.slippage_ticks if realized_exit else 0.0),
             "entry_slip_ticks": position.expected_entry_ticks,
         },
         trace_id=position.trace_id,
@@ -336,6 +335,7 @@ def _close_trade(
     # Converts dollar PnL to R-multiples for the learner.
     try:
         from mnq.firm_runtime import record_trade_outcome
+
         risk_ticks = abs(float(position.entry_price - position.stop)) / float(tick)
         risk_dollars = risk_ticks * float(tick) * float(point_value)
         pnl_r = float(net_pnl) / max(0.01, risk_dollars)
@@ -368,6 +368,7 @@ def run_live_sim(
     # bind paper too. Without this, paper sim produces optimistic
     # numbers that won't survive live promotion.
     from mnq.risk.gate_chain import build_default_chain
+
     book = OrderBook(journal, build_default_chain())
     breaker = CircuitBreaker(
         max_consecutive_losses=5,
@@ -393,9 +394,11 @@ def run_live_sim(
     # Either run against real MNQ 1-minute RTH bars or the synthetic generator.
     if cfg.use_real_data:
         real_days = load_real_days()
+
         # Label each real day with a proxy regime for journal attribution.
         def _label_day(bars_day: list[Bar]) -> Regime:
             import statistics as _st
+
             closes = [float(b.close) for b in bars_day]
             diffs = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
             sd = _st.stdev(diffs) if len(diffs) > 2 else 0.0
@@ -407,6 +410,7 @@ def run_live_sim(
             if dir_net < -0.002:
                 return next(r for r in regimes if r.name == "trend_down")
             return next(r for r in regimes if r.name == "chop")
+
         day_plan: list[tuple[list[Bar], Regime]] = [
             (d, _label_day(d)) for d in real_days[: cfg.n_days or len(real_days)]
         ]
@@ -434,6 +438,7 @@ def run_live_sim(
         def _make_strategy() -> Any:
             return ScriptedStrategyV2(spec, cfg=chosen)
     else:
+
         def _make_strategy() -> Any:
             return ScriptedStrategy(spec)
 
@@ -503,9 +508,7 @@ def run_live_sim(
                 feature_staleness_bars={"close": 0, "ema_9": 0, "ema_21": 0},
             )
 
-            decision = breaker.allow_trade_with_checks(
-                now=bar.ts, context=ctx, pretrade=pretrade
-            )
+            decision = breaker.allow_trade_with_checks(now=bar.ts, context=ctx, pretrade=pretrade)
             if not decision.allowed:
                 stats.n_blocked_risk += 1
                 stats.blocked_reasons[decision.reason] = (
@@ -569,9 +572,7 @@ def run_live_sim(
                 stats.total_slippage_ticks_entries += realized_entry.slippage_ticks
 
             # Update venue position.
-            venue.positions["MNQ"] = (
-                venue.positions.get("MNQ", 0) + signal.qty * signal.side.sign
-            )
+            venue.positions["MNQ"] = venue.positions.get("MNQ", 0) + signal.qty * signal.side.sign
 
             # Record open position.
             open_pos = OpenPosition(
@@ -585,9 +586,7 @@ def run_live_sim(
                 time_stop_bars=signal.time_stop_bars,
                 bar_ix_at_entry=bar_ix,
                 trace_id=order.trace_id or "",
-                expected_entry_ticks=(
-                    realized_entry.slippage_ticks if realized_entry else 0.0
-                ),
+                expected_entry_ticks=(realized_entry.slippage_ticks if realized_entry else 0.0),
                 regime_name=regime.name,
             )
             strat.update_position(signal.side.sign * signal.qty)
@@ -641,23 +640,21 @@ def analyze(
     # live path. A real multi-day run with journaling-across-days would call
     # TurnoverDriftMonitor.check instead.
     _v2_expectations: dict[str, tuple[float, float]] = {
-        "r0_real_baseline":        (0.8, 0.7),
-        "r1_real_volfilter":       (0.7, 0.7),
-        "r2_real_trend_morn":      (0.6, 0.7),
-        "r3_real_hard_pause":      (0.55, 0.7),
-        "r4_real_orderflow":       (0.53, 0.73),
-        "r5_real_wide_target":     (0.53, 0.73),
-        "r6_real_allday":          (0.8, 0.9),
-        "r7_real_conviction":      (0.35, 0.6),
-        "t16_r5_long_only":        (0.35, 0.6),
-        "t17_r5_short_only":       (0.2, 0.45),
+        "r0_real_baseline": (0.8, 0.7),
+        "r1_real_volfilter": (0.7, 0.7),
+        "r2_real_trend_morn": (0.6, 0.7),
+        "r3_real_hard_pause": (0.55, 0.7),
+        "r4_real_orderflow": (0.53, 0.73),
+        "r5_real_wide_target": (0.53, 0.73),
+        "r6_real_allday": (0.8, 0.9),
+        "r7_real_conviction": (0.35, 0.6),
+        "t16_r5_long_only": (0.35, 0.6),
+        "t17_r5_short_only": (0.2, 0.45),
     }
     variant = getattr(cfg, "variant_name", None) or "v1_default"
     expected_mean, expected_std = _v2_expectations.get(variant, (2.08, 0.20))
     realized_tpd = stats.n_closed / max(1, cfg.n_days)
-    z_score = (
-        (realized_tpd - expected_mean) / expected_std if expected_std > 0 else 0.0
-    )
+    z_score = (realized_tpd - expected_mean) / expected_std if expected_std > 0 else 0.0
     threshold_z = 3.0
     is_anomalous = abs(z_score) > threshold_z
 
@@ -736,7 +733,7 @@ def render_markdown(rpt: AnalysisReport, *, journal_path: Path) -> str:
     lines.append(f"- Days × bars: **{rpt.n_days} × {rpt.bars_per_day}**")
     lines.append("")
     lines.append(
-        "This is an internal-simulation \"live\" run. Every state transition — order submits, acks, fills, risk decisions, breaker folds, slippage records, reconciliation — is committed to a durable SQLite journal the same way the production path would. The bot is now accumulating the data it needs to adapt: fill expectations vs realizations, per-regime PnL attribution, turnover drift, and per-check safety outcomes."
+        'This is an internal-simulation "live" run. Every state transition — order submits, acks, fills, risk decisions, breaker folds, slippage records, reconciliation — is committed to a durable SQLite journal the same way the production path would. The bot is now accumulating the data it needs to adapt: fill expectations vs realizations, per-regime PnL attribution, turnover drift, and per-check safety outcomes.'
     )
     lines.append("")
 
@@ -776,12 +773,8 @@ def render_markdown(rpt: AnalysisReport, *, journal_path: Path) -> str:
         lines.append("|---|---:|")
         lines.append(f"| Fills recorded | {int(rpt.slip_df.height)} |")
         lines.append(f"| Mean slippage (ticks) | {float(np.mean(slip_arr)):+.3f} |")
-        lines.append(
-            f"| Median slippage (ticks) | {float(np.median(slip_arr)):+.3f} |"
-        )
-        lines.append(
-            f"| Stdev slippage (ticks) | {float(np.std(slip_arr, ddof=1)):+.3f} |"
-        )
+        lines.append(f"| Median slippage (ticks) | {float(np.median(slip_arr)):+.3f} |")
+        lines.append(f"| Stdev slippage (ticks) | {float(np.std(slip_arr, ddof=1)):+.3f} |")
         lines.append(f"| p95 adverse (ticks) | {float(np.quantile(slip_arr, 0.95)):+.3f} |")
         lines.append(f"| p05 favourable (ticks) | {float(np.quantile(slip_arr, 0.05)):+.3f} |")
 
@@ -846,9 +839,7 @@ def render_markdown(rpt: AnalysisReport, *, journal_path: Path) -> str:
         lines.append("| kind | symbol | severity | detail |")
         lines.append("|---|---|---|---|")
         for d in rr.diffs[:20]:
-            lines.append(
-                f"| {d.kind} | {d.symbol} | {d.severity} | {d.detail.replace('|', '/')} |"
-            )
+            lines.append(f"| {d.kind} | {d.symbol} | {d.severity} | {d.detail.replace('|', '/')} |")
     lines.append("")
 
     lines.append("## Interpretation")
@@ -877,6 +868,7 @@ def render_markdown(rpt: AnalysisReport, *, journal_path: Path) -> str:
 
 def main() -> int:
     import argparse
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--real", action="store_true", help="use real MNQ 1m RTH data")
     ap.add_argument("--variant", default=None, help="ScriptedStrategyV2 variant name")
@@ -918,13 +910,11 @@ def main() -> int:
                 raise ShimContractDriftError(probe_result.detail)
             if probe_result.status is ContractStatus.OK:
                 print(
-                    f"[live_sim] firm-bridge contract OK "
-                    f"(checksum={probe_result.locked_checksum})"
+                    f"[live_sim] firm-bridge contract OK (checksum={probe_result.locked_checksum})"
                 )
             else:
                 print(
-                    f"[live_sim] firm-bridge probe={status_label}: "
-                    f"{probe_result.detail}",
+                    f"[live_sim] firm-bridge probe={status_label}: {probe_result.detail}",
                     file=sys.stderr,
                 )
 
@@ -960,6 +950,7 @@ def main() -> int:
         scratch_dir = Path(env_dir)
     else:
         from mnq.risk.gate_chain import JOURNAL_PATH as _GC_JOURNAL
+
         scratch_dir = _GC_JOURNAL.parent
     scratch_dir.mkdir(parents=True, exist_ok=True)
     journal_path = scratch_dir / "journal.sqlite"

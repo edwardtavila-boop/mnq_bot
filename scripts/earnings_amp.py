@@ -8,6 +8,7 @@ mode within 24h of a report.
 Usage:
     python scripts/earnings_amp.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,8 +48,11 @@ def main() -> int:
     cal = _load_cal()
     now = datetime.now(UTC)
     upcoming = sorted(
-        [(sym, datetime.fromisoformat(d)) for sym, d in cal.items()
-         if datetime.fromisoformat(d) > now],
+        [
+            (sym, datetime.fromisoformat(d))
+            for sym, d in cal.items()
+            if datetime.fromisoformat(d) > now
+        ],
         key=lambda x: x[1],
     )
     within_24h = [x for x in upcoming if x[1] - now < timedelta(hours=24)]
@@ -65,7 +69,9 @@ def main() -> int:
     ]
     for sym, d in upcoming:
         delta = d - now
-        lines.append(f"| {sym} | {d.strftime('%Y-%m-%d %H:%M')} | T+{int(delta.total_seconds() / 86400)}d |")
+        lines.append(
+            f"| {sym} | {d.strftime('%Y-%m-%d %H:%M')} | T+{int(delta.total_seconds() / 86400)}d |"
+        )
 
     if within_24h:
         lines += [

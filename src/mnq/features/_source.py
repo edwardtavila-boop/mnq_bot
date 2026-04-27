@@ -1,4 +1,5 @@
 """[REAL] Price-source lookup shared by feature classes."""
+
 from __future__ import annotations
 
 from mnq.core.types import Bar

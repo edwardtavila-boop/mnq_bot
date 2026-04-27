@@ -6,6 +6,7 @@ in USD per contract.
 
 See the original [CONTRACT] docstring for the full API and nuances.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -27,9 +28,7 @@ POINT_VALUE_USD = 2.0
 def _require_columns(df: pl.DataFrame, *columns: str) -> None:
     missing = [c for c in columns if c not in df.columns]
     if missing:
-        raise ValueError(
-            f"DataFrame missing required columns: {missing} (have {df.columns})"
-        )
+        raise ValueError(f"DataFrame missing required columns: {missing} (have {df.columns})")
 
 
 def _bar_at(bars: pl.DataFrame, ts: datetime) -> dict[str, Any] | None:
@@ -60,9 +59,7 @@ def cash_returns(trades: pl.DataFrame) -> np.ndarray:
     return np.zeros(len(trades), dtype=np.float64)
 
 
-def mnq_intraday_returns(
-    trades: pl.DataFrame, bars: pl.DataFrame
-) -> np.ndarray:
+def mnq_intraday_returns(trades: pl.DataFrame, bars: pl.DataFrame) -> np.ndarray:
     """Per-trade MNQ buy-and-hold over the trade's holding period.
 
     Enter at the open of the bar containing `entry_ts`, exit at the close

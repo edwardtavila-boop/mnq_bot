@@ -47,6 +47,7 @@ Usage:
     python scripts/run_all_phases.py --skip crash_recovery  # skip heavy stage
     python scripts/run_all_phases.py --only live_sim firm_live_review
 """
+
 from __future__ import annotations
 
 import argparse
@@ -70,6 +71,7 @@ REPORT_PATH = REPO_ROOT / "reports" / "run_all_phases.md"
 def _resolve_python() -> str:
     import os
     import platform
+
     # On Linux, a Windows .exe passes os.access but fails to exec with
     # "Exec format error". Skip Scripts/ paths unless we're actually on
     # Windows so Linux CI and the sandbox use the right interpreter.
@@ -77,10 +79,12 @@ def _resolve_python() -> str:
     candidates = []
     if is_windows:
         candidates.append(REPO_ROOT / ".venv" / "Scripts" / "python.exe")
-    candidates.extend([
-        REPO_ROOT / ".venv" / "bin" / "python",
-        REPO_ROOT / ".venv" / "bin" / "python3",
-    ])
+    candidates.extend(
+        [
+            REPO_ROOT / ".venv" / "bin" / "python",
+            REPO_ROOT / ".venv" / "bin" / "python3",
+        ]
+    )
     for c in candidates:
         if c.exists() and os.access(str(c), os.X_OK):
             return str(c)
@@ -125,58 +129,60 @@ class StageResult:
 # Phase A-D: all run after the core pipeline. Non-blocking — these are
 # reporters and gates that shouldn't take down the run if a feed's offline.
 _PHASE_A_STAGES: list[Stage] = [
-    Stage("alerting",        "Phase A", [PYTHON, "scripts/alerting.py", "--tier", "info"]),
-    Stage("edge_decay",      "Phase A", [PYTHON, "scripts/edge_decay.py"]),
-    Stage("mae_mfe",         "Phase A", [PYTHON, "scripts/mae_mfe.py"]),
-    Stage("time_heatmap",    "Phase A", [PYTHON, "scripts/time_heatmap.py"]),
-    Stage("counterfactual",  "Phase A", [PYTHON, "scripts/counterfactual.py"]),
+    Stage("alerting", "Phase A", [PYTHON, "scripts/alerting.py", "--tier", "info"]),
+    Stage("edge_decay", "Phase A", [PYTHON, "scripts/edge_decay.py"]),
+    Stage("mae_mfe", "Phase A", [PYTHON, "scripts/mae_mfe.py"]),
+    Stage("time_heatmap", "Phase A", [PYTHON, "scripts/time_heatmap.py"]),
+    Stage("counterfactual", "Phase A", [PYTHON, "scripts/counterfactual.py"]),
     # --advisory: full-sweep runs use the replay journal whose trade count
     # will always trip the 8-trades/day live cap. Preserve the HOLD signal
     # in the report but don't fail the sweep; a live deployment calls
     # trade_governor.py directly without --advisory.
-    Stage("trade_governor",  "Phase A", [PYTHON, "scripts/trade_governor.py", "--advisory"]),
-    Stage("rule_adherence",  "Phase A", [PYTHON, "scripts/rule_adherence.py"]),
-    Stage("email_recap",     "Phase A", [PYTHON, "scripts/email_recap.py"]),
-    Stage("time_exit",       "Phase A", [PYTHON, "scripts/time_exit.py"]),
+    Stage("trade_governor", "Phase A", [PYTHON, "scripts/trade_governor.py", "--advisory"]),
+    Stage("rule_adherence", "Phase A", [PYTHON, "scripts/rule_adherence.py"]),
+    Stage("email_recap", "Phase A", [PYTHON, "scripts/email_recap.py"]),
+    Stage("time_exit", "Phase A", [PYTHON, "scripts/time_exit.py"]),
 ]
 
 _PHASE_B_STAGES: list[Stage] = [
-    Stage("psych_sidecar",     "Phase B", [PYTHON, "scripts/psych_sidecar.py", "--report"]),
-    Stage("pre_trade_pause",   "Phase B", [PYTHON, "scripts/pre_trade_pause.py"]),
-    Stage("loss_streak",       "Phase B", [PYTHON, "scripts/loss_streak_monitor.py"]),
-    Stage("hot_hand",          "Phase B", [PYTHON, "scripts/hot_hand_detector.py"]),
-    Stage("auto_screenshot",   "Phase B", [PYTHON, "scripts/auto_screenshot.py", "--last", "5"]),
-    Stage("voice_memo_list",   "Phase B", [PYTHON, "scripts/voice_memo.py", "--list"]),
-    Stage("weekly_review",     "Phase B", [PYTHON, "scripts/weekly_review.py"]),
+    Stage("psych_sidecar", "Phase B", [PYTHON, "scripts/psych_sidecar.py", "--report"]),
+    Stage("pre_trade_pause", "Phase B", [PYTHON, "scripts/pre_trade_pause.py"]),
+    Stage("loss_streak", "Phase B", [PYTHON, "scripts/loss_streak_monitor.py"]),
+    Stage("hot_hand", "Phase B", [PYTHON, "scripts/hot_hand_detector.py"]),
+    Stage("auto_screenshot", "Phase B", [PYTHON, "scripts/auto_screenshot.py", "--last", "5"]),
+    Stage("voice_memo_list", "Phase B", [PYTHON, "scripts/voice_memo.py", "--list"]),
+    Stage("weekly_review", "Phase B", [PYTHON, "scripts/weekly_review.py"]),
     Stage("monthly_narrative", "Phase B", [PYTHON, "scripts/monthly_narrative.py"]),
-    Stage("mistake_taxonomy",  "Phase B", [PYTHON, "scripts/mistake_taxonomy.py"]),
-    Stage("ai_reviewer",       "Phase B", [PYTHON, "scripts/ai_reviewer.py", "--last", "10"]),
+    Stage("mistake_taxonomy", "Phase B", [PYTHON, "scripts/mistake_taxonomy.py"]),
+    Stage("ai_reviewer", "Phase B", [PYTHON, "scripts/ai_reviewer.py", "--last", "10"]),
 ]
 
 _PHASE_C_STAGES: list[Stage] = [
     Stage("cumulative_delta", "Phase C", [PYTHON, "scripts/cumulative_delta.py"]),
-    Stage("volume_profile",   "Phase C", [PYTHON, "scripts/volume_profile.py"]),
-    Stage("sector_rotation",  "Phase C", [PYTHON, "scripts/sector_rotation.py"]),
-    Stage("news_feed",        "Phase C", [PYTHON, "scripts/news_feed.py"]),
-    Stage("gex_monitor",      "Phase C", [PYTHON, "scripts/gex_monitor.py"]),
-    Stage("vix_term",         "Phase C", [PYTHON, "scripts/vix_term.py"]),
-    Stage("breadth_monitor",  "Phase C", [PYTHON, "scripts/breadth_monitor.py"]),
-    Stage("event_calendar",   "Phase C", [PYTHON, "scripts/event_calendar.py"]),
-    Stage("earnings_amp",     "Phase C", [PYTHON, "scripts/earnings_amp.py"]),
-    Stage("seasonality",      "Phase C", [PYTHON, "scripts/seasonality.py"]),
+    Stage("volume_profile", "Phase C", [PYTHON, "scripts/volume_profile.py"]),
+    Stage("sector_rotation", "Phase C", [PYTHON, "scripts/sector_rotation.py"]),
+    Stage("news_feed", "Phase C", [PYTHON, "scripts/news_feed.py"]),
+    Stage("gex_monitor", "Phase C", [PYTHON, "scripts/gex_monitor.py"]),
+    Stage("vix_term", "Phase C", [PYTHON, "scripts/vix_term.py"]),
+    Stage("breadth_monitor", "Phase C", [PYTHON, "scripts/breadth_monitor.py"]),
+    Stage("event_calendar", "Phase C", [PYTHON, "scripts/event_calendar.py"]),
+    Stage("earnings_amp", "Phase C", [PYTHON, "scripts/earnings_amp.py"]),
+    Stage("seasonality", "Phase C", [PYTHON, "scripts/seasonality.py"]),
 ]
 
 _PHASE_D_STAGES: list[Stage] = [
-    Stage("gbm_filter",          "Phase D", [PYTHON, "scripts/gbm_filter.py"]),
-    Stage("shap_rank",           "Phase D", [PYTHON, "scripts/shap_rank.py"]),
-    Stage("trade_clusters",      "Phase D", [PYTHON, "scripts/trade_clusters.py"]),
-    Stage("anomaly_detect",      "Phase D", [PYTHON, "scripts/anomaly_detect.py"]),
-    Stage("heartbeat",           "Phase D", [PYTHON, "scripts/heartbeat.py", "--beat"]),
-    Stage("deadman_switch",      "Phase D", [PYTHON, "scripts/deadman_switch.py"]),
-    Stage("encrypted_backup",    "Phase D", [PYTHON, "scripts/encrypted_backup.py"]),
-    Stage("tax_1256",            "Phase D", [PYTHON, "scripts/tax_1256.py"]),
-    Stage("pretrade_checklist",  "Phase D", [PYTHON, "scripts/pretrade_checklist.py", "--skip-speak"]),
-    Stage("correlation_cap",     "Phase D", [PYTHON, "scripts/correlation_cap.py"]),
+    Stage("gbm_filter", "Phase D", [PYTHON, "scripts/gbm_filter.py"]),
+    Stage("shap_rank", "Phase D", [PYTHON, "scripts/shap_rank.py"]),
+    Stage("trade_clusters", "Phase D", [PYTHON, "scripts/trade_clusters.py"]),
+    Stage("anomaly_detect", "Phase D", [PYTHON, "scripts/anomaly_detect.py"]),
+    Stage("heartbeat", "Phase D", [PYTHON, "scripts/heartbeat.py", "--beat"]),
+    Stage("deadman_switch", "Phase D", [PYTHON, "scripts/deadman_switch.py"]),
+    Stage("encrypted_backup", "Phase D", [PYTHON, "scripts/encrypted_backup.py"]),
+    Stage("tax_1256", "Phase D", [PYTHON, "scripts/tax_1256.py"]),
+    Stage(
+        "pretrade_checklist", "Phase D", [PYTHON, "scripts/pretrade_checklist.py", "--skip-speak"]
+    ),
+    Stage("correlation_cap", "Phase D", [PYTHON, "scripts/correlation_cap.py"]),
 ]
 
 # Phase E: enforcement spine — gate chain evaluation, parity harness,
@@ -185,10 +191,10 @@ _PHASE_D_STAGES: list[Stage] = [
 # backtest_baseline_export precedes parity_harness so the harness has a
 # real comparison target rather than the stub-PASS fallback.
 _PHASE_E_STAGES: list[Stage] = [
-    Stage("gate_chain_check",         "Phase E", [PYTHON, "scripts/gate_chain_check.py"]),
+    Stage("gate_chain_check", "Phase E", [PYTHON, "scripts/gate_chain_check.py"]),
     Stage("backtest_baseline_export", "Phase E", [PYTHON, "scripts/backtest_baseline_export.py"]),
-    Stage("parity_harness",           "Phase E", [PYTHON, "scripts/parity_harness.py"]),
-    Stage("gauntlet_check",           "Phase E", [PYTHON, "scripts/gauntlet_check.py"]),
+    Stage("parity_harness", "Phase E", [PYTHON, "scripts/parity_harness.py"]),
+    Stage("gauntlet_check", "Phase E", [PYTHON, "scripts/gauntlet_check.py"]),
 ]
 
 # Phase F: closing reporters — 72h burn-in (compressed) and Apex V3
@@ -203,11 +209,11 @@ _PHASE_E_STAGES: list[Stage] = [
 #
 # All observational; never block the run.
 _PHASE_F_STAGES: list[Stage] = [
-    Stage("burn_in_72h",     "Phase F", [PYTHON, "scripts/burn_in_72h.py", "--compression", "4800"]),
-    Stage("eta_v3_probe",   "Phase F", [PYTHON, "scripts/eta_v3_probe.py"]),
-    Stage("eta_v3_enrich",  "Phase F", [PYTHON, "scripts/eta_v3_enrich.py"]),
-    Stage("eta_v3_bridge",  "Phase F", [PYTHON, "scripts/eta_v3_bridge.py"]),
-    Stage("eta_v3_meta",    "Phase F", [PYTHON, "scripts/eta_v3_meta.py"]),
+    Stage("burn_in_72h", "Phase F", [PYTHON, "scripts/burn_in_72h.py", "--compression", "4800"]),
+    Stage("eta_v3_probe", "Phase F", [PYTHON, "scripts/eta_v3_probe.py"]),
+    Stage("eta_v3_enrich", "Phase F", [PYTHON, "scripts/eta_v3_enrich.py"]),
+    Stage("eta_v3_bridge", "Phase F", [PYTHON, "scripts/eta_v3_bridge.py"]),
+    Stage("eta_v3_meta", "Phase F", [PYTHON, "scripts/eta_v3_meta.py"]),
     Stage("eta_meta_orchestrator", "Phase F", [PYTHON, "scripts/eta_meta_orchestrator.py"]),
 ]
 
@@ -338,8 +344,16 @@ def _stages(skip: set[str], only: set[str] | None) -> list[Stage]:
             [
                 PYTHON,
                 "scripts/walk_forward.py",
-                "--train", "8", "--test", "3", "--stride", "1",
-                "--variants", "r5_real_wide_target", "t16_r5_long_only", "t17_r5_short_only",
+                "--train",
+                "8",
+                "--test",
+                "3",
+                "--stride",
+                "1",
+                "--variants",
+                "r5_real_wide_target",
+                "t16_r5_long_only",
+                "t17_r5_short_only",
             ],
         ),
         Stage(
@@ -351,9 +365,13 @@ def _stages(skip: set[str], only: set[str] | None) -> list[Stage]:
             "firm_vs_baseline_apex_real",
             "Phase 3",
             [
-                PYTHON, "scripts/firm_vs_baseline.py",
-                "--with-apex-gate", "--apex-source", "real",
-                "--output", "reports/firm_vs_baseline_apex_real.md",
+                PYTHON,
+                "scripts/firm_vs_baseline.py",
+                "--with-apex-gate",
+                "--apex-source",
+                "real",
+                "--output",
+                "reports/firm_vs_baseline_apex_real.md",
             ],
         ),
         Stage(
@@ -511,6 +529,7 @@ def _render(results: list[StageResult]) -> str:
 
     # Per-phase ledger
     from collections import defaultdict
+
     by_phase: dict = defaultdict(list)
     for r in results:
         by_phase[r.phase].append(r)
@@ -559,21 +578,43 @@ def _render(results: list[StageResult]) -> str:
     lines.append("- `reports/crash_recovery.md` — Phase 1 durability")
     lines.append("- `reports/strategy_v2_report.md` — Phase 3 A/B winner")
     lines.append("- `reports/walk_forward.md` — Cross-cutting out-of-sample edge")
-    lines.append("- `reports/firm_vs_baseline.md` — Phase 3 Firm filter justification (synthetic Apex)")
-    lines.append("- `reports/firm_vs_baseline_apex_real.md` — Phase 3 Firm filter (real Apex — Batch 3F/3H)")
+    lines.append(
+        "- `reports/firm_vs_baseline.md` — Phase 3 Firm filter justification (synthetic Apex)"
+    )
+    lines.append(
+        "- `reports/firm_vs_baseline_apex_real.md` — Phase 3 Firm filter (real Apex — Batch 3F/3H)"
+    )
     lines.append("- `reports/shadow_venue.md` — Phase 8 Shadow-venue dry-run (Batch 4A — scaffold)")
     lines.append("- `reports/shadow_parity.md` — Phase 8 Shadow→Sim parity check (Batch 4C)")
-    lines.append("- `reports/shadow_venue_gated.md` — Phase 8 Shadow-venue with gauntlet pre-filter (Batch 5A)")
+    lines.append(
+        "- `reports/shadow_venue_gated.md` — Phase 8 Shadow-venue with gauntlet pre-filter (Batch 5A)"
+    )
     lines.append("- `reports/gauntlet_stats.md` — Phase 8 Gauntlet A/B comparison (Batch 5A)")
-    lines.append("- `reports/shadow_venue_v16.md` — Phase 8 Shadow-venue with V16 gauntlet blend (Batch 5D)")
-    lines.append("- `reports/gauntlet_weight_sweep.md` — Phase 8 Walk-forward weight optimization (Batch 5D)")
-    lines.append("- `reports/shadow_sensitivity.md` — Phase 8 Slippage/latency/partial-fill sensitivity (Batch 6C)")
-    lines.append("- `reports/rolling_calibration.md` — Phase 7 Per-epoch rolling calibration drift (Batch 7C)")
-    lines.append("- `reports/gauntlet_weight_sweep_full.md` — Phase 8 Full-sample V16 weight sweep (Batch 8A)")
+    lines.append(
+        "- `reports/shadow_venue_v16.md` — Phase 8 Shadow-venue with V16 gauntlet blend (Batch 5D)"
+    )
+    lines.append(
+        "- `reports/gauntlet_weight_sweep.md` — Phase 8 Walk-forward weight optimization (Batch 5D)"
+    )
+    lines.append(
+        "- `reports/shadow_sensitivity.md` — Phase 8 Slippage/latency/partial-fill sensitivity (Batch 6C)"
+    )
+    lines.append(
+        "- `reports/rolling_calibration.md` — Phase 7 Per-epoch rolling calibration drift (Batch 7C)"
+    )
+    lines.append(
+        "- `reports/gauntlet_weight_sweep_full.md` — Phase 8 Full-sample V16 weight sweep (Batch 8A)"
+    )
     lines.append("- `reports/hard_gate_sweep.md` — Phase 9 Hard-gate threshold sweep (Batch 9B)")
-    lines.append("- `reports/hard_gate_attribution.md` — Phase 9 Hard-gate day attribution (Batch 9B)")
-    lines.append("- `reports/gate_pnl_attribution.md` — Phase 10 Per-gate PnL attribution + outcome weights (Batch 10A/10B)")
-    lines.append("- `reports/ow_validation.md` — Phase 11 OOS validation of outcome weights (Batch 11A)")
+    lines.append(
+        "- `reports/hard_gate_attribution.md` — Phase 9 Hard-gate day attribution (Batch 9B)"
+    )
+    lines.append(
+        "- `reports/gate_pnl_attribution.md` — Phase 10 Per-gate PnL attribution + outcome weights (Batch 10A/10B)"
+    )
+    lines.append(
+        "- `reports/ow_validation.md` — Phase 11 OOS validation of outcome weights (Batch 11A)"
+    )
     lines.append("- `reports/calibration.md` — Phase 3 ml_scorer calibration")
     lines.append("- `reports/bayesian_expectancy.md` — Phase 5 posteriors + heat")
     lines.append("- `reports/firm_reviews/<variant>.md` — Phase 3 markdown Firm memo")
@@ -581,17 +622,39 @@ def _render(results: list[StageResult]) -> str:
     lines.append("- `reports/post_mortems/*.md` — Phase 3 per-trade post-mortems")
     lines.append("- `reports/daily/YYYY-MM-DD.md` — Phase 1 end-of-session digest")
     lines.append("- `reports/firm_integration.md` — Phase 0 Firm bridge probe")
-    lines.append("- `reports/alerting.md` · `reports/edge_decay.md` · `reports/mae_mfe.md` · `reports/time_heatmap.md` — Phase A")
-    lines.append("- `reports/counterfactual.md` · `reports/trade_governor.md` · `reports/rule_adherence.md` · `reports/email_recap.md` · `reports/time_exit.md` — Phase A")
-    lines.append("- `reports/psych_sidecar.md` · `reports/pre_trade_pause.md` · `reports/loss_streak.md` · `reports/hot_hand.md` — Phase B")
-    lines.append("- `reports/auto_screenshot.md` · `reports/voice_memos.md` · `reports/weekly_review.md` · `reports/monthly_narrative.md` · `reports/mistake_taxonomy.md` · `reports/ai_reviewer.md` — Phase B")
-    lines.append("- `reports/cumulative_delta.md` · `reports/volume_profile.md` · `reports/sector_rotation.md` · `reports/news_feed.md` · `reports/gex_monitor.md` — Phase C")
-    lines.append("- `reports/vix_term.md` · `reports/breadth.md` · `reports/event_calendar.md` · `reports/earnings_amp.md` · `reports/seasonality.md` — Phase C")
-    lines.append("- `reports/gbm_filter.md` · `reports/shap_rank.md` · `reports/trade_clusters.md` · `reports/anomaly.md` · `reports/heartbeat.md` — Phase D")
-    lines.append("- `reports/deadman_switch.md` · `reports/encrypted_backup.md` · `reports/tax_1256.md` · `reports/pretrade_checklist.md` · `reports/correlation_cap.md` — Phase D")
-    lines.append("- `reports/gate_chain.md` · `reports/parity.md` · `reports/gauntlet.md` — Phase E (enforcement spine)")
-    lines.append("- `reports/burn_in.md` · `reports/eta_v3.md` · `reports/eta_v3_probe.md` · `reports/eta_v3_enrich.md` · `reports/eta_v3_meta.md` — Phase F (closing reporters; `eta_v3_bridge.md` retained as legacy alias)")
-    lines.append("- `reports/backtest_real.md` · `reports/backtest_real_analysis.md` · `reports/backtest_real_trades.csv` — Phase 12 (real-tape backtest; `data/backtest_real_daily.json` for gate revalidation)")
+    lines.append(
+        "- `reports/alerting.md` · `reports/edge_decay.md` · `reports/mae_mfe.md` · `reports/time_heatmap.md` — Phase A"
+    )
+    lines.append(
+        "- `reports/counterfactual.md` · `reports/trade_governor.md` · `reports/rule_adherence.md` · `reports/email_recap.md` · `reports/time_exit.md` — Phase A"
+    )
+    lines.append(
+        "- `reports/psych_sidecar.md` · `reports/pre_trade_pause.md` · `reports/loss_streak.md` · `reports/hot_hand.md` — Phase B"
+    )
+    lines.append(
+        "- `reports/auto_screenshot.md` · `reports/voice_memos.md` · `reports/weekly_review.md` · `reports/monthly_narrative.md` · `reports/mistake_taxonomy.md` · `reports/ai_reviewer.md` — Phase B"
+    )
+    lines.append(
+        "- `reports/cumulative_delta.md` · `reports/volume_profile.md` · `reports/sector_rotation.md` · `reports/news_feed.md` · `reports/gex_monitor.md` — Phase C"
+    )
+    lines.append(
+        "- `reports/vix_term.md` · `reports/breadth.md` · `reports/event_calendar.md` · `reports/earnings_amp.md` · `reports/seasonality.md` — Phase C"
+    )
+    lines.append(
+        "- `reports/gbm_filter.md` · `reports/shap_rank.md` · `reports/trade_clusters.md` · `reports/anomaly.md` · `reports/heartbeat.md` — Phase D"
+    )
+    lines.append(
+        "- `reports/deadman_switch.md` · `reports/encrypted_backup.md` · `reports/tax_1256.md` · `reports/pretrade_checklist.md` · `reports/correlation_cap.md` — Phase D"
+    )
+    lines.append(
+        "- `reports/gate_chain.md` · `reports/parity.md` · `reports/gauntlet.md` — Phase E (enforcement spine)"
+    )
+    lines.append(
+        "- `reports/burn_in.md` · `reports/eta_v3.md` · `reports/eta_v3_probe.md` · `reports/eta_v3_enrich.md` · `reports/eta_v3_meta.md` — Phase F (closing reporters; `eta_v3_bridge.md` retained as legacy alias)"
+    )
+    lines.append(
+        "- `reports/backtest_real.md` · `reports/backtest_real_analysis.md` · `reports/backtest_real_trades.csv` — Phase 12 (real-tape backtest; `data/backtest_real_daily.json` for gate revalidation)"
+    )
     return "\n".join(lines) + "\n"
 
 
@@ -606,6 +669,7 @@ def _pre_run_shim_guard() -> None:
     # Same src-layout trickery the conftest uses so the guard imports
     # even when the script is run from the repo root.
     from pathlib import Path
+
     _repo = Path(__file__).resolve().parents[1]
     _src = _repo / "src"
     if str(_src) not in sys.path:
@@ -627,8 +691,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run all roadmap phases end-to-end.")
     parser.add_argument("--skip", nargs="*", default=[], help="Stages to skip by name.")
     parser.add_argument("--only", nargs="*", default=None, help="Run only these stages.")
-    parser.add_argument("--no-shim-guard", action="store_true",
-                        help="Skip the pre-run OneDrive self-heal sweep.")
+    parser.add_argument(
+        "--no-shim-guard", action="store_true", help="Skip the pre-run OneDrive self-heal sweep."
+    )
     args = parser.parse_args(argv)
 
     if not args.no_shim_guard:

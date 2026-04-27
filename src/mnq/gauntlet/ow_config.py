@@ -17,6 +17,7 @@ Usage:
     # Or build from explicit weights:
     cfg = build_ow_config({"cross_mag": 0.073, "session": 0.019})
 """
+
 from __future__ import annotations
 
 import json
@@ -89,10 +90,7 @@ def load_ow_config(
         raise ValueError(msg)
 
     # Filter to weights above noise floor
-    gate_weights = {
-        name: float(w) for name, w in raw_weights.items()
-        if float(w) >= min_weight
-    }
+    gate_weights = {name: float(w) for name, w in raw_weights.items() if float(w) >= min_weight}
 
     return GauntletHardGateConfig(
         skip_threshold=skip_threshold,
@@ -114,10 +112,7 @@ def build_ow_config(
     Convenience function for testing or when weights come from
     a walk-forward retrain rather than a static JSON file.
     """
-    filtered = {
-        name: w for name, w in gate_weights.items()
-        if w >= min_weight
-    }
+    filtered = {name: w for name, w in gate_weights.items() if w >= min_weight}
     return GauntletHardGateConfig(
         skip_threshold=skip_threshold,
         reduce_threshold=reduce_threshold,

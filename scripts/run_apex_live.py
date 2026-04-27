@@ -67,6 +67,7 @@ Exit codes
 2 -- argument parse error (argparse default)
 78 -- boot refused (operator config error; matches EX_CONFIG sysexit)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -117,7 +118,8 @@ EX_BOOT_REFUSED = 78  # EX_CONFIG-equivalent (operator config error)
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument(
-        "--live", action="store_true",
+        "--live",
+        action="store_true",
         help=(
             "Enable live mode. Requires APEX_LIVE_READY=1 + non-dormant "
             "broker + promotion gates green + doctor green. Default is "
@@ -125,60 +127,74 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     p.add_argument(
-        "--max-bars", type=int, default=0,
-        help="Stop after N tick iterations (0 = unbounded; useful for "
-             "smoke tests / CI).",
+        "--max-bars",
+        type=int,
+        default=0,
+        help="Stop after N tick iterations (0 = unbounded; useful for smoke tests / CI).",
     )
     p.add_argument(
-        "--tick-interval", type=float, default=1.0,
+        "--tick-interval",
+        type=float,
+        default=1.0,
         help="Seconds between tick iterations. Default 1.0 matches the "
-             "live cadence; 0 = as-fast-as-possible (dry-run smoke).",
+        "live cadence; 0 = as-fast-as-possible (dry-run smoke).",
     )
     p.add_argument(
-        "--variant", default="r5_real_wide_target",
+        "--variant",
+        default="r5_real_wide_target",
         help="Strategy variant name; must be in TieredRollout state.",
     )
     p.add_argument(
-        "--state-dir", type=Path, default=None,
-        help=f"State directory (kill_switch_latch.json, rollout state). "
-             f"Default: {STATE_DIR}",
+        "--state-dir",
+        type=Path,
+        default=None,
+        help=f"State directory (kill_switch_latch.json, rollout state). Default: {STATE_DIR}",
     )
     p.add_argument(
-        "--journal", type=Path, default=None,
+        "--journal",
+        type=Path,
+        default=None,
         help=f"Event journal path. Default: {LIVE_SIM_JOURNAL}",
     )
     p.add_argument(
-        "--skip-promotion-gate", action="store_true",
-        help="Skip the 9-gate promotion check (DRY-RUN ONLY -- ignored "
-             "in --live mode).",
+        "--skip-promotion-gate",
+        action="store_true",
+        help="Skip the 9-gate promotion check (DRY-RUN ONLY -- ignored in --live mode).",
     )
     p.add_argument(
-        "--tape", type=Path, default=None,
+        "--tape",
+        type=Path,
+        default=None,
         help=f"Path to a Databento-format CSV tape (replays historical "
-             f"bars one per tick for paper-mode soak). "
-             f"Default: {DEFAULT_DATABENTO_5M.name} if it exists, "
-             f"else no tape (rollout/breaker-only ticks).",
+        f"bars one per tick for paper-mode soak). "
+        f"Default: {DEFAULT_DATABENTO_5M.name} if it exists, "
+        f"else no tape (rollout/breaker-only ticks).",
     )
     p.add_argument(
-        "--no-tape", action="store_true",
+        "--no-tape",
+        action="store_true",
         help="Disable tape replay even if the default tape exists "
-             "(useful for unit-style smoke tests of the safety wiring).",
+        "(useful for unit-style smoke tests of the safety wiring).",
     )
     p.add_argument(
-        "--firm-review-every", type=int, default=1,
+        "--firm-review-every",
+        type=int,
+        default=1,
         help="Run the six-stage Firm review once every N bars. "
-             "Default 1 (every bar). Set higher for fast soak runs.",
+        "Default 1 (every bar). Set higher for fast soak runs.",
     )
     p.add_argument(
-        "--no-firm-review", action="store_true",
+        "--no-firm-review",
+        action="store_true",
         help="Disable per-bar Firm review (B4 closure). The runtime "
-             "still consumes the tape and exercises the safety stack.",
+        "still consumes the tape and exercises the safety stack.",
     )
     p.add_argument(
-        "--inspect", action="store_true",
+        "--inspect",
+        action="store_true",
         help="Diagnostic mode: print boot guards + spec_payload + the "
-             "Firm verdict for one tape bar, then exit. Does NOT enter "
-             "the tick loop. Useful for paper-soak debugging.",
+        "Firm verdict for one tape bar, then exit. Does NOT enter "
+        "the tick loop. Useful for paper-soak debugging.",
     )
     return p.parse_args(argv)
 
@@ -252,11 +268,13 @@ def _check_live_ready_env() -> BootCheck:
     val = os.environ.get("APEX_LIVE_READY", "").strip()
     if val == "1":
         return BootCheck(
-            "live_ready_env", ok=True,
+            "live_ready_env",
+            ok=True,
             detail="APEX_LIVE_READY=1 set",
         )
     return BootCheck(
-        "live_ready_env", ok=False,
+        "live_ready_env",
+        ok=False,
         detail=(
             f"APEX_LIVE_READY != '1' (got {val!r}). "
             "Live mode requires explicit operator acknowledgment. "
@@ -270,18 +288,21 @@ def _check_broker_dormancy() -> BootCheck:
     broker = os.environ.get("BROKER_TYPE", "").strip().lower()
     if not broker:
         return BootCheck(
-            "broker_dormancy", ok=False,
+            "broker_dormancy",
+            ok=False,
             detail="BROKER_TYPE not set in env (live mode needs IBKR or Tastytrade)",
         )
     try:
         assert_broker_active(broker)
     except DormantBrokerError as exc:
         return BootCheck(
-            "broker_dormancy", ok=False,
+            "broker_dormancy",
+            ok=False,
             detail=str(exc),
         )
     return BootCheck(
-        "broker_dormancy", ok=True,
+        "broker_dormancy",
+        ok=True,
         detail=f"BROKER_TYPE={broker!r} is active",
     )
 
@@ -291,16 +312,21 @@ def _check_promotion_gates() -> BootCheck:
     gate_script = REPO_ROOT / "scripts" / "_promotion_gate.py"
     if not gate_script.exists():
         return BootCheck(
-            "promotion_gates", ok=False,
+            "promotion_gates",
+            ok=False,
             detail=f"missing {gate_script.relative_to(REPO_ROOT)}",
         )
     proc = subprocess.run(
         [sys.executable, str(gate_script), "--all"],
-        cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if proc.returncode == 0:
         return BootCheck(
-            "promotion_gates", ok=True,
+            "promotion_gates",
+            ok=True,
             detail="all 9 gates PASS",
         )
     # Surface a one-line summary
@@ -309,7 +335,8 @@ def _check_promotion_gates() -> BootCheck:
         f"rc={proc.returncode}",
     )
     return BootCheck(
-        "promotion_gates", ok=False,
+        "promotion_gates",
+        ok=False,
         detail=f"{last} (run scripts/_promotion_gate.py --all for details)",
     )
 
@@ -320,22 +347,28 @@ def _check_doctor() -> BootCheck:
         from mnq.cli.doctor import run_all_checks
     except ImportError as exc:
         return BootCheck(
-            "doctor", ok=False, detail=f"could not import mnq.cli.doctor: {exc}",
+            "doctor",
+            ok=False,
+            detail=f"could not import mnq.cli.doctor: {exc}",
         )
     try:
         results = run_all_checks(strict=False)
     except Exception as exc:  # noqa: BLE001 -- defensive
         return BootCheck(
-            "doctor", ok=False, detail=f"run_all_checks raised: {exc}",
+            "doctor",
+            ok=False,
+            detail=f"run_all_checks raised: {exc}",
         )
     fails = [r for r in results if r.status == "fail"]
     if not fails:
         return BootCheck(
-            "doctor", ok=True,
+            "doctor",
+            ok=True,
             detail=f"{len(results)} checks, no FAILs",
         )
     return BootCheck(
-        "doctor", ok=False,
+        "doctor",
+        ok=False,
         detail=f"{len(fails)} FAIL: " + ", ".join(r.name for r in fails),
     )
 
@@ -345,26 +378,27 @@ def _check_kill_switch_latch(state_dir: Path) -> BootCheck:
     latch_path = state_dir / "kill_switch_latch.json"
     if not latch_path.exists():
         return BootCheck(
-            "kill_switch_latch", ok=True,
+            "kill_switch_latch",
+            ok=True,
             detail="no latch file (clean boot)",
         )
     try:
         latch = json.loads(latch_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return BootCheck(
-            "kill_switch_latch", ok=False,
+            "kill_switch_latch",
+            ok=False,
             detail=f"latch file unparseable: {exc}",
         )
     if latch.get("cleared_at_utc"):
         return BootCheck(
-            "kill_switch_latch", ok=True,
-            detail=(
-                f"latch file present but cleared at "
-                f"{latch.get('cleared_at_utc')}"
-            ),
+            "kill_switch_latch",
+            ok=True,
+            detail=(f"latch file present but cleared at {latch.get('cleared_at_utc')}"),
         )
     return BootCheck(
-        "kill_switch_latch", ok=False,
+        "kill_switch_latch",
+        ok=False,
         detail=(
             f"latch ARMED: {latch.get('reason', 'unknown')}. "
             "Clear with: python -m mnq.cli clear_kill_switch "
@@ -473,10 +507,14 @@ class ApexRuntime:
                 "drain complete: bars=%d signals=%d orders=%d "
                 "blocked=%d errors=%d firm_reviews=%d "
                 "firm_approved=%d firm_rejected=%d",
-                self.stats.bars_processed, self.stats.signals_seen,
-                self.stats.orders_submitted, self.stats.orders_blocked,
-                self.stats.errors, self.stats.firm_reviews_run,
-                self.stats.firm_approved, self.stats.firm_rejected,
+                self.stats.bars_processed,
+                self.stats.signals_seen,
+                self.stats.orders_submitted,
+                self.stats.orders_blocked,
+                self.stats.errors,
+                self.stats.firm_reviews_run,
+                self.stats.firm_approved,
+                self.stats.firm_rejected,
             )
         return EX_OK
 
@@ -495,6 +533,7 @@ class ApexRuntime:
         """
         from datetime import UTC
         from datetime import datetime as _dt
+
         bar = self._next_bar()
         if self.tape is not None and bar is None:
             logger.info("tick %d: tape exhausted, draining", bar_i)
@@ -509,7 +548,9 @@ class ApexRuntime:
             self.stats.orders_blocked += 1
             logger.info(
                 "tick %d: trade refused by circuit breaker: %s (%s)",
-                bar_i, decision.reason, decision.detail,
+                bar_i,
+                decision.reason,
+                decision.detail,
             )
             return True
 
@@ -528,19 +569,26 @@ class ApexRuntime:
                     self.stats.orders_blocked += 1
                     logger.info(
                         "tick %d: firm REJECT (%s, p=%.2f) -- %s",
-                        bar_i, review.verdict, review.pm_probability,
+                        bar_i,
+                        review.verdict,
+                        review.pm_probability,
                         (review.reasoning or "")[:80],
                     )
                     return True
                 self.stats.firm_approved += 1
                 logger.debug(
                     "tick %d: firm %s (p=%.2f)",
-                    bar_i, review.verdict, review.pm_probability,
+                    bar_i,
+                    review.verdict,
+                    review.pm_probability,
                 )
 
         logger.debug(
             "tick %d: rollout=%s tier=%d allowed_qty=%d circuit=ok",
-            bar_i, self.rollout.state.value, self.rollout.tier, qty,
+            bar_i,
+            self.rollout.state.value,
+            self.rollout.tier,
+            qty,
         )
         return True
 
@@ -565,7 +613,8 @@ class ApexRuntime:
         except ImportError as exc:
             logger.warning(
                 "firm_runtime shim unavailable -- per-bar review disabled "
-                "for the rest of this run (fail-open): %s", exc,
+                "for the rest of this run (fail-open): %s",
+                exc,
             )
             self._firm_shim_unavailable = True
             return None
@@ -610,8 +659,7 @@ class ApexRuntime:
             stages = run_six_stage_review(
                 strategy_id=self.cfg.variant,
                 decision_context=(
-                    f"live tick {bar_i} bar_ts={bar_payload['ts']} "
-                    f"c={bar_payload['close']}"
+                    f"live tick {bar_i} bar_ts={bar_payload['ts']} c={bar_payload['close']}"
                 ),
                 payload={"spec": spec_payload, "bar": bar_payload},
                 regime_snapshot={
@@ -641,6 +689,7 @@ def _install_signal_handlers(runtime: ApexRuntime) -> None:
     def _handler(*_: Any) -> None:
         logger.info("received stop signal; draining")
         runtime.request_stop()
+
     with contextlib.suppress(Exception):
         signal.signal(signal.SIGINT, _handler)
         if hasattr(signal, "SIGTERM"):
@@ -664,9 +713,7 @@ async def _amain(argv: list[str] | None = None) -> int:
 
     # Refuse-to-boot guards
     checks = evaluate_boot_guards(cfg)
-    tape_label = (
-        cfg.tape_path.name if cfg.tape_path is not None else "(none)"
-    )
+    tape_label = cfg.tape_path.name if cfg.tape_path is not None else "(none)"
     print("MNQ_BOT // run_eta_live")
     print("=" * 64)
     print(f"mode          : {'LIVE' if cfg.live else 'DRY-RUN'}")
@@ -689,7 +736,8 @@ async def _amain(argv: list[str] | None = None) -> int:
     if failed:
         logger.error(
             "boot REFUSED: %d guard(s) FAILed: %s",
-            len(failed), ", ".join(c.name for c in failed),
+            len(failed),
+            ", ".join(c.name for c in failed),
         )
         return EX_BOOT_REFUSED
 
@@ -723,6 +771,7 @@ async def _amain(argv: list[str] | None = None) -> int:
     # v0.2.7: precompute the variant's real spec_payload from yaml +
     # cached backtest stats. Once at startup, then reused per-bar.
     from mnq.spec.runtime_payload import build_spec_payload
+
     spec_payload = build_spec_payload(cfg.variant)
 
     runtime = ApexRuntime(
@@ -792,8 +841,7 @@ def _format_regime_table(regime_expectancy: dict) -> str:
         per_day = stats.get("pnl_per_day", 0.0)
         e = stats.get("expectancy_r", 0.0)
         lines.append(
-            f"| {regime} | {n} | ${total:+.2f} | ${per_day:+.2f} | "
-            f"{e:+.4f}R |",
+            f"| {regime} | {n} | ${total:+.2f} | ${per_day:+.2f} | {e:+.4f}R |",
         )
     return "\n".join(lines)
 
@@ -825,10 +873,7 @@ def _format_drift_summary(spec_payload: dict) -> str:
         tag = "EDGE FADING "
     else:
         tag = "EDGE GROWING"
-    return (
-        f"{tag} : E={expected:+.3f}R | "
-        f"recency={recency:+.3f}R | delta={delta:+.3f}R"
-    )
+    return f"{tag} : E={expected:+.3f}R | recency={recency:+.3f}R | delta={delta:+.3f}R"
 
 
 def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
@@ -865,14 +910,19 @@ def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
         print("\n--- bar: none (no tape configured or tape empty) ---")
         return EX_OK
     print("\n--- bar (most recent tape entry) ---")
-    print(json.dumps({
-        "ts": bar.ts.isoformat(),
-        "open": float(bar.open),
-        "high": float(bar.high),
-        "low": float(bar.low),
-        "close": float(bar.close),
-        "volume": int(bar.volume),
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "ts": bar.ts.isoformat(),
+                "open": float(bar.open),
+                "high": float(bar.high),
+                "low": float(bar.low),
+                "close": float(bar.close),
+                "volume": int(bar.volume),
+            },
+            indent=2,
+        )
+    )
     if not runtime.cfg.firm_review_enabled:
         print("\n--- firm review: DISABLED (--no-firm-review) ---")
         return EX_OK
@@ -884,13 +934,18 @@ def _run_inspect(runtime: ApexRuntime, spec_payload: dict) -> int:
         )
         return EX_OK
     print("\n--- firm verdict (PM stage) ---")
-    print(json.dumps({
-        "verdict": review.verdict,
-        "pm_probability": review.pm_probability,
-        "is_reject": review.is_reject,
-        "reasoning": review.reasoning,
-        "primary_driver": review.primary_driver,
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "verdict": review.verdict,
+                "pm_probability": review.pm_probability,
+                "is_reject": review.is_reject,
+                "reasoning": review.reasoning,
+                "primary_driver": review.primary_driver,
+            },
+            indent=2,
+        )
+    )
     return EX_OK
 
 

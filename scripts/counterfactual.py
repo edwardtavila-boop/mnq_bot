@@ -8,6 +8,7 @@ pressure-test before committing to a formal governor.
 Usage:
     python scripts/counterfactual.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -101,7 +102,9 @@ def main() -> int:
         "- A win from *skip after-loss* suggests mean-reversion in streaks — confirm with streak analyzer.",
     ]
     REPORT_PATH.write_text("\n".join(lines) + "\n")
-    print(f"counterfactual: baseline={base_eq:+.2f} · skipWorst={sw_eq:+.2f} · skipFirstLoss={sfl_eq:+.2f} · skipAfterLoss={sal_eq:+.2f}")
+    print(
+        f"counterfactual: baseline={base_eq:+.2f} · skipWorst={sw_eq:+.2f} · skipFirstLoss={sfl_eq:+.2f} · skipAfterLoss={sal_eq:+.2f}"
+    )
     return 0
 
 

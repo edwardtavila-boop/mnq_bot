@@ -10,6 +10,7 @@ Pin the contract:
   * --inspect respects --no-firm-review (skips the verdict section)
   * --inspect handles "no tape" gracefully (prints "bar: none")
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -26,7 +27,8 @@ SCRIPT = REPO_ROOT / "scripts" / "run_eta_live.py"
 @pytest.fixture(scope="module")
 def runtime_mod():
     spec = importlib.util.spec_from_file_location(
-        "run_eta_live_for_inspect_test", SCRIPT,
+        "run_eta_live_for_inspect_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -41,6 +43,7 @@ def _make_bar(runtime_mod):
     from decimal import Decimal
 
     from mnq.core.types import Bar
+
     return Bar(
         ts=datetime(2024, 6, 1, 14, 0, tzinfo=UTC),
         open=Decimal("21000.00"),
@@ -53,7 +56,8 @@ def _make_bar(runtime_mod):
 
 
 def _make_runtime(
-    runtime_mod, *,
+    runtime_mod,
+    *,
     inspect: bool = True,
     review_enabled: bool = True,
     tape_bars=None,
@@ -63,7 +67,8 @@ def _make_runtime(
     from mnq.risk.tiered_rollout import TieredRollout
 
     class _FakeJournal:
-        def close(self): pass
+        def close(self):
+            pass
 
     class _FakeBook:
         _gate_chain = object()
@@ -74,6 +79,7 @@ def _make_runtime(
                 allowed = True
                 reason = "ok"
                 detail = ""
+
             return _D()
 
     cfg = runtime_mod.RuntimeConfig(
@@ -93,8 +99,12 @@ def _make_runtime(
     rollout.tier = rollout_tier
     tape = iter(tape_bars) if tape_bars else None
     return runtime_mod.ApexRuntime(
-        cfg=cfg, journal=_FakeJournal(), book=_FakeBook(),
-        breaker=_FakeBreaker(), rollout=rollout, tape=tape,
+        cfg=cfg,
+        journal=_FakeJournal(),
+        book=_FakeBook(),
+        breaker=_FakeBreaker(),
+        rollout=rollout,
+        tape=tape,
     )
 
 
@@ -122,7 +132,8 @@ def test_inspect_prints_spec_payload(runtime_mod, capsys) -> None:
 
 
 def test_inspect_prints_bar_section_when_tape_present(
-    runtime_mod, capsys,
+    runtime_mod,
+    capsys,
 ) -> None:
     """With a tape bar, the second section dumps the bar's OHLCV."""
     rt = _make_runtime(runtime_mod, tape_bars=[_make_bar(runtime_mod)])
@@ -135,7 +146,8 @@ def test_inspect_prints_bar_section_when_tape_present(
 
 
 def test_inspect_no_tape_prints_none_section(
-    runtime_mod, capsys,
+    runtime_mod,
+    capsys,
 ) -> None:
     """Without a tape, the bar section says 'none' and exits cleanly."""
     rt = _make_runtime(runtime_mod, tape_bars=None)
@@ -146,7 +158,8 @@ def test_inspect_no_tape_prints_none_section(
 
 
 def test_inspect_no_firm_review_skips_verdict(
-    runtime_mod, capsys,
+    runtime_mod,
+    capsys,
 ) -> None:
     """With --no-firm-review, the verdict section is replaced with a
     'DISABLED' line."""
@@ -161,10 +174,13 @@ def test_inspect_no_firm_review_skips_verdict(
 
 
 def test_inspect_with_firm_review_prints_verdict(
-    runtime_mod, monkeypatch, capsys,
+    runtime_mod,
+    monkeypatch,
+    capsys,
 ) -> None:
     """When firm_review is enabled and the shim is available, the
     inspect output includes the PM verdict JSON."""
+
     def _fake_review(**kwargs):
         return {
             "pm": {
@@ -174,8 +190,11 @@ def test_inspect_with_firm_review_prints_verdict(
                 "primary_driver": "expectancy",
             },
         }
+
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     rt = _make_runtime(
         runtime_mod,
@@ -190,16 +209,21 @@ def test_inspect_with_firm_review_prints_verdict(
 
 
 def test_inspect_does_not_update_tickstats(
-    runtime_mod, monkeypatch,
+    runtime_mod,
+    monkeypatch,
 ) -> None:
     """Inspect mode is read-only diagnostic. It must NOT increment
     bars_processed, orders_submitted, etc."""
+
     def _fake_review(**kwargs):
         return {
             "pm": {"verdict": "APPROVE", "probability": 0.5},
         }
+
     monkeypatch.setattr(
-        "mnq.firm_runtime.run_six_stage_review", _fake_review, raising=True,
+        "mnq.firm_runtime.run_six_stage_review",
+        _fake_review,
+        raising=True,
     )
     rt = _make_runtime(runtime_mod, tape_bars=[_make_bar(runtime_mod)])
     runtime_mod._run_inspect(rt, {})
@@ -210,11 +234,14 @@ def test_inspect_does_not_update_tickstats(
 
 
 def test_inspect_handles_shim_import_error(
-    runtime_mod, monkeypatch, capsys,
+    runtime_mod,
+    monkeypatch,
+    capsys,
 ) -> None:
     """If the firm shim isn't importable, inspect prints a graceful
     message and exits 0 (matches the runtime's fail-open behavior)."""
     import builtins
+
     real_import = builtins.__import__
 
     def _raise_for_firm_runtime(name, *args, **kwargs):

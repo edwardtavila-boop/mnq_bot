@@ -7,6 +7,7 @@ pay off. Stub awaits a live curve feed (CBOE/Polygon).
 Usage:
     python scripts/vix_term.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,12 +26,12 @@ def main() -> int:
 
     has_feed = bool(os.environ.get("FIRM_VIX_URL"))
     # Canned flat curve when no feed
-    curve = [("VIX",  15.0), ("VIX1M", 15.5), ("VIX3M", 16.0), ("VIX6M", 16.5)]
+    curve = [("VIX", 15.0), ("VIX1M", 15.5), ("VIX3M", 16.0), ("VIX6M", 16.5)]
     inverted = curve[0][1] > curve[1][1]
     verdict = (
         "🔴 INVERTED — fear regime, expect wider ranges"
-        if inverted else
-        "🟢 CONTANGO — calm regime, tighter stops ok"
+        if inverted
+        else "🟢 CONTANGO — calm regime, tighter stops ok"
     )
 
     lines = [

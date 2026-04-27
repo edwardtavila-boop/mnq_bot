@@ -73,8 +73,19 @@ def validate_payload(p: dict) -> str | None:
     plus V12-V15 (edge stack: Delta/Killzone/PremDisc/FVG).
     See BASEMENT_THEORY_AUDIT.md Fix #3.
     """
-    required = ["ticker", "side", "setup", "entry", "sl", "tp1", "tp2",
-                "regime", "pm_final", "red_team", "voices"]
+    required = [
+        "ticker",
+        "side",
+        "setup",
+        "entry",
+        "sl",
+        "tp1",
+        "tp2",
+        "regime",
+        "pm_final",
+        "red_team",
+        "voices",
+    ]
     for k in required:
         if k not in p:
             return f"missing field: {k}"
@@ -163,6 +174,7 @@ def forward_to_broker(p: dict) -> dict:
                 DormantBrokerError,
                 assert_broker_active,
             )
+
             assert_broker_active(broker_name)
         except DormantBrokerError as exc:
             log.error("live order REFUSED: %s", exc)
@@ -191,11 +203,9 @@ def forward_to_broker(p: dict) -> dict:
                 "red_team": p["red_team"],
             },
         }
-        headers = {"Authorization": f"Bearer {BROKER_API_KEY}",
-                   "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {BROKER_API_KEY}", "Content-Type": "application/json"}
         r = requests.post(BROKER_URL, json=order, headers=headers, timeout=5)
-        return {"forwarded": True, "status": r.status_code,
-                "response": r.text[:200]}
+        return {"forwarded": True, "status": r.status_code, "response": r.text[:200]}
     except Exception as e:
         log.exception("Broker forward failed")
         return {"forwarded": False, "reason": str(e)}
@@ -245,36 +255,44 @@ def webhook():
     pm_ok, pm_reason = double_check_firm(p)
     if not pm_ok:
         log.info(f"Server gate REJECTED: {pm_reason}  payload={p}")
-        log_trade(p, {"server_validation": "rejected", "reason": pm_reason},
-                  {"forwarded": False, "reason": "rejected_by_server"})
+        log_trade(
+            p,
+            {"server_validation": "rejected", "reason": pm_reason},
+            {"forwarded": False, "reason": "rejected_by_server"},
+        )
         return jsonify({"ok": True, "fired": False, "reason": pm_reason})
 
     # All checks passed → forward to broker
-    log.info(f"Server gate PASSED: {p['side']} {p['setup']} PM={p['pm_final']} "
-             f"regime={p['regime']}")
+    log.info(
+        f"Server gate PASSED: {p['side']} {p['setup']} PM={p['pm_final']} regime={p['regime']}"
+    )
     broker_resp = forward_to_broker(p)
     log_trade(p, {"server_validation": "passed"}, broker_resp)
 
-    return jsonify({
-        "ok": True,
-        "fired": True,
-        "side": p["side"],
-        "setup": p["setup"],
-        "pm_final": p["pm_final"],
-        "broker": broker_resp,
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "fired": True,
+            "side": p["side"],
+            "setup": p["setup"],
+            "pm_final": p["pm_final"],
+            "broker": broker_resp,
+        }
+    )
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({
-        "ok": True,
-        "service": "apex_v2_webhook",
-        "pm_threshold": PM_THRESHOLD,
-        "dry_run": DRY_RUN,
-        "broker_configured": bool(BROKER_URL),
-        "auth_required": bool(WEBHOOK_SECRET),
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "service": "apex_v2_webhook",
+            "pm_threshold": PM_THRESHOLD,
+            "dry_run": DRY_RUN,
+            "broker_configured": bool(BROKER_URL),
+            "auth_required": bool(WEBHOOK_SECRET),
+        }
+    )
 
 
 @app.route("/recent", methods=["GET"])
@@ -290,7 +308,8 @@ def recent():
 
 
 if __name__ == "__main__":
-    log.info(f"Starting Apex v2 webhook server  (PM≥{PM_THRESHOLD}  "
-             f"dry_run={DRY_RUN}  auth={'on' if WEBHOOK_SECRET else 'off'})")
-    app.run(host="0.0.0.0", port=int(os.environ.get("APEX_PORT", "5000")),
-            debug=False)
+    log.info(
+        f"Starting Apex v2 webhook server  (PM≥{PM_THRESHOLD}  "
+        f"dry_run={DRY_RUN}  auth={'on' if WEBHOOK_SECRET else 'off'})"
+    )
+    app.run(host="0.0.0.0", port=int(os.environ.get("APEX_PORT", "5000")), debug=False)

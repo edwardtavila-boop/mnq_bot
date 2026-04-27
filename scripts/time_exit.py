@@ -10,6 +10,7 @@ a recommended max-hold suggestion.
 Usage:
     python scripts/time_exit.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,14 +47,16 @@ def main() -> int:
         pnls = [c.net_pnl for c in chunk]
         rs = [c.r_multiple for c in chunk]
         wins = sum(1 for p in pnls if p > 0)
-        buckets.append({
-            "lo_s": chunk[0].duration_s,
-            "hi_s": chunk[-1].duration_s,
-            "n": len(chunk),
-            "wr": wins / len(chunk),
-            "exp": statistics.fmean(pnls),
-            "avg_r": statistics.fmean(rs),
-        })
+        buckets.append(
+            {
+                "lo_s": chunk[0].duration_s,
+                "hi_s": chunk[-1].duration_s,
+                "n": len(chunk),
+                "wr": wins / len(chunk),
+                "exp": statistics.fmean(pnls),
+                "avg_r": statistics.fmean(rs),
+            }
+        )
 
     # Recommend time-stop: find the earliest bucket where expectancy turns negative
     recommended_cap: float | None = None
@@ -91,7 +94,7 @@ def main() -> int:
     REPORT_PATH.write_text("\n".join(lines) + "\n")
     print(
         f"time_exit: {n} trades · cap_suggestion="
-        f"{'%.0fs' % recommended_cap if recommended_cap else 'none'}"
+        f"{f'{recommended_cap:.0f}s' if recommended_cap else 'none'}"
     )
     return 0
 

@@ -17,6 +17,7 @@ Usage
 The inspect mode does NOT write to the journal, place orders, or
 modify rollout state. It's a read-only diagnostic.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -39,7 +40,8 @@ def _load_runtime_script() -> object:
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "scripts" / "run_eta_live.py"
     spec = importlib.util.spec_from_file_location(
-        "_mnq_cli_inspect_runtime", script,
+        "_mnq_cli_inspect_runtime",
+        script,
     )
     if spec is None or spec.loader is None:
         msg = f"can't load {script}"
@@ -55,7 +57,8 @@ def inspect(
     variant: Annotated[
         str,
         typer.Option(
-            "--variant", "-v",
+            "--variant",
+            "-v",
             help="Strategy variant name (default: r5_real_wide_target).",
         ),
     ] = "r5_real_wide_target",
@@ -94,8 +97,10 @@ def inspect(
 
     argv: list[str] = [
         "--inspect",
-        "--max-bars", "1",
-        "--variant", variant,
+        "--max-bars",
+        "1",
+        "--variant",
+        variant,
     ]
     if no_firm_review:
         argv.append("--no-firm-review")

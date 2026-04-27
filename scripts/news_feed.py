@@ -8,6 +8,7 @@ Usage:
     python scripts/news_feed.py
     FIRM_NEWS_URL=https://example.com/rss python scripts/news_feed.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -22,8 +23,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = REPO_ROOT / "reports" / "news_feed.md"
 
 HIGH_IMPACT = (
-    "FOMC", "CPI", "PPI", "NFP", "GDP", "Powell", "rate cut", "rate hike",
-    "inflation", "jobless", "retail sales", "PCE", "earnings",
+    "FOMC",
+    "CPI",
+    "PPI",
+    "NFP",
+    "GDP",
+    "Powell",
+    "rate cut",
+    "rate hike",
+    "inflation",
+    "jobless",
+    "retail sales",
+    "PCE",
+    "earnings",
 )
 
 

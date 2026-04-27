@@ -25,6 +25,7 @@ Usage:
     python scripts/backtest_real_ensemble.py
     python scripts/backtest_real_ensemble.py --max-days 200
 """
+
 from __future__ import annotations
 
 import argparse
@@ -51,17 +52,19 @@ for p in (str(SRC), str(SCRIPTS), str(V3_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from real_bars import load_databento_days  # noqa: E402
-from mnq.core.types import Bar as MnqBar  # noqa: E402
-
+from backtest import V1Detector, V1DetectorConfig  # noqa: E402
 from firm_engine import (  # noqa: E402
     Bar as V3Bar,
+)
+from firm_engine import (
     FirmConfig,
     detect_regime,
     evaluate,
 )
 from indicator_state import IndicatorState  # noqa: E402
-from backtest import V1Detector, V1DetectorConfig  # noqa: E402
+from real_bars import load_databento_days  # noqa: E402
+
+from mnq.core.types import Bar as MnqBar  # noqa: E402
 
 TICK = 0.25
 POINT_VALUE = 2.00
@@ -70,8 +73,10 @@ POINT_VALUE = 2.00
 def _mnq_to_v3(bar: MnqBar) -> V3Bar:
     return V3Bar(
         time=int(bar.ts.timestamp()),
-        open=float(bar.open), high=float(bar.high),
-        low=float(bar.low), close=float(bar.close),
+        open=float(bar.open),
+        high=float(bar.high),
+        low=float(bar.low),
+        close=float(bar.close),
         volume=float(bar.volume),
     )
 
@@ -83,10 +88,17 @@ def _aggregate_1m_to_5m(bars_1m: list[V3Bar]) -> list[V3Bar]:
     for b in bars_1m:
         key = (b.time // 300) * 300
         buckets.setdefault(key, []).append(b)
-    return [V3Bar(time=k, open=g[0].open, high=max(b.high for b in g),
-                  low=min(b.low for b in g), close=g[-1].close,
-                  volume=sum(b.volume for b in g))
-            for k, g in sorted(buckets.items())]
+    return [
+        V3Bar(
+            time=k,
+            open=g[0].open,
+            high=max(b.high for b in g),
+            low=min(b.low for b in g),
+            close=g[-1].close,
+            volume=sum(b.volume for b in g),
+        )
+        for k, g in sorted(buckets.items())
+    ]
 
 
 def _scrub_v3_day(bars: list[V3Bar]) -> list[V3Bar]:
@@ -96,7 +108,11 @@ def _scrub_v3_day(bars: list[V3Bar]) -> list[V3Bar]:
     for b in bars[1:]:
         if b.close <= 0:
             continue
-        if clean and clean[-1].close > 0 and abs(b.close - clean[-1].close) / clean[-1].close > 0.03:
+        if (
+            clean
+            and clean[-1].close > 0
+            and abs(b.close - clean[-1].close) / clean[-1].close > 0.03
+        ):
             continue
         clean.append(b)
     return clean
@@ -114,9 +130,20 @@ def _find_1m_ix(bars_1m: list[V3Bar], target_time: int) -> int:
 
 
 def _resolve_exit_on_1m(
-    *, side, entry_price, stop, tp1, tp2, sl_dist,
-    use_partials, use_mfe_trail, trail_arm_R, trail_lock_R,
-    bars_1m, signal_1m_ix, timeout_bars_1m,
+    *,
+    side,
+    entry_price,
+    stop,
+    tp1,
+    tp2,
+    sl_dist,
+    use_partials,
+    use_mfe_trail,
+    trail_arm_R,
+    trail_lock_R,
+    bars_1m,
+    signal_1m_ix,
+    timeout_bars_1m,
 ):
     current_sl = stop
     tp1_filled = False
@@ -134,7 +161,11 @@ def _resolve_exit_on_1m(
             mfe_r, mae_r = max(mfe_r, fav), min(mae_r, adv)
 
         if use_mfe_trail and mfe_r >= trail_arm_R and not tp1_filled and sl_dist > 0:
-            lock = entry_price + sl_dist * trail_lock_R if side == "long" else entry_price - sl_dist * trail_lock_R
+            lock = (
+                entry_price + sl_dist * trail_lock_R
+                if side == "long"
+                else entry_price - sl_dist * trail_lock_R
+            )
             current_sl = max(current_sl, lock) if side == "long" else min(current_sl, lock)
 
         sl_hit = (bar.low <= current_sl) if side == "long" else (bar.high >= current_sl)
@@ -149,29 +180,48 @@ def _resolve_exit_on_1m(
         bars_5m = held // 5
 
         if sl_hit:
-            actual_r = ((current_sl - entry_price) / sl_dist if side == "long"
-                       else (entry_price - current_sl) / sl_dist)
+            actual_r = (
+                (current_sl - entry_price) / sl_dist
+                if side == "long"
+                else (entry_price - current_sl) / sl_dist
+            )
             if tp1_filled:
                 return current_sl, "tp1_then_be", max(actual_r, 0.5), bars_5m, mfe_r, mae_r
-            return current_sl, ("trail_lock" if actual_r > 0 else "stop"), actual_r, bars_5m, mfe_r, mae_r
+            return (
+                current_sl,
+                ("trail_lock" if actual_r > 0 else "stop"),
+                actual_r,
+                bars_5m,
+                mfe_r,
+                mae_r,
+            )
 
         if tp2_hit:
-            actual_r = ((tp2 - entry_price) / sl_dist if side == "long"
-                       else (entry_price - tp2) / sl_dist)
+            actual_r = (
+                (tp2 - entry_price) / sl_dist if side == "long" else (entry_price - tp2) / sl_dist
+            )
             if use_partials and tp1_filled:
                 return tp2, "tp2_partial", actual_r * 0.5 + 0.5, bars_5m, mfe_r, mae_r
             return tp2, "tp2", actual_r, bars_5m, mfe_r, mae_r
 
         if not use_partials and tp1_hit:
-            actual_r = ((tp1 - entry_price) / sl_dist if side == "long"
-                       else (entry_price - tp1) / sl_dist)
+            actual_r = (
+                (tp1 - entry_price) / sl_dist if side == "long" else (entry_price - tp1) / sl_dist
+            )
             return tp1, "tp1", actual_r, bars_5m, mfe_r, mae_r
 
         if held >= timeout_bars_1m:
             return bar.close, "timeout", (0.5 if tp1_filled else 0.0), bars_5m, mfe_r, mae_r
 
     last = bars_1m[-1]
-    return last.close, "session_end", (0.5 if tp1_filled else 0.0), (len(bars_1m) - signal_1m_ix) // 5, mfe_r, mae_r
+    return (
+        last.close,
+        "session_end",
+        (0.5 if tp1_filled else 0.0),
+        (len(bars_1m) - signal_1m_ix) // 5,
+        mfe_r,
+        mae_r,
+    )
 
 
 @dataclass
@@ -234,32 +284,52 @@ ENSEMBLE_VARIANTS: list[EnsembleConfig] = [
     EnsembleConfig(
         name="orb_only_pm30",
         firm_cfg=FirmConfig(pm_threshold=30.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB"},
         blocked_regimes=set(),
     ),
     EnsembleConfig(
         name="orb_only_pm40",
         firm_cfg=FirmConfig(pm_threshold=40.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB"},
         blocked_regimes=set(),
     ),
     EnsembleConfig(
         name="orb_regime_pm30",
         firm_cfg=FirmConfig(pm_threshold=30.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB"},
         blocked_regimes={"CRISIS", "RISK-OFF"},
     ),
     EnsembleConfig(
         name="orb_confidence_pm30",
         firm_cfg=FirmConfig(pm_threshold=30.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB"},
         blocked_regimes=set(),
         use_confidence_sizing=True,
@@ -267,8 +337,13 @@ ENSEMBLE_VARIANTS: list[EnsembleConfig] = [
     EnsembleConfig(
         name="orb_regime_conf_pm30",
         firm_cfg=FirmConfig(pm_threshold=30.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB"},
         blocked_regimes={"CRISIS", "RISK-OFF"},
         use_confidence_sizing=True,
@@ -276,24 +351,39 @@ ENSEMBLE_VARIANTS: list[EnsembleConfig] = [
     EnsembleConfig(
         name="all_setups_pm30",
         firm_cfg=FirmConfig(pm_threshold=30.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups=set(),  # All setups
         blocked_regimes=set(),
     ),
     EnsembleConfig(
         name="orb_sweep_pm30",
         firm_cfg=FirmConfig(pm_threshold=30.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB", "SWEEP"},
         blocked_regimes=set(),
     ),
     EnsembleConfig(
         name="orb_regime_conf_pm25",
         firm_cfg=FirmConfig(pm_threshold=25.0, require_setup=True),
-        det_cfg=V1DetectorConfig(exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-                                  ema_tod_filter="Power Hours", ema_dow_filter="All Days"),
+        det_cfg=V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
         allowed_setups={"ORB"},
         blocked_regimes={"CRISIS"},
         use_confidence_sizing=True,
@@ -303,48 +393,112 @@ ENSEMBLE_VARIANTS: list[EnsembleConfig] = [
 
 def _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price):
     atr = bar.atr or 1.0
-    use_fib = (det_cfg.exit_mode == "fibonacci" or
-               (det_cfg.exit_mode == "hybrid" and setup in ("ORB", "SWEEP")))
+    use_fib = det_cfg.exit_mode == "fibonacci" or (
+        det_cfg.exit_mode == "hybrid" and setup in ("ORB", "SWEEP")
+    )
 
     if setup == "ORB":
         or_low, or_high = detector.or_low, detector.or_high
-        sl = (or_low - atr * 0.15 if side == "long" and or_low is not None
-              else or_high + atr * 0.15 if side == "short" and or_high is not None
-              else entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5)
-        if (use_fib and or_low is not None and or_high is not None and (or_high - or_low) > atr * 0.5):
+        sl = (
+            or_low - atr * 0.15
+            if side == "long" and or_low is not None
+            else or_high + atr * 0.15
+            if side == "short" and or_high is not None
+            else entry_price - atr * 1.5
+            if side == "long"
+            else entry_price + atr * 1.5
+        )
+        if (
+            use_fib
+            and or_low is not None
+            and or_high is not None
+            and (or_high - or_low) > atr * 0.5
+        ):
             or_range = or_high - or_low
-            tp1 = (or_high + or_range * (det_cfg.fib_tp1_extension - 1.0) if side == "long"
-                   else or_low - or_range * (det_cfg.fib_tp1_extension - 1.0))
-            tp2 = (or_high + or_range * (det_cfg.fib_tp2_extension - 1.0) if side == "long"
-                   else or_low - or_range * (det_cfg.fib_tp2_extension - 1.0))
+            tp1 = (
+                or_high + or_range * (det_cfg.fib_tp1_extension - 1.0)
+                if side == "long"
+                else or_low - or_range * (det_cfg.fib_tp1_extension - 1.0)
+            )
+            tp2 = (
+                or_high + or_range * (det_cfg.fib_tp2_extension - 1.0)
+                if side == "long"
+                else or_low - or_range * (det_cfg.fib_tp2_extension - 1.0)
+            )
         else:
             sd = abs(entry_price - sl) or atr
-            tp1 = entry_price + sd * det_cfg.orb_tp1_r if side == "long" else entry_price - sd * det_cfg.orb_tp1_r
-            tp2 = entry_price + sd * det_cfg.orb_tp2_r if side == "long" else entry_price - sd * det_cfg.orb_tp2_r
+            tp1 = (
+                entry_price + sd * det_cfg.orb_tp1_r
+                if side == "long"
+                else entry_price - sd * det_cfg.orb_tp1_r
+            )
+            tp2 = (
+                entry_price + sd * det_cfg.orb_tp2_r
+                if side == "long"
+                else entry_price - sd * det_cfg.orb_tp2_r
+            )
         timeout = det_cfg.orb_timeout
 
     elif setup == "EMA PB":
-        sl = entry_price - atr * det_cfg.ema_sl_atr if side == "long" else entry_price + atr * det_cfg.ema_sl_atr
+        sl = (
+            entry_price - atr * det_cfg.ema_sl_atr
+            if side == "long"
+            else entry_price + atr * det_cfg.ema_sl_atr
+        )
         sd = abs(entry_price - sl) or atr
-        tp1 = entry_price + sd * det_cfg.ema_tp1_r if side == "long" else entry_price - sd * det_cfg.ema_tp1_r
-        tp2 = entry_price + sd * det_cfg.ema_tp2_r if side == "long" else entry_price - sd * det_cfg.ema_tp2_r
+        tp1 = (
+            entry_price + sd * det_cfg.ema_tp1_r
+            if side == "long"
+            else entry_price - sd * det_cfg.ema_tp1_r
+        )
+        tp2 = (
+            entry_price + sd * det_cfg.ema_tp2_r
+            if side == "long"
+            else entry_price - sd * det_cfg.ema_tp2_r
+        )
         timeout = det_cfg.ema_timeout
 
     elif setup == "SWEEP":
         buf = det_cfg.sweep_sl_ticks * TICK
         swept_lo, swept_hi = detector.swept_lo_px, detector.swept_hi_px
-        sl = (swept_lo - buf if side == "long" and swept_lo is not None
-              else swept_hi + buf if side == "short" and swept_hi is not None
-              else entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5)
-        if (use_fib and swept_lo is not None and swept_hi is not None
-                and abs(swept_hi - swept_lo) > atr * 0.5):
+        sl = (
+            swept_lo - buf
+            if side == "long" and swept_lo is not None
+            else swept_hi + buf
+            if side == "short" and swept_hi is not None
+            else entry_price - atr * 1.5
+            if side == "long"
+            else entry_price + atr * 1.5
+        )
+        if (
+            use_fib
+            and swept_lo is not None
+            and swept_hi is not None
+            and abs(swept_hi - swept_lo) > atr * 0.5
+        ):
             sr = min(abs(swept_hi - swept_lo), atr * 3.0)
-            tp1 = entry_price + sr * det_cfg.fib_tp1_extension if side == "long" else entry_price - sr * det_cfg.fib_tp1_extension
-            tp2 = entry_price + sr * det_cfg.fib_tp2_extension if side == "long" else entry_price - sr * det_cfg.fib_tp2_extension
+            tp1 = (
+                entry_price + sr * det_cfg.fib_tp1_extension
+                if side == "long"
+                else entry_price - sr * det_cfg.fib_tp1_extension
+            )
+            tp2 = (
+                entry_price + sr * det_cfg.fib_tp2_extension
+                if side == "long"
+                else entry_price - sr * det_cfg.fib_tp2_extension
+            )
         else:
             sd = abs(entry_price - sl) or atr
-            tp1 = entry_price + sd * det_cfg.sweep_tp1_r if side == "long" else entry_price - sd * det_cfg.sweep_tp1_r
-            tp2 = entry_price + sd * det_cfg.sweep_tp2_r if side == "long" else entry_price - sd * det_cfg.sweep_tp2_r
+            tp1 = (
+                entry_price + sd * det_cfg.sweep_tp1_r
+                if side == "long"
+                else entry_price - sd * det_cfg.sweep_tp1_r
+            )
+            tp2 = (
+                entry_price + sd * det_cfg.sweep_tp2_r
+                if side == "long"
+                else entry_price - sd * det_cfg.sweep_tp2_r
+            )
         timeout = det_cfg.sweep_timeout
     else:
         sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
@@ -383,8 +537,11 @@ def _backtest_ensemble_day(
         regime = detect_regime(bar.adx or 20, bar.atr or 0, atr_ma20, vol_z)
 
         d = evaluate(
-            bar=bar, st=st, regime=regime,
-            atr_ma20=atr_ma20, vol_z=vol_z,
+            bar=bar,
+            st=st,
+            regime=regime,
+            atr_ma20=atr_ma20,
+            vol_z=vol_z,
             prev_adx_3=state.adx_3_bars_ago(),
             range_avg_20=state.range_avg_20(),
             vol_z_prev_1=state.vol_z_at(1),
@@ -427,19 +584,27 @@ def _backtest_ensemble_day(
                 size_mult = 0.5
 
         entry_price = bar.close
-        sl, tp1, tp2, timeout = _compute_sl_tp(setup, side, ecfg.det_cfg, detector, bar, entry_price)
+        sl, tp1, tp2, timeout = _compute_sl_tp(
+            setup, side, ecfg.det_cfg, detector, bar, entry_price
+        )
         sl_dist = abs(entry_price - sl)
         if sl_dist <= 0:
             continue
 
         signal_1m_ix = _find_1m_ix(bars_1m_v3, bar.time + 300)
         exit_px, exit_reason, pnl_r, _, mfe_r, mae_r = _resolve_exit_on_1m(
-            side=side, entry_price=entry_price, stop=sl, tp1=tp1, tp2=tp2,
-            sl_dist=sl_dist, use_partials=ecfg.det_cfg.use_partials,
+            side=side,
+            entry_price=entry_price,
+            stop=sl,
+            tp1=tp1,
+            tp2=tp2,
+            sl_dist=sl_dist,
+            use_partials=ecfg.det_cfg.use_partials,
             use_mfe_trail=ecfg.det_cfg.use_mfe_trail,
             trail_arm_R=ecfg.det_cfg.trail_arm_R,
             trail_lock_R=ecfg.det_cfg.trail_lock_R,
-            bars_1m=bars_1m_v3, signal_1m_ix=signal_1m_ix,
+            bars_1m=bars_1m_v3,
+            signal_1m_ix=signal_1m_ix,
             timeout_bars_1m=timeout * 5,
         )
 
@@ -447,22 +612,41 @@ def _backtest_ensemble_day(
         sized_pnl_r = pnl_r * size_mult
         pnl_dollars = sized_pnl_r * sl_dist * POINT_VALUE
 
-        trades.append(EnsembleTrade(
-            day_date=day_date, setup=setup, side=side,
-            entry_price=entry_price, stop=sl, tp1=tp1, tp2=tp2,
-            sl_dist=sl_dist, pm_final=d.pm_final, regime=regime,
-            voice_agree=d.voice_agree, size_mult=size_mult,
-            exit_price=exit_px, exit_reason=exit_reason,
-            pnl_r=sized_pnl_r, pnl_dollars=pnl_dollars,
-            mfe_r=mfe_r, mae_r=mae_r,
-        ))
+        trades.append(
+            EnsembleTrade(
+                day_date=day_date,
+                setup=setup,
+                side=side,
+                entry_price=entry_price,
+                stop=sl,
+                tp1=tp1,
+                tp2=tp2,
+                sl_dist=sl_dist,
+                pm_final=d.pm_final,
+                regime=regime,
+                voice_agree=d.voice_agree,
+                size_mult=size_mult,
+                exit_price=exit_px,
+                exit_reason=exit_reason,
+                pnl_r=sized_pnl_r,
+                pnl_dollars=pnl_dollars,
+                mfe_r=mfe_r,
+                mae_r=mae_r,
+            )
+        )
         cooldown_until = bar_ix + ecfg.det_cfg.cooldown
 
     return trades, sig_total, sig_blocked_setup, sig_blocked_regime
 
 
-def _compute_ensemble_stats(name: str, trades: list[EnsembleTrade], total_days: int,
-                             sig_total: int, sig_setup: int, sig_regime: int) -> EnsembleStats:
+def _compute_ensemble_stats(
+    name: str,
+    trades: list[EnsembleTrade],
+    total_days: int,
+    sig_total: int,
+    sig_setup: int,
+    sig_regime: int,
+) -> EnsembleStats:
     vs = EnsembleStats(name=name, total_days=total_days)
     vs.total_trades = len(trades)
     vs.trades = trades
@@ -547,15 +731,20 @@ def main() -> None:
         total_sig = total_blocked_setup = total_blocked_regime = 0
 
         for day_date, bars_1m_v3, bars_5m in day_data:
-            day_trades, sig, bs, br = _backtest_ensemble_day(
-                ecfg, bars_1m_v3, bars_5m, day_date)
+            day_trades, sig, bs, br = _backtest_ensemble_day(ecfg, bars_1m_v3, bars_5m, day_date)
             all_trades.extend(day_trades)
             total_sig += sig
             total_blocked_setup += bs
             total_blocked_regime += br
 
-        vs = _compute_ensemble_stats(ecfg.name, all_trades, len(day_data),
-                                      total_sig, total_blocked_setup, total_blocked_regime)
+        vs = _compute_ensemble_stats(
+            ecfg.name,
+            all_trades,
+            len(day_data),
+            total_sig,
+            total_blocked_setup,
+            total_blocked_regime,
+        )
         all_stats.append(vs)
 
         day_pnl_map: dict[str, float] = {d: 0.0 for d, _, _ in day_data}
@@ -567,14 +756,20 @@ def main() -> None:
         wr = vs.winners / vs.total_trades * 100 if vs.total_trades else 0
         gw = sum(t.pnl_r for t in all_trades if t.pnl_r > 0)
         gl = abs(sum(t.pnl_r for t in all_trades if t.pnl_r < 0))
-        pf = gw / gl if gl > 0 else float('inf')
-        print(f"    {vs.total_trades} trades ({total_sig} signals, "
-              f"{total_blocked_setup} blocked-setup, {total_blocked_regime} blocked-regime)")
-        print(f"    R={vs.total_pnl_r:+.2f}, ${vs.total_pnl_dollars:+.2f}, "
-              f"WR {wr:.0f}%, PF {pf:.2f}, MDD {vs.max_drawdown_r:.2f}R, {elapsed:.1f}s")
+        pf = gw / gl if gl > 0 else float("inf")
+        print(
+            f"    {vs.total_trades} trades ({total_sig} signals, "
+            f"{total_blocked_setup} blocked-setup, {total_blocked_regime} blocked-regime)"
+        )
+        print(
+            f"    R={vs.total_pnl_r:+.2f}, ${vs.total_pnl_dollars:+.2f}, "
+            f"WR {wr:.0f}%, PF {pf:.2f}, MDD {vs.max_drawdown_r:.2f}R, {elapsed:.1f}s"
+        )
         for setup, st in vs.by_setup.items():
             setup_wr = st["wins"] / st["trades"] * 100 if st["trades"] else 0
-            print(f"      {setup:8s}: {st['trades']:3d} trades  {setup_wr:5.1f}% win  {st['total_r']:+.2f}R")
+            print(
+                f"      {setup:8s}: {st['trades']:3d} trades  {setup_wr:5.1f}% win  {st['total_r']:+.2f}R"
+            )
 
     # ─── Reports ───
     report_dir = REPO_ROOT / "reports"
@@ -583,7 +778,7 @@ def main() -> None:
     lines = [
         f"# Batch 15 — Ensemble Combiner — {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
         "",
-        f"Ensemble signal filters on V3 engine, Databento MNQ tape.",
+        "Ensemble signal filters on V3 engine, Databento MNQ tape.",
         f"**{len(day_data)} clean RTH days** ({first_date} → {last_date})",
         "",
         "## Variant Summary",
@@ -597,15 +792,15 @@ def main() -> None:
         avg_r = vs.total_pnl_r / vs.total_trades if vs.total_trades else 0
         gw = sum(t.pnl_r for t in vs.trades if t.pnl_r > 0)
         gl = abs(sum(t.pnl_r for t in vs.trades if t.pnl_r < 0))
-        pf = gw / gl if gl > 0 else float('inf')
+        pf = gw / gl if gl > 0 else float("inf")
         blocked = vs.signals_blocked_setup + vs.signals_blocked_regime
         if len(vs.daily_pnls) > 1:
             mu = statistics.mean(vs.daily_pnls)
             sd = statistics.stdev(vs.daily_pnls)
-            sharpe = (mu / sd * (252 ** 0.5)) if sd > 0 else 0.0
+            sharpe = (mu / sd * (252**0.5)) if sd > 0 else 0.0
         else:
             sharpe = 0.0
-        pf_str = f"{pf:.2f}" if pf != float('inf') else "∞"
+        pf_str = f"{pf:.2f}" if pf != float("inf") else "∞"
         lines.append(
             f"| {vs.name} | {vs.total_trades} | {vs.signals_total} | {blocked} "
             f"| {vs.winners} | {vs.losers} | {wr:.1f} | {vs.total_pnl_r:+.2f} | {avg_r:+.3f} "
@@ -618,8 +813,10 @@ def main() -> None:
     # Deep dive on top 3
     for vs in sorted(all_stats, key=lambda x: x.total_pnl_r, reverse=True)[:3]:
         lines.extend(["", f"### {vs.name}", ""])
-        lines.append(f"- **Trades:** {vs.total_trades} / {vs.signals_total} signals "
-                    f"({vs.signals_blocked_setup} blocked by setup, {vs.signals_blocked_regime} by regime)")
+        lines.append(
+            f"- **Trades:** {vs.total_trades} / {vs.signals_total} signals "
+            f"({vs.signals_blocked_setup} blocked by setup, {vs.signals_blocked_regime} by regime)"
+        )
         lines.append(f"- **Days traded:** {vs.days_traded} / {vs.total_days}")
         if vs.total_trades:
             avg_mfe = statistics.mean(t.mfe_r for t in vs.trades)
@@ -630,12 +827,16 @@ def main() -> None:
                 lines.append(f"- **Avg size multiplier:** {avg_size:.2f}x")
         lines.extend(["", "  **By Setup:**"])
         for setup, st in sorted(vs.by_setup.items()):
-            lines.append(f"  - {setup}: {st['trades']} trades, "
-                        f"{st['wins']/st['trades']*100:.0f}% WR, {st['total_r']:+.2f}R")
+            lines.append(
+                f"  - {setup}: {st['trades']} trades, "
+                f"{st['wins'] / st['trades'] * 100:.0f}% WR, {st['total_r']:+.2f}R"
+            )
         lines.extend(["", "  **By Regime:**"])
         for regime, rs in sorted(vs.by_regime.items()):
-            lines.append(f"  - {regime}: {rs['trades']} trades, "
-                        f"{rs['wins']/rs['trades']*100:.0f}% WR, {rs['total_r']:+.2f}R")
+            lines.append(
+                f"  - {regime}: {rs['trades']} trades, "
+                f"{rs['wins'] / rs['trades'] * 100:.0f}% WR, {rs['total_r']:+.2f}R"
+            )
 
     # Verdict
     lines.extend(["", "## Verdict", ""])
@@ -644,9 +845,11 @@ def main() -> None:
         avg_r = best.total_pnl_r / best.total_trades
         gw = sum(t.pnl_r for t in best.trades if t.pnl_r > 0)
         gl = abs(sum(t.pnl_r for t in best.trades if t.pnl_r < 0))
-        pf = gw / gl if gl > 0 else float('inf')
+        pf = gw / gl if gl > 0 else float("inf")
         lines.append(f"**BEST ENSEMBLE: {best.name}**")
-        lines.append(f"- {best.total_trades} trades over {best.total_days} days ({best.days_traded} active)")
+        lines.append(
+            f"- {best.total_trades} trades over {best.total_days} days ({best.days_traded} active)"
+        )
         lines.append(f"- {wr:.0f}% WR, {best.total_pnl_r:+.2f}R total, PF {pf:.2f}")
         lines.append(f"- Max DD: {best.max_drawdown_r:.2f}R, ${best.total_pnl_dollars:+,.2f}")
         lines.append("")
@@ -655,20 +858,24 @@ def main() -> None:
         control = next((s for s in all_stats if s.name == "all_setups_pm30"), None)
         if control:
             lift_r = best.total_pnl_r - control.total_pnl_r
-            lines.append(f"**vs. all_setups control:** {lift_r:+.2f}R lift "
-                        f"({best.total_trades} vs {control.total_trades} trades)")
+            lines.append(
+                f"**vs. all_setups control:** {lift_r:+.2f}R lift "
+                f"({best.total_trades} vs {control.total_trades} trades)"
+            )
 
     lines.extend(["", "## Key Findings", ""])
     lines.append("1. **ORB is the only setup with edge** — EMA PB is consistently negative")
     lines.append("2. **Fibonacci exits + partials = essential** — R-multiple exits destroy edge")
-    lines.append("3. **PM threshold trades quality vs quantity** — PM30 gets 109 ORB trades at 76% WR")
+    lines.append(
+        "3. **PM threshold trades quality vs quantity** — PM30 gets 109 ORB trades at 76% WR"
+    )
     lines.append("4. **Micro entry refinement doesn't help** — tighter stops get whipsawed")
 
     lines.append("")
     lines.append(f"*Generated in {time.monotonic() - t0:.1f}s*")
 
     (report_dir / "backtest_real_ensemble.md").write_text("\n".join(lines))
-    print(f"\nWrote reports/backtest_real_ensemble.md")
+    print("\nWrote reports/backtest_real_ensemble.md")
 
     csv_lines = [
         "variant,date,setup,side,entry_px,stop,tp1,tp2,sl_dist,pm_final,regime,"
@@ -688,7 +895,9 @@ def main() -> None:
 
     data_dir = REPO_ROOT / "data"
     data_dir.mkdir(exist_ok=True)
-    (data_dir / "backtest_real_ensemble_daily.json").write_text(json.dumps(daily_pnl_data, indent=2))
+    (data_dir / "backtest_real_ensemble_daily.json").write_text(
+        json.dumps(daily_pnl_data, indent=2)
+    )
     print("Wrote data/backtest_real_ensemble_daily.json")
 
 

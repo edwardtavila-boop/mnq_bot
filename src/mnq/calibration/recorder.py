@@ -3,6 +3,7 @@
 Records fill expectations at order submission and matches them with realized fills,
 computing slippage ticks and emitting records to the event journal and prometheus.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -134,9 +135,7 @@ class SlippageRecorder:
                     "order_id": order_id,
                     "reason": "no_matching_expectation",
                 }
-                self.journal.append(
-                    FILL_ORPHANED, payload, trace_id=order_id
-                )
+                self.journal.append(FILL_ORPHANED, payload, trace_id=order_id)
             return None
 
         # Compute slippage: positive means worse for us.
@@ -168,9 +167,7 @@ class SlippageRecorder:
                 "latency_ms": latency_ms,
             }
             realized_payload["fill_qty"] = str(fill_qty)
-            self.journal.append(
-                FILL_REALIZED, realized_payload, trace_id=order_id
-            )
+            self.journal.append(FILL_REALIZED, realized_payload, trace_id=order_id)
 
         # Update prometheus histogram.
         fill_slippage_ticks.labels(side=expected.side.value).observe(slippage_ticks)
@@ -201,9 +198,7 @@ class SlippageRecorder:
                         "order_id": order_id,
                         "reason": "timeout",
                     }
-                    self.journal.append(
-                        FILL_ORPHANED, payload, trace_id=order_id
-                    )
+                    self.journal.append(FILL_ORPHANED, payload, trace_id=order_id)
 
         for order_id in to_remove:
             del self._pending[order_id]

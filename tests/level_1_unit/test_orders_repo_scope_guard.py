@@ -16,6 +16,7 @@ Pin
   ORDER_SUBMITTED, gate chain consulted, returns Order)
 * Unknown symbol (e.g. ES, ZB) -> normal flow (operator opt-in path)
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -119,7 +120,8 @@ def test_submit_unknown_symbol_succeeds(book) -> None:
 
 
 def test_rejection_journals_wrong_repo_symbol_payload(
-    book, journal,
+    book,
+    journal,
 ) -> None:
     """The rejection event must carry ``wrong_repo_symbol=True`` and the
     full reason text so post-mortem replay can identify the boundary
@@ -150,6 +152,7 @@ def test_rejection_skips_gate_chain(journal) -> None:
     def _spy_evaluate():
         gate_calls["n"] += 1
         from mnq.risk import GateResult
+
         return True, [GateResult(True, "ok", "")]
 
     class _SpyChain:
@@ -165,8 +168,7 @@ def test_rejection_skips_gate_chain(journal) -> None:
             order_type=OrderType.MARKET,
         )
     assert gate_calls["n"] == 0, (
-        "gate chain was evaluated even though repo-scope guard "
-        "should short-circuit before"
+        "gate chain was evaluated even though repo-scope guard should short-circuit before"
     )
 
 
@@ -179,6 +181,7 @@ def test_mnq_submission_does_call_gate_chain(journal) -> None:
         def evaluate(self):
             gate_calls["n"] += 1
             from mnq.risk import GateResult
+
             return True, [GateResult(True, "ok", "")]
 
     book = OrderBook(journal, _SpyChain())

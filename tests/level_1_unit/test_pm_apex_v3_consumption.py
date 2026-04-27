@@ -1,4 +1,4 @@
-﻿"""PM agent fold-in of eta_v3_voices + eta_v3_pm_final into decision.
+"""PM agent fold-in of eta_v3_voices + eta_v3_pm_final into decision.
 
 Batch 3B: the PM stage now blends the Apex V3 15-voice signal into its
 final probability while *never* flipping verdicts. KILL stays KILL,
@@ -8,6 +8,7 @@ Mirror of ``test_quant_eta_v3_consumption.py`` but at the decision
 stage. Since PM requires five prior stage outputs + a Red Team dissent
 entry, these tests fabricate minimal AgentOutput objects to feed in.
 """
+
 from __future__ import annotations
 
 import os
@@ -50,14 +51,15 @@ from firm.types import Verdict  # noqa: E402
 
 # ----- fixtures --------------------------------------------------------------
 
-def _mk(agent_name: str, verdict: Verdict, *, payload: dict | None = None,
-        probability: float = 0.7) -> AgentOutput:
+
+def _mk(
+    agent_name: str, verdict: Verdict, *, payload: dict | None = None, probability: float = 0.7
+) -> AgentOutput:
     return AgentOutput(
         agent_name=agent_name,
         verdict=verdict,
         probability=probability,
-        confidence_interval=(max(0.0, probability - 0.1),
-                             min(1.0, probability + 0.1)),
+        confidence_interval=(max(0.0, probability - 0.1), min(1.0, probability + 0.1)),
         time_horizon="immediate",
         falsification_criteria="n/a",
         reasoning=f"{agent_name} {verdict.value}",
@@ -70,11 +72,10 @@ def _clean_agent_outputs() -> dict:
     """All 5 prior stages GO, red_team carries one attack so PM can proceed."""
     return {
         "quant": _mk("quant", Verdict.GO, payload={"expectancy_r": 0.5}),
-        "red_team": _mk("red_team", Verdict.GO,
-                        payload={"attacks": [{"surface": "slippage",
-                                              "survived": True}]}),
-        "risk": _mk("risk", Verdict.GO,
-                    payload={"per_trade_risk_pct": 0.0025, "dd_kill_r": -10}),
+        "red_team": _mk(
+            "red_team", Verdict.GO, payload={"attacks": [{"surface": "slippage", "survived": True}]}
+        ),
+        "risk": _mk("risk", Verdict.GO, payload={"per_trade_risk_pct": 0.0025, "dd_kill_r": -10}),
         "macro": _mk("macro", Verdict.GO),
         "micro": _mk("micro", Verdict.GO),
     }
@@ -100,9 +101,13 @@ def _apex_voices(**overrides) -> dict:
     return base
 
 
-def _build_input(agent_outputs: dict, *, voices: dict | None = None,
-                 pm_final: float | None = None,
-                 side: str = "long") -> AgentInput:
+def _build_input(
+    agent_outputs: dict,
+    *,
+    voices: dict | None = None,
+    pm_final: float | None = None,
+    side: str = "long",
+) -> AgentInput:
     payload: dict = {
         "agent_outputs": agent_outputs,
         "spec": {"side": side},
@@ -120,6 +125,7 @@ def _build_input(agent_outputs: dict, *, voices: dict | None = None,
 
 
 # ----- no-op / backwards-compat ---------------------------------------------
+
 
 class TestNoApexVoices:
     def test_clean_go_without_voices_unchanged(self):
@@ -155,13 +161,13 @@ class TestNoApexVoices:
 
 # ----- verdict preservation -------------------------------------------------
 
+
 class TestVerdictsNeverFlip:
     def test_kill_stays_kill_even_with_full_apex_agreement(self):
         agent = PMAgent()
         ao = _clean_agent_outputs()
         ao["macro"] = _mk("macro", Verdict.KILL)  # one KILL wins
-        voices = _apex_voices(voice_agree=15, direction=1, fire_long=True,
-                              pm_final=50.0)
+        voices = _apex_voices(voice_agree=15, direction=1, fire_long=True, pm_final=50.0)
         out = agent.evaluate(_build_input(ao, voices=voices, pm_final=50.0))
         assert out.verdict == Verdict.KILL
         assert out.payload["eta_v3"]["consumed"] is True
@@ -169,8 +175,7 @@ class TestVerdictsNeverFlip:
     def test_hold_stays_hold_with_apex_corroboration(self):
         agent = PMAgent()
         ao = _clean_agent_outputs()
-        ao["risk"] = _mk("risk", Verdict.HOLD,
-                         payload={"per_trade_risk_pct": 0.0025})
+        ao["risk"] = _mk("risk", Verdict.HOLD, payload={"per_trade_risk_pct": 0.0025})
         voices = _apex_voices(voice_agree=14, direction=1)
         out = agent.evaluate(_build_input(ao, voices=voices, pm_final=45.0))
         assert out.verdict == Verdict.HOLD
@@ -180,22 +185,20 @@ class TestVerdictsNeverFlip:
         agent = PMAgent()
         ao = _clean_agent_outputs()
         ao["quant"] = _mk("quant", Verdict.MODIFY)
-        ao["risk"] = _mk("risk", Verdict.MODIFY,
-                         payload={"per_trade_risk_pct": 0.0025})
-        voices = _apex_voices(voice_agree=0, direction=-1,
-                              fire_long=False, fire_short=True)
+        ao["risk"] = _mk("risk", Verdict.MODIFY, payload={"per_trade_risk_pct": 0.0025})
+        voices = _apex_voices(voice_agree=0, direction=-1, fire_long=False, fire_short=True)
         out = agent.evaluate(_build_input(ao, voices=voices, pm_final=-2.0))
         assert out.verdict == Verdict.MODIFY
 
 
 # ----- fold-in math (GO path) -----------------------------------------------
 
+
 class TestApexFoldMath:
     def test_full_agreement_lifts_go_probability_with_bonus(self):
         agent = PMAgent()
         voices = _apex_voices(voice_agree=15, direction=1, fire_long=True)
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=50.0))
+        out = agent.evaluate(_build_input(_clean_agent_outputs(), voices=voices, pm_final=50.0))
         # base=0.6, signal=1.0, w=0.20 → blend = 0.8*0.6 + 0.2*1.0 = 0.68
         # strong + engine_live (50>=40) → +0.05 bonus → 0.73
         assert out.probability == pytest.approx(0.73, abs=1e-3)
@@ -206,10 +209,8 @@ class TestApexFoldMath:
 
     def test_zero_agreement_drags_go_probability_down(self):
         agent = PMAgent()
-        voices = _apex_voices(voice_agree=0, direction=0,
-                              fire_long=False, fire_short=False)
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=0.0))
+        voices = _apex_voices(voice_agree=0, direction=0, fire_long=False, fire_short=False)
+        out = agent.evaluate(_build_input(_clean_agent_outputs(), voices=voices, pm_final=0.0))
         # base=0.6, signal=0.0 → blend = 0.8*0.6 + 0.2*0.0 = 0.48
         # no bonus (not strong) → adjusted 0.48
         assert out.probability == pytest.approx(0.48, abs=1e-3)
@@ -218,11 +219,10 @@ class TestApexFoldMath:
     def test_direction_conflict_applies_penalty_on_go(self):
         agent = PMAgent()
         # Spec side long, apex direction short AND strong, engine live
-        voices = _apex_voices(voice_agree=13, direction=-1,
-                              fire_long=False, fire_short=True)
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=50.0,
-                                          side="long"))
+        voices = _apex_voices(voice_agree=13, direction=-1, fire_long=False, fire_short=True)
+        out = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=voices, pm_final=50.0, side="long")
+        )
         # base=0.6, signal=13/15≈0.8667 → blend = 0.8*0.6 + 0.2*0.8667 = 0.6533
         # strong + engine_live → +0.05 bonus
         # strong + direction conflict → -0.05 penalty
@@ -236,8 +236,7 @@ class TestApexFoldMath:
         agent = PMAgent()
         # pm_final=10 below PM_GATE (40.0) → engine_live=False → no bonus
         voices = _apex_voices(voice_agree=15, direction=1)
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=10.0))
+        out = agent.evaluate(_build_input(_clean_agent_outputs(), voices=voices, pm_final=10.0))
         # engine_live=False → no bonus
         # base=0.6, signal=1.0 → blend 0.68, no bonus → 0.68
         assert out.payload["eta_v3"]["engine_live"] is False
@@ -253,8 +252,9 @@ class TestApexFoldMath:
             # Force blend to hit 1.0 before clipping
             PMAgent.APEX_V3_PM_WEIGHT = 1.0
             PMAgent.APEX_V3_AGREE_BOOST = 0.5
-            out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                              voices=voices, pm_final=100.0))
+            out = agent.evaluate(
+                _build_input(_clean_agent_outputs(), voices=voices, pm_final=100.0)
+            )
         finally:
             PMAgent.APEX_V3_PM_WEIGHT = original_w
             PMAgent.APEX_V3_AGREE_BOOST = original_b
@@ -262,8 +262,7 @@ class TestApexFoldMath:
 
     def test_adjusted_probability_clipped_to_zero(self):
         agent = PMAgent()
-        voices = _apex_voices(voice_agree=0, direction=-1,
-                              fire_long=False, fire_short=True)
+        _apex_voices(voice_agree=0, direction=-1, fire_long=False, fire_short=True)
         original_w = PMAgent.APEX_V3_PM_WEIGHT
         original_p = PMAgent.APEX_V3_DISAGREE_PENALTY
         try:
@@ -272,12 +271,16 @@ class TestApexFoldMath:
             PMAgent.APEX_V3_DISAGREE_PENALTY = 0.5
             # Need strong agreement for penalty → but voice_agree=0 not strong
             # So zero out base and test min clip via 0 base + 0 signal
-            out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                              voices=_apex_voices(voice_agree=0,
-                                                                  direction=0,
-                                                                  fire_long=False,
-                                                                  fire_short=False),
-                                              pm_final=0.0, side="long"))
+            out = agent.evaluate(
+                _build_input(
+                    _clean_agent_outputs(),
+                    voices=_apex_voices(
+                        voice_agree=0, direction=0, fire_long=False, fire_short=False
+                    ),
+                    pm_final=0.0,
+                    side="long",
+                )
+            )
         finally:
             PMAgent.APEX_V3_PM_WEIGHT = original_w
             PMAgent.APEX_V3_DISAGREE_PENALTY = original_p
@@ -286,15 +289,18 @@ class TestApexFoldMath:
 
     def test_summary_direction_label_map(self):
         agent = PMAgent()
-        out_long = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                               voices=_apex_voices(direction=1)))
-        out_flat = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                               voices=_apex_voices(direction=0,
-                                                                   fire_long=False)))
-        out_short = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                                voices=_apex_voices(direction=-1,
-                                                                    fire_long=False,
-                                                                    fire_short=True)))
+        out_long = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=_apex_voices(direction=1))
+        )
+        out_flat = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=_apex_voices(direction=0, fire_long=False))
+        )
+        out_short = agent.evaluate(
+            _build_input(
+                _clean_agent_outputs(),
+                voices=_apex_voices(direction=-1, fire_long=False, fire_short=True),
+            )
+        )
         assert out_long.payload["eta_v3"]["direction_label"] == "LONG"
         assert out_flat.payload["eta_v3"]["direction_label"] == "FLAT"
         assert out_short.payload["eta_v3"]["direction_label"] == "SHORT"
@@ -316,12 +322,12 @@ class TestApexFoldMath:
 
 # ----- reasoning trail ------------------------------------------------------
 
+
 class TestApexReasoningTrail:
     def test_reasoning_suffix_includes_voice_count_and_pm_final(self):
         agent = PMAgent()
         voices = _apex_voices(voice_agree=11, pm_final=45.0)
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=45.0))
+        out = agent.evaluate(_build_input(_clean_agent_outputs(), voices=voices, pm_final=45.0))
         assert "Apex V3 PM corroboration" in out.reasoning
         assert "11/15" in out.reasoning
         assert "pm_final=" in out.reasoning
@@ -334,50 +340,51 @@ class TestApexReasoningTrail:
     def test_reasoning_includes_alignment_label(self):
         agent = PMAgent()
         voices = _apex_voices(voice_agree=13, direction=1)
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=45.0,
-                                          side="long"))
+        out = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=voices, pm_final=45.0, side="long")
+        )
         assert "align=MATCH" in out.reasoning
 
     def test_reasoning_includes_engine_status(self):
         agent = PMAgent()
         # Above gate
         voices = _apex_voices(voice_agree=11)
-        out_live = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                               voices=voices, pm_final=45.0))
+        out_live = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=voices, pm_final=45.0)
+        )
         assert "(live)" in out_live.reasoning
         # Below gate
-        out_dead = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                               voices=voices, pm_final=10.0))
+        out_dead = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=voices, pm_final=10.0)
+        )
         assert "(below gate)" in out_dead.reasoning
 
 
 # ----- malformed input tolerance --------------------------------------------
 
+
 class TestMalformedApexVoices:
     def test_string_voice_agree_treated_as_zero(self):
         agent = PMAgent()
         voices = _apex_voices(voice_agree="not-an-int")
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=5.0))
+        out = agent.evaluate(_build_input(_clean_agent_outputs(), voices=voices, pm_final=5.0))
         assert out.payload["eta_v3"]["voice_agree"] == 0
 
     def test_out_of_range_voice_agree_clamped(self):
         agent = PMAgent()
-        out_high = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                               voices=_apex_voices(voice_agree=99),
-                                               pm_final=5.0))
-        out_low = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                              voices=_apex_voices(voice_agree=-5),
-                                              pm_final=5.0))
+        out_high = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=_apex_voices(voice_agree=99), pm_final=5.0)
+        )
+        out_low = agent.evaluate(
+            _build_input(_clean_agent_outputs(), voices=_apex_voices(voice_agree=-5), pm_final=5.0)
+        )
         assert out_high.payload["eta_v3"]["voice_agree"] == 15
         assert out_low.payload["eta_v3"]["voice_agree"] == 0
 
     def test_non_int_direction_defaults_to_zero(self):
         agent = PMAgent()
         voices = _apex_voices(direction="???")
-        out = agent.evaluate(_build_input(_clean_agent_outputs(),
-                                          voices=voices, pm_final=5.0))
+        out = agent.evaluate(_build_input(_clean_agent_outputs(), voices=voices, pm_final=5.0))
         assert out.payload["eta_v3"]["direction"] == 0
 
     def test_missing_pm_final_falls_back_to_voices_key(self):

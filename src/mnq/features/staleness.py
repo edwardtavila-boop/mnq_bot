@@ -3,6 +3,7 @@
 Tracks the last-update timestamp for each registered feature and detects
 when any feature has not been updated for longer than a specified threshold.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -63,9 +64,7 @@ class FeatureStalenessMonitor:
             feature: A feature instance with last_update_bar_ts property.
         """
         if not hasattr(feature, "last_update_bar_ts"):
-            raise AttributeError(
-                f"feature {name} does not have last_update_bar_ts property"
-            )
+            raise AttributeError(f"feature {name} does not have last_update_bar_ts property")
         self._features[name] = feature
 
     def check(self, now: datetime) -> list[StalenessReport]:

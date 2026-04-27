@@ -28,11 +28,13 @@ app.add_typer(mcp_cli.app, name="mcp", help="MCP server operations.")
 app.add_typer(doctor_cli.app, name="doctor", help="Environment & wiring health check.")
 app.add_typer(parity_cli.app, name="parity", help="Paper-vs-live parity dashboard.")
 app.add_typer(
-    morning_cli.app, name="morning",
+    morning_cli.app,
+    name="morning",
     help="Consolidated daily operator status (doctor + variants + drift).",
 )
 app.add_typer(
-    inspect_cli.app, name="inspect",
+    inspect_cli.app,
+    name="inspect",
     help="Diagnostic: dump spec_payload + first-bar Firm verdict.",
 )
 

@@ -30,6 +30,7 @@ The downstream gate reads a PM output and emits a routing decision::
     decision = apex_gate(pm_output)
     # decision = {"action": "full|reduced|skip", "size_mult": float, "reason": str}
 """
+
 from __future__ import annotations
 
 from .adapter import (

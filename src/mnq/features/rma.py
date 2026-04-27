@@ -5,6 +5,7 @@ Pine semantics:
     rma[0] = sma(source, length) at bar length-1
     rma[i] = alpha * source[i] + (1 - alpha) * rma[i-1]
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -15,7 +16,15 @@ from mnq.features._source import price_from_source
 
 
 class RMA:
-    __slots__ = ("length", "source", "_alpha", "_seed_buf", "_value", "_count", "_last_update_bar_ts")
+    __slots__ = (
+        "length",
+        "source",
+        "_alpha",
+        "_seed_buf",
+        "_value",
+        "_count",
+        "_last_update_bar_ts",
+    )
 
     def __init__(self, length: int, source: str = "close") -> None:
         if length < 2:
@@ -29,9 +38,25 @@ class RMA:
         self._last_update_bar_ts: datetime | None = None
 
     def update(self, bar: Bar) -> float | None:
-        x = price_from_source(bar, self.source)
-        self._count += 1
         self._last_update_bar_ts = bar.ts
+        return self.step(price_from_source(bar, self.source))
+
+    def step(self, x: float) -> float | None:
+        """Advance the RMA by a scalar source value.
+
+        Public, encapsulated equivalent of :meth:`update` that does not require
+        a :class:`Bar` — use this when driving the RMA from a derived signal
+        such as ATR's true-range sequence. All state transitions match
+        :meth:`update`.
+
+        Args:
+            x: Next source value.
+
+        Returns:
+            The new RMA value, or None if still seeding (fewer than ``length``
+            samples observed).
+        """
+        self._count += 1
         if self._value is None:
             self._seed_buf.append(x)
             if self._count >= self.length:

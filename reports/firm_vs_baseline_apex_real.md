@@ -1,6 +1,6 @@
 # Firm-Filtered vs. Baseline
 
-- Days tested: **15**
+- Days tested: **1**
 - Filtered variant: `r5_real_wide_target`
 - Baseline variant: `v1_replica`
 - Apex V3 downstream gate: **ON**
@@ -10,43 +10,29 @@
 
 | Metric | Filtered | Baseline | Lift |
 |---|---:|---:|---:|
-| Trades | 8 | 47 | -39 |
-| Net PnL | $+11.50 | $-138.00 | $+149.50 |
-| Win rate | 37.5% | 27.7% | +9.8 pp |
-| Expectancy / trade | $+1.44 | $-2.94 | $+4.37 |
+| Trades | 1 | 3 | -2 |
+| Net PnL | $-21.00 | $+8.50 | $-29.50 |
+| Win rate | 0.0% | 66.7% | -66.7 pp |
+| Expectancy / trade | $-21.00 | $+2.83 | $-23.83 |
 
 ## Daily lift (paired, filtered − baseline)
 
-- Total lift: **$+149.50**
-- 95% bootstrap CI: **$+23.50 / $+269.50**
+- Total lift: **$-29.50**
+- 95% bootstrap CI: **$-29.50 / $-29.50**
 
 ## Apex V3 gate decisions
 
-- Full: **15** | Reduced: **0** | Skipped: **0** (of 15 days)
+- Full: **1** | Reduced: **0** | Skipped: **0** (of 1 days)
 
 ## Per-day ledger
 
 | Day | Filt PnL (raw) | Gate | Filt PnL (gated) | Baseline PnL | Lift |
 |---:|---:|:---:|---:|---:|---:|
-| 0 | $+18.50 | full (va=10) | $+18.50 | $-19.50 | $+38.00 |
-| 1 | $+0.00 | full (va=8) | $+0.00 | $-30.50 | $+30.50 |
-| 2 | $-22.50 | full (va=9) | $-22.50 | $+1.50 | $-24.00 |
-| 3 | $+0.00 | full (va=8) | $+0.00 | $+3.00 | $-3.00 |
-| 4 | $+0.00 | full (va=8) | $+0.00 | $-7.00 | $+7.00 |
-| 5 | $+0.00 | full (va=8) | $+0.00 | $-7.00 | $+7.00 |
-| 6 | $+18.50 | full (va=8) | $+18.50 | $-8.50 | $+27.00 |
-| 7 | $+0.00 | full (va=9) | $+0.00 | $-5.50 | $+5.50 |
-| 8 | $-22.50 | full (va=9) | $-22.50 | $-23.00 | $+0.50 |
-| 9 | $+0.00 | full (va=8) | $+0.00 | $-19.50 | $+19.50 |
-| 10 | $+40.50 | full (va=9) | $+40.50 | $+18.00 | $+22.50 |
-| 11 | $+0.00 | full (va=9) | $+0.00 | $-6.50 | $+6.50 |
-| 12 | $-21.00 | full (va=9) | $-21.00 | $-6.50 | $-14.50 |
-| 13 | $+0.00 | full (va=9) | $+0.00 | $-5.50 | $+5.50 |
-| 14 | $+0.00 | full (va=9) | $+0.00 | $-21.50 | $+21.50 |
+| 0 | $-21.00 | full (va=8) | $-21.00 | $+8.50 | $-29.50 |
 
 ## Verdict
 
-**FIRM FILTER JUSTIFIED** — lift CI strictly positive.
+**FIRM FILTER HARMFUL** — lift CI strictly negative; review each gauntlet component.
 
 ## Interpretation
 

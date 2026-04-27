@@ -15,6 +15,7 @@ Subcommands:
     mnq spec verify <spec-path> --manifest <manifest-yaml>
         Verify that a spec is approved.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -31,9 +32,13 @@ console = Console()
 
 @app.command("render")
 def render(
-    spec_path: Annotated[Path, typer.Argument(exists=True, readable=True, help="Path to spec YAML.")],
+    spec_path: Annotated[
+        Path, typer.Argument(exists=True, readable=True, help="Path to spec YAML.")
+    ],
     target: Annotated[str, typer.Option("--target", "-t", help="pine|python")],
-    out: Annotated[Path | None, typer.Option("--out", "-o", help="Output directory (default auto).")] = None,
+    out: Annotated[
+        Path | None, typer.Option("--out", "-o", help="Output directory (default auto).")
+    ] = None,
 ) -> None:
     """Render a spec to a generator target and write to disk."""
     spec = load_spec(spec_path)
@@ -87,16 +92,19 @@ def rehash(
 
 @app.command("approve")
 def approve(
-    spec_path: Annotated[Path, typer.Argument(exists=True, readable=True,
-                                              help="Path to spec YAML.")],
-    manifest: Annotated[Path, typer.Option("--manifest", "-m",
-                                           help="Path to approval manifest YAML.")],
-    approved_by: Annotated[str, typer.Option("--approved-by", "-a",
-                                             help="Approver name or ticket ID.")],
-    gauntlet_run_id: Annotated[str, typer.Option("--gauntlet-run-id", "-g",
-                                                 help="Gauntlet run identifier.")],
-    notes: Annotated[str, typer.Option("--notes", "-n",
-                                       help="Optional approval notes.")] = "",
+    spec_path: Annotated[
+        Path, typer.Argument(exists=True, readable=True, help="Path to spec YAML.")
+    ],
+    manifest: Annotated[
+        Path, typer.Option("--manifest", "-m", help="Path to approval manifest YAML.")
+    ],
+    approved_by: Annotated[
+        str, typer.Option("--approved-by", "-a", help="Approver name or ticket ID.")
+    ],
+    gauntlet_run_id: Annotated[
+        str, typer.Option("--gauntlet-run-id", "-g", help="Gauntlet run identifier.")
+    ],
+    notes: Annotated[str, typer.Option("--notes", "-n", help="Optional approval notes.")] = "",
 ) -> None:
     """Approve a spec and add it to the manifest.
 
@@ -120,17 +128,11 @@ def approve(
         raise typer.Exit(code=1)
 
     # Load or create manifest
-    mgmt = (
-        ApprovalManifest.load(manifest)
-        if manifest.exists()
-        else ApprovalManifest(specs=())
-    )
+    mgmt = ApprovalManifest.load(manifest) if manifest.exists() else ApprovalManifest(specs=())
 
     # Check if already approved
     if mgmt.find(computed_hash) is not None:
-        console.print(
-            f"[yellow]note:[/yellow] spec {computed_hash} is already approved."
-        )
+        console.print(f"[yellow]note:[/yellow] spec {computed_hash} is already approved.")
         raise typer.Exit(code=0)
 
     # Approve
@@ -144,17 +146,18 @@ def approve(
     mgmt.save(manifest)
 
     console.print(
-        f"[green]approved[/green] spec {spec.strategy.id} "
-        f"({computed_hash[:16]}...) in {manifest}"
+        f"[green]approved[/green] spec {spec.strategy.id} ({computed_hash[:16]}...) in {manifest}"
     )
 
 
 @app.command("verify")
 def verify(
-    spec_path: Annotated[Path, typer.Argument(exists=True, readable=True,
-                                              help="Path to spec YAML.")],
-    manifest: Annotated[Path, typer.Option("--manifest", "-m",
-                                           help="Path to approval manifest YAML.")],
+    spec_path: Annotated[
+        Path, typer.Argument(exists=True, readable=True, help="Path to spec YAML.")
+    ],
+    manifest: Annotated[
+        Path, typer.Option("--manifest", "-m", help="Path to approval manifest YAML.")
+    ],
 ) -> None:
     """Verify that a spec is approved.
 
@@ -167,9 +170,7 @@ def verify(
 
     # Load manifest
     if not manifest.exists():
-        console.print(
-            f"[red]error:[/red] manifest not found: {manifest}"
-        )
+        console.print(f"[red]error:[/red] manifest not found: {manifest}")
         raise typer.Exit(code=1)
 
     mgmt = ApprovalManifest.load(manifest)
@@ -177,6 +178,7 @@ def verify(
     # Verify
     try:
         from mnq.spec.manifest import require_approved
+
         approved = require_approved(spec, mgmt)
         console.print(
             f"[green]ok[/green] spec {spec.strategy.id} is approved "

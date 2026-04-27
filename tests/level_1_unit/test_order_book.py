@@ -259,12 +259,9 @@ class TestOrderFill:
             )
         )
         expected_vwap = (
-            Decimal("18250.00") * Decimal("3")
-            + Decimal("18251.00") * Decimal("2")
+            Decimal("18250.00") * Decimal("3") + Decimal("18251.00") * Decimal("2")
         ) / Decimal("5")
-        assert fill2.avg_fill_price == expected_vwap.quantize(
-            Decimal("0.0001")
-        )
+        assert fill2.avg_fill_price == expected_vwap.quantize(Decimal("0.0001"))
 
         # Fill 3: 5 @ 18252.00
         fill3 = book.apply_fill(
@@ -281,9 +278,7 @@ class TestOrderFill:
         expected_final = (
             fill2.avg_fill_price * Decimal("5") + Decimal("18252.00") * Decimal("5")
         ) / Decimal("10")
-        assert fill3.avg_fill_price == expected_final.quantize(
-            Decimal("0.0001")
-        )
+        assert fill3.avg_fill_price == expected_final.quantize(Decimal("0.0001"))
         assert fill3.is_terminal
 
     def test_duplicate_fill_idempotent(self, tmp_journal: EventJournal) -> None:
@@ -678,7 +673,8 @@ class TestOrderBookMetrics:
         # Get the metric value
         samples = orders_submitted_total.collect()[0].samples
         metric_data = [
-            s for s in samples
+            s
+            for s in samples
             if s.name == "orders_submitted_total"
             and s.labels == {"side": "long", "order_type": "market"}
         ]
@@ -711,7 +707,8 @@ class TestOrderBookMetrics:
 
         samples = orders_filled_total.collect()[0].samples
         metric_data = [
-            s for s in samples
+            s
+            for s in samples
             if s.name == "orders_filled_total"
             and s.labels == {"side": "short", "exit_reason": "filled"}
         ]

@@ -43,6 +43,7 @@ Usage
 
 Exit code is always 0 (this is a reporter, not a gate).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -80,9 +81,7 @@ def classify_variant(payload: dict[str, Any]) -> tuple[Bucket, str]:
     Bucketing is deterministic given the same payload.
     """
     provenance = list(payload.get("provenance") or [])
-    regime_exp: dict[str, dict[str, float]] = (
-        payload.get("regime_expectancy") or {}
-    )
+    regime_exp: dict[str, dict[str, float]] = payload.get("regime_expectancy") or {}
 
     if provenance == ["stub"]:
         return PRUNE, "stub provenance -- no calibration source"
@@ -116,7 +115,8 @@ def classify_variant(payload: dict[str, Any]) -> tuple[Bucket, str]:
 
     # All promising regimes are thin
     best_thin = max(
-        promising.items(), key=lambda kv: kv[1].get("expectancy_r", 0.0),
+        promising.items(),
+        key=lambda kv: kv[1].get("expectancy_r", 0.0),
     )
     return (
         WATCH,
@@ -136,21 +136,25 @@ def _build_classified() -> list[dict[str, Any]]:
     for cfg in VARIANTS:
         payload = build_spec_payload(cfg.name)
         bucket, reason = classify_variant(payload)
-        rows.append({
-            "variant": cfg.name,
-            "bucket": bucket,
-            "reason": reason,
-            "provenance": payload.get("provenance", ["stub"]),
-            "n_total": payload.get("sample_size", 0),
-            "expected_expectancy_r": payload.get("expected_expectancy_r", 0.0),
-        })
+        rows.append(
+            {
+                "variant": cfg.name,
+                "bucket": bucket,
+                "reason": reason,
+                "provenance": payload.get("provenance", ["stub"]),
+                "n_total": payload.get("sample_size", 0),
+                "expected_expectancy_r": payload.get("expected_expectancy_r", 0.0),
+            }
+        )
     return rows
 
 
 def _render_markdown(rows: list[dict[str, Any]]) -> str:
     """Render a 3-section markdown report (PRUNE / WATCH / KEEP)."""
     by_bucket: dict[str, list[dict[str, Any]]] = {
-        PRUNE: [], WATCH: [], KEEP: [],
+        PRUNE: [],
+        WATCH: [],
+        KEEP: [],
     }
     for row in rows:
         by_bucket[row["bucket"]].append(row)
@@ -189,10 +193,7 @@ def _render_markdown(rows: list[dict[str, Any]]) -> str:
         lines.append("| variant | reason | provenance |")
         lines.append("|---|---|---|")
         for row in sorted(bucket_rows, key=lambda r: r["variant"]):
-            lines.append(
-                f"| {row['variant']} | {row['reason']} | "
-                f"{','.join(row['provenance'])} |"
-            )
+            lines.append(f"| {row['variant']} | {row['reason']} | {','.join(row['provenance'])} |")
         lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -200,15 +201,20 @@ def _render_markdown(rows: list[dict[str, Any]]) -> str:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT,
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
         help=f"output markdown file (default: {DEFAULT_OUTPUT})",
     )
     p.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="emit JSON instead of markdown (machine-readable)",
     )
     p.add_argument(
-        "--bucket", choices=[PRUNE, WATCH, KEEP], default=None,
+        "--bucket",
+        choices=[PRUNE, WATCH, KEEP],
+        default=None,
         help="print just one bucket's variant names to stdout (one per line)",
     )
     args = p.parse_args(argv)
@@ -226,10 +232,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.json:
         n = {b: sum(1 for r in rows if r["bucket"] == b) for b in (PRUNE, WATCH, KEEP)}
-        print(json.dumps(
-            {"variants": rows, "summary": {"total": len(rows), **n}},
-            indent=2, default=str,
-        ))
+        print(
+            json.dumps(
+                {"variants": rows, "summary": {"total": len(rows), **n}},
+                indent=2,
+                default=str,
+            )
+        )
         return 0
 
     md = _render_markdown(rows)

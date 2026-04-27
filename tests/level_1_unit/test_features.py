@@ -4,6 +4,7 @@ Reference-style synthetic cases: constant input → constant output,
 monotone input → bounded output, etc.  Step 4's DoD: these lock in
 Pine-compatible semantics until real Pine reference fixtures exist.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

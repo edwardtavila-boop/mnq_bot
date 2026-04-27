@@ -31,6 +31,7 @@ Configuration via environment:
     FIRM_CODE_PATH                 — The Firm package
     SHADOW_JOURNAL_PATH            — Shadow journal location
 """
+
 from __future__ import annotations
 
 import argparse
@@ -97,20 +98,26 @@ class ShadowState:
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps({
-            "start_date": self.start_date,
-            "current_day": self.current_day,
-            "target_days": self.target_days,
-            "total_signals": self.total_signals,
-            "total_trades": self.total_trades,
-            "total_blocked": self.total_blocked,
-            "firm_verdicts": self.firm_verdicts[-50:],
-            "avg_pm_score": self.avg_pm_score,
-            "tolerance_status": self.tolerance_status,
-            "kill_switch_clear": self.kill_switch_clear,
-            "promotion_eligible": self.promotion_eligible,
-            "sessions": self.sessions[-30:],
-        }, indent=2, default=str))
+        self.path.write_text(
+            json.dumps(
+                {
+                    "start_date": self.start_date,
+                    "current_day": self.current_day,
+                    "target_days": self.target_days,
+                    "total_signals": self.total_signals,
+                    "total_trades": self.total_trades,
+                    "total_blocked": self.total_blocked,
+                    "firm_verdicts": self.firm_verdicts[-50:],
+                    "avg_pm_score": self.avg_pm_score,
+                    "tolerance_status": self.tolerance_status,
+                    "kill_switch_clear": self.kill_switch_clear,
+                    "promotion_eligible": self.promotion_eligible,
+                    "sessions": self.sessions[-30:],
+                },
+                indent=2,
+                default=str,
+            )
+        )
 
     def check_promotion(self) -> tuple[bool, list[str]]:
         """Check if shadow trading meets promotion criteria."""
@@ -174,6 +181,7 @@ class ShadowTrader:
         # would. Operator can set MNQ_SHADOW_NO_GATES=1 to bypass for
         # debugging (then explicitly use the unsafe factory).
         from mnq.risk.gate_chain import build_default_chain
+
         journal = EventJournal(SHADOW_JOURNAL_PATH)
         if os.environ.get("MNQ_SHADOW_NO_GATES") == "1":
             order_book = OrderBook.unsafe_no_gate_chain(journal)
@@ -310,6 +318,7 @@ async def async_main(args: argparse.Namespace) -> int:
         trader.stop()
 
     import contextlib
+
     for sig in (signal.SIGINT, signal.SIGTERM):
         # Windows doesn't support add_signal_handler -- skip cleanly.
         with contextlib.suppress(NotImplementedError):
@@ -338,8 +347,7 @@ async def async_main(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Shadow trading driver.")
     parser.add_argument("--status", action="store_true", help="Print status.")
-    parser.add_argument("--days", type=int, default=None,
-                        help="Set sim gate target days.")
+    parser.add_argument("--days", type=int, default=None, help="Set sim gate target days.")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args(argv)
 

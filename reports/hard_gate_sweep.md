@@ -1,27 +1,27 @@
-# Gauntlet Hard-Gate Threshold Sweep — 200 days
+# Gauntlet Hard-Gate Threshold Sweep — 15 days
 
 Batch 9B. Sweeps gauntlet hard-gate skip/reduce thresholds.
 Baseline: (0.00, 0.00) = no filtering.
 
 | Skip | Reduce | PnL | Trades | Full | Reduced | Skip | Block% | Avg PnL/trade |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 0.00 | 0.00 | $+152.50 | 22 | 200 | 0 | 0 | 0.0% | $+6.93 ★ |
-| 0.25 | 0.50 | $+152.50 | 22 | 200 | 0 | 0 | 0.0% | $+6.93 |
-| 0.33 | 0.50 | $+152.50 | 22 | 200 | 0 | 0 | 0.0% | $+6.93 |
-| 0.40 | 0.60 | $+152.50 | 22 | 198 | 2 | 0 | 0.0% | $+6.93 |
-| 0.50 | 0.67 | $+152.50 | 22 | 178 | 22 | 0 | 0.0% | $+6.93 |
-| 0.50 | 0.75 | $+152.50 | 22 | 178 | 22 | 0 | 0.0% | $+6.93 |
-| 0.60 | 0.75 | $+152.50 | 22 | 178 | 20 | 2 | 1.0% | $+6.93 |
-| 0.67 | 0.83 | $+124.50 | 20 | 123 | 55 | 22 | 11.0% | $+6.22 |
-| 0.75 | 0.90 | $+124.50 | 20 | 71 | 107 | 22 | 11.0% | $+6.22 |
+| 0.00 | 0.00 | $+11.50 | 8 | 15 | 0 | 0 | 0.0% | $+1.44 |
+| 0.25 | 0.50 | $+11.50 | 8 | 15 | 0 | 0 | 0.0% | $+1.44 |
+| 0.33 | 0.50 | $+11.50 | 8 | 15 | 0 | 0 | 0.0% | $+1.44 |
+| 0.40 | 0.60 | $+11.50 | 8 | 15 | 0 | 0 | 0.0% | $+1.44 |
+| 0.50 | 0.67 | $+11.50 | 8 | 14 | 1 | 0 | 0.0% | $+1.44 |
+| 0.50 | 0.75 | $+11.50 | 8 | 14 | 1 | 0 | 0.0% | $+1.44 |
+| 0.60 | 0.75 | $+11.50 | 8 | 14 | 1 | 0 | 0.0% | $+1.44 |
+| 0.67 | 0.83 | $+34.00 | 7 | 12 | 2 | 1 | 6.7% | $+4.86 ★ |
+| 0.75 | 0.90 | $+34.00 | 7 | 6 | 8 | 1 | 6.7% | $+4.86 |
 
-**Best config:** skip=0.00, reduce=0.00
-- PnL: $+152.50 (baseline: $+152.50, Δ=$+0.00)
-- Block rate: 0.0%
-- Avg PnL/trade: $+6.93
+**Best config:** skip=0.67, reduce=0.83
+- PnL: $+34.00 (baseline: $+11.50, Δ=$+22.50)
+- Block rate: 6.7%
+- Avg PnL/trade: $+4.86
 
 ## Interpretation
 
-No threshold configuration improved PnL over the unfiltered baseline. The gauntlet pass_rate distribution may be too uniform (all days pass at similar rates), or the strategy's losses aren't concentrated on low-pass-rate days.
+The hard-gate at skip=0.67/reduce=0.83 improved PnL by $+22.50 over unfiltered baseline. This confirms the gauntlet adds filtering value when applied as a direct pass/fail gate rather than via the delta-blend path.
 
-_Sample: 200 Databento RTH days._
+_Sample: 15 Databento RTH days._

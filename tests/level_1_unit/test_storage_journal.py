@@ -237,9 +237,7 @@ def test_replay_combined_filters(tmp_path: Path) -> None:
     journal.append(POSITION_UPDATE, {"quantity": 20})  # seq 4
     journal.append(ORDER_SUBMITTED, {"order_id": "3"})  # seq 5
 
-    entries = list(
-        journal.replay(since_seq=1, event_types=(ORDER_SUBMITTED,))
-    )
+    entries = list(journal.replay(since_seq=1, event_types=(ORDER_SUBMITTED,)))
     # Should get seqs 3 and 5 (ORDER_SUBMITTED events after seq 1)
     assert len(entries) == 2
     assert [e.seq for e in entries] == [3, 5]

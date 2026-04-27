@@ -6,13 +6,13 @@
 
 ## Summary
 
-- Sim trades: **8**
-- Shadow fills: **16** (8 paired trades)
-- Matched: **8** / Unmatched sim: **0** / Unmatched shadow: **0**
+- Sim trades: **1**
+- Shadow fills: **2** (1 paired trades)
+- Matched: **1** / Unmatched sim: **0** / Unmatched shadow: **0**
 - Side mismatches: **0**
 
-- Total sim PnL: **$+11.50**
-- Total shadow PnL: **$+11.50**
+- Total sim PnL: **$-21.00**
+- Total shadow PnL: **$-21.00**
 - PnL difference: **$+0.00**
 - Max per-trade diff: **$0.00**
 - Avg per-trade diff: **$+0.0000**
@@ -21,14 +21,7 @@
 
 | # | Day | Side | Sim PnL | Shadow PnL | Δ PnL | Match |
 |---:|---|---|---:|---:|---:|:---:|
-| 0 | day-0 | long | $+40.00 | $+40.00 | $+0.00 | ✓ |
-| 1 | day-0 | short | $-21.50 | $-21.50 | $+0.00 | ✓ |
-| 2 | day-2 | long | $-22.50 | $-22.50 | $+0.00 | ✓ |
-| 3 | day-6 | long | $-20.50 | $-20.50 | $+0.00 | ✓ |
-| 4 | day-6 | short | $+39.00 | $+39.00 | $+0.00 | ✓ |
-| 5 | day-8 | long | $-22.50 | $-22.50 | $+0.00 | ✓ |
-| 6 | day-10 | long | $+40.50 | $+40.50 | $+0.00 | ✓ |
-| 7 | day-12 | long | $-21.00 | $-21.00 | $+0.00 | ✓ |
+| 0 | day-0 | long | $-21.00 | $-21.00 | $+0.00 | ✓ |
 
 ## Interpretation
 

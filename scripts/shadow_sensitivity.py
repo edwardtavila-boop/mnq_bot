@@ -15,6 +15,7 @@ production shadow venue.
 
 Output: ``reports/shadow_sensitivity.md``
 """
+
 from __future__ import annotations
 
 import argparse
@@ -256,9 +257,11 @@ def _run_sweep(
             seed=seed,
         )
         results.append(r)
-        print(f"  slip={slip:.1f}t → PnL=${r.total_pnl:+,.2f}, "
-              f"trades={r.n_trades}, slip_cost=${r.avg_slippage_cost:.2f}/trade, "
-              f"maxDD=${r.max_drawdown:.2f}")
+        print(
+            f"  slip={slip:.1f}t → PnL=${r.total_pnl:+,.2f}, "
+            f"trades={r.n_trades}, slip_cost=${r.avg_slippage_cost:.2f}/trade, "
+            f"maxDD=${r.max_drawdown:.2f}"
+        )
 
     # Latency sweep (holding slippage=1, partial=0)
     print("\n--- Latency sensitivity (slippage=1t, partial=0%) ---")
@@ -275,8 +278,10 @@ def _run_sweep(
             seed=seed,
         )
         results.append(r)
-        print(f"  lat={lat}ms → PnL=${r.total_pnl:+,.2f}, "
-              f"trades={r.n_trades}, maxDD=${r.max_drawdown:.2f}")
+        print(
+            f"  lat={lat}ms → PnL=${r.total_pnl:+,.2f}, "
+            f"trades={r.n_trades}, maxDD=${r.max_drawdown:.2f}"
+        )
 
     # Partial fill sweep (holding slippage=1, latency=50)
     print("\n--- Partial fill sensitivity (slippage=1t, latency=50ms) ---")
@@ -293,9 +298,11 @@ def _run_sweep(
             seed=seed,
         )
         results.append(r)
-        print(f"  partial={pf:.0%} → PnL=${r.total_pnl:+,.2f}, "
-              f"trades={r.n_trades}, partials={r.n_partial_fills}, "
-              f"maxDD=${r.max_drawdown:.2f}")
+        print(
+            f"  partial={pf:.0%} → PnL=${r.total_pnl:+,.2f}, "
+            f"trades={r.n_trades}, partials={r.n_partial_fills}, "
+            f"maxDD=${r.max_drawdown:.2f}"
+        )
 
     # Worst-case combined: high slippage + high latency + high partial
     print("\n--- Combined worst case ---")
@@ -309,9 +316,11 @@ def _run_sweep(
         seed=seed,
     )
     results.append(r)
-    print(f"  worst → PnL=${r.total_pnl:+,.2f}, "
-          f"trades={r.n_trades}, partials={r.n_partial_fills}, "
-          f"maxDD=${r.max_drawdown:.2f}")
+    print(
+        f"  worst → PnL=${r.total_pnl:+,.2f}, "
+        f"trades={r.n_trades}, partials={r.n_partial_fills}, "
+        f"maxDD=${r.max_drawdown:.2f}"
+    )
 
     return results
 
@@ -376,9 +385,7 @@ def _render(results: list[ScenarioResult]) -> str:
     lines.append("## Worst-Case Combined")
     lines.append("")
     worst = results[-1]
-    lines.append(
-        "| Scenario | PnL | Trades | Partials | Rejections | Max DD | Avg PnL/trade |"
-    )
+    lines.append("| Scenario | PnL | Trades | Partials | Rejections | Max DD | Avg PnL/trade |")
     lines.append("|---|---:|---:|---:|---:|---:|---:|")
     lines.append(
         f"| 4t slip + 250ms + 25% partial | ${worst.total_pnl:+,.2f} | "

@@ -38,6 +38,7 @@ Cross-repo coupling
 Aligned with ``eta_engine/core`` path conventions but does NOT
 import from there (per the two-project no-consolidation rule).
 """
+
 from __future__ import annotations
 
 import os
@@ -78,7 +79,8 @@ by construction.
 """
 
 LIVE_SIM_JOURNAL: Path = _env_path(
-    "MNQ_LIVE_SIM_JOURNAL", LIVE_SIM_DIR / "journal.sqlite",
+    "MNQ_LIVE_SIM_JOURNAL",
+    LIVE_SIM_DIR / "journal.sqlite",
 )
 """The canonical journal file path. Operationally synonymous with
 ``mnq.risk.gate_chain.JOURNAL_PATH`` -- both must point at the same
@@ -96,19 +98,22 @@ BARS_DIR: Path = _env_path("MNQ_BARS_DIR", DATA_ROOT / "bars")
 """Root for market-data bar files (Databento parquet + CSV slices)."""
 
 BARS_DATABENTO_DIR: Path = _env_path(
-    "MNQ_BARS_DATABENTO_DIR", BARS_DIR / "databento",
+    "MNQ_BARS_DATABENTO_DIR",
+    BARS_DIR / "databento",
 )
 """Databento parquet directory consumed by volume_profile +
 cumulative_delta scripts.
 """
 
 MNQ_1M_CSV: Path = _env_path(
-    "MNQ_1M_CSV", BARS_DIR / "mnq_1m.csv",
+    "MNQ_1M_CSV",
+    BARS_DIR / "mnq_1m.csv",
 )
 """1-minute MNQ CSV data file (legacy)."""
 
 MNQ_5M_CSV: Path = _env_path(
-    "MNQ_5M_CSV", BARS_DIR / "mnq_5m.csv",
+    "MNQ_5M_CSV",
+    BARS_DIR / "mnq_5m.csv",
 )
 """5-minute MNQ CSV data file (legacy)."""
 
@@ -118,7 +123,8 @@ MNQ_5M_CSV: Path = _env_path(
 # ---------------------------------------------------------------------------
 
 PARQUET_CACHE_DIR: Path = _env_path(
-    "MNQ_PARQUET_CACHE_DIR", DATA_ROOT / ".cache" / "parquet",
+    "MNQ_PARQUET_CACHE_DIR",
+    DATA_ROOT / ".cache" / "parquet",
 )
 """Cache directory for parquet bars. Operator typically points this
 at a per-user volume so the cache survives repo wipes."""

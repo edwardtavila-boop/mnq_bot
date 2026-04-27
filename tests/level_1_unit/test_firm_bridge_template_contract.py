@@ -43,6 +43,7 @@ When the public API loses a symbol (rare)
   3. Search-and-confirm no caller imports the removed symbol.
   4. Re-run this test.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -76,7 +77,8 @@ def shim_template() -> str:
     own module via ``cls.__module__``.
     """
     spec = importlib.util.spec_from_file_location(
-        "firm_bridge_for_test", FIRM_BRIDGE_PATH,
+        "firm_bridge_for_test",
+        FIRM_BRIDGE_PATH,
     )
     if spec is None or spec.loader is None:
         msg = f"could not build module spec for {FIRM_BRIDGE_PATH}"
@@ -110,7 +112,8 @@ def rendered_template(shim_template: str) -> str:
 
 @pytest.mark.parametrize("symbol", _PUBLIC_API)
 def test_template_defines_public_api_symbol(
-    rendered_template: str, symbol: str,
+    rendered_template: str,
+    symbol: str,
 ) -> None:
     """The rendered shim must define every name callers import.
 
@@ -192,7 +195,8 @@ def test_rendered_template_has_required_structural_pieces(
 
 
 def test_rendered_shim_loads_and_exposes_api(
-    tmp_path: Path, rendered_template: str,
+    tmp_path: Path,
+    rendered_template: str,
 ) -> None:
     """Write the rendered shim to a temp file and import it in a
     sub-context. Asserts every _PUBLIC_API name is bound to a callable
@@ -242,7 +246,8 @@ class AgentInput:
     bridge = sys.modules.get("firm_bridge_for_test")
     if bridge is None:
         spec = importlib.util.spec_from_file_location(
-            "firm_bridge_for_test", FIRM_BRIDGE_PATH,
+            "firm_bridge_for_test",
+            FIRM_BRIDGE_PATH,
         )
         assert spec is not None and spec.loader is not None
         bridge = importlib.util.module_from_spec(spec)
@@ -259,7 +264,8 @@ class AgentInput:
     # Import the shim in a sub-spec so we don't pollute sys.modules
     # globally.
     shim_spec = importlib.util.spec_from_file_location(
-        "test_firm_runtime_shim", shim_path,
+        "test_firm_runtime_shim",
+        shim_path,
     )
     assert shim_spec is not None and shim_spec.loader is not None
     shim_mod = importlib.util.module_from_spec(shim_spec)

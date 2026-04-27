@@ -1,4 +1,4 @@
-﻿"""Firm-code integration bridge.
+"""Firm-code integration bridge.
 
 Responsibilities:
 
@@ -41,6 +41,7 @@ Usage:
     python scripts/firm_bridge.py --probe --path /other/firm/code
     python scripts/firm_bridge.py --integrate            # writes firm_runtime.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -167,9 +168,7 @@ def _probe_evaluate_signatures(firm_path: Path) -> list[str]:
             continue
         params = [p for p in sig.parameters.values() if p.name != "self"]
         if len(params) != 1:
-            errors.append(
-                f"{cls_name}.evaluate: expected 1 non-self parameter, got {len(params)}"
-            )
+            errors.append(f"{cls_name}.evaluate: expected 1 non-self parameter, got {len(params)}")
     return errors
 
 
@@ -491,7 +490,8 @@ def main(argv: list[str] | None = None) -> int:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(md, encoding="utf-8")
     STATUS_JSON_PATH.write_text(
-        json.dumps(report.as_dict(), indent=2, default=str), encoding="utf-8",
+        json.dumps(report.as_dict(), indent=2, default=str),
+        encoding="utf-8",
     )
 
     print(md)

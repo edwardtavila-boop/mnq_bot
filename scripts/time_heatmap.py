@@ -7,6 +7,7 @@ rate ≥ 60%, amber for mixed, red for negative.
 Usage:
     python scripts/time_heatmap.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -78,14 +79,33 @@ def main() -> int:
     cell_scores = []
     for (w, h), rs in cells.items():
         if len(rs) >= 2:
-            cell_scores.append((WEEKDAYS[w], h, len(rs), sum(1 for r in rs if r > 0) / len(rs), statistics.fmean(rs)))
+            cell_scores.append(
+                (
+                    WEEKDAYS[w],
+                    h,
+                    len(rs),
+                    sum(1 for r in rs if r > 0) / len(rs),
+                    statistics.fmean(rs),
+                )
+            )
     cell_scores.sort(key=lambda row: row[-1], reverse=True)
-    lines += ["", "## Best cells (min 2 trades, sorted by avg R)", "",
-              "| Day | Hour | N | WR | Avg R |", "|---|---:|---:|---:|---:|"]
+    lines += [
+        "",
+        "## Best cells (min 2 trades, sorted by avg R)",
+        "",
+        "| Day | Hour | N | WR | Avg R |",
+        "|---|---:|---:|---:|---:|",
+    ]
     for row in cell_scores[:5]:
         lines.append(f"| {row[0]} | {row[1]:02d} | {row[2]} | {row[3]:.0%} | {row[4]:+.2f} |")
     if len(cell_scores) > 5:
-        lines += ["", "## Worst cells", "", "| Day | Hour | N | WR | Avg R |", "|---|---:|---:|---:|---:|"]
+        lines += [
+            "",
+            "## Worst cells",
+            "",
+            "| Day | Hour | N | WR | Avg R |",
+            "|---|---:|---:|---:|---:|",
+        ]
         for row in cell_scores[-5:]:
             lines.append(f"| {row[0]} | {row[1]:02d} | {row[2]} | {row[3]:.0%} | {row[4]:+.2f} |")
 

@@ -18,6 +18,7 @@ Usage:
          --reason "sample size too small; CI crosses zero"
     python scripts/strategy_registry.py --list
 """
+
 from __future__ import annotations
 
 import argparse

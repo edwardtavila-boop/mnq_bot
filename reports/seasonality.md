@@ -1,16 +1,16 @@
-# Seasonality · 2026-04-17 01:39:40 UTC
+# Seasonality · 2026-04-26 14:26:04 UTC
 
 ## By weekday (observed × canonical bias)
 | Weekday | N | Exp $ | Canonical bias |
 |---|---:|---:|---|
-| Fri | 37 | $+2.75 | Fri · chop, position-unwinding |
+| Sun | 37 | $+2.75 | — |
 
 ## By hour (UTC)
 | Hour | N | Exp $ |
 |---|---:|---:|
-| H01 | 37 | $+2.75 |
+| H00 | 37 | $+2.75 |
 
 ## By day-of-month
 | DoM | N | Exp $ |
 |---|---:|---:|
-| 17 | 37 | $+2.75 |
+| 26 | 37 | $+2.75 |

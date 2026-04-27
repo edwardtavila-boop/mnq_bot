@@ -109,3 +109,37 @@ Standalone 71-file strategy system with a 15-voice scoring engine, tiered sizing
 4. No variant "shippable" unless bootstrap CI excludes zero, n ≥ 8, falsification written.
 5. Turnover drift z-score must stay ±3σ.
 6. Human-only live promotion — shadow first, then tiered.
+
+## Model-Tier Routing Policy (operator mandate 2026-04-19)
+
+**Canonical source:** `Base/eta_engine/brain/model_policy.py` (JARVIS-owned).
+Consult via `from eta_engine.brain.model_policy import select_model, TaskCategory`
+or `JarvisAdmin.select_llm_tier(...)`. Cross-project — same policy applies here.
+
+| Tier            | Cost  | When                                                     |
+|-----------------|:-----:|----------------------------------------------------------|
+| **Opus 4.7**    | 5.0×  | **Architectural / adversarial only.** Gauntlet gate design, Red Team (risk-advocate), kill-switch / tiered-rollout / state-machine design, devils-advocate reviews. These are the irreversible calls. |
+| **Sonnet 4.6**  | 1.0×  | **Default for everything else.** Strategy edits, pytest work, refactors, scaffolding, code review, debugging, doc writing, databento/parquet plumbing. |
+| **Haiku 4.5**   | 0.2×  | Grunt work: log parsing, simple edits, commit-message drafts, ruff/mypy lint fixes, trivial lookups, `__init__.py` re-exports. |
+
+**MNQ-specific hot paths for Opus (and only these):**
+- `src/mnq/risk/tiered_rollout.py` changes (state-machine design)
+- `src/mnq/risk/kill_switch*.py` changes (risk-policy design)
+- `scripts/promotion_pipeline.py` gate authoring (gauntlet gate design)
+- `ShipManifest` verdict logic (Red Team adversarial review)
+- Post-mortem / incident reviews (adversarial review)
+
+**Everything else in this repo defaults to Sonnet.** Do NOT burn Opus on: writing
+pytest cases, adding new gauntlet stages that follow the existing pattern,
+refactoring for ruff compliance, CLAUDE.md updates, data-pipeline edits.
+
+**Batch Opus work into fresh 5-hour windows.** Big autonomous runs (e.g. finishing
+Phase 9 tiered-live wiring) can eat a whole window on Opus alone — kick them off
+at the start of a window, then do routine Sonnet work in the partial window after.
+
+**Run `/compact` frequently.** Stale context re-caches on every turn and silently
+burns quota. Compact at each major task boundary (after ruff+pytest passes, after
+ROADMAP bump, after artifact generation).
+
+**Set a monthly usage cap in Settings → Usage before enabling extra usage.** Start
+~$50. Never leave it uncapped.

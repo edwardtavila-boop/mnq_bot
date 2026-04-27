@@ -6,6 +6,7 @@ Step 1 subcommands:
 
 Requires `.env` with `TV_*` vars (see `.env.example`). Uses `demo` by default.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -70,7 +71,9 @@ def _resolve_env(explicit: str | None, env_map: dict[str, str]) -> Environment:
 
 @tradovate_app.command("auth-test")
 def auth_test(
-    env: Annotated[str | None, typer.Option("--env", help="demo|live (default: from TV_ENV)")] = None,
+    env: Annotated[
+        str | None, typer.Option("--env", help="demo|live (default: from TV_ENV)")
+    ] = None,
 ) -> None:
     """Log in to Tradovate and print the resulting token summary."""
     env_map = _load_env()
@@ -106,7 +109,9 @@ def auth_test(
 
 @tradovate_app.command("list-accounts")
 def list_accounts(
-    env: Annotated[str | None, typer.Option("--env", help="demo|live (default: from TV_ENV)")] = None,
+    env: Annotated[
+        str | None, typer.Option("--env", help="demo|live (default: from TV_ENV)")
+    ] = None,
 ) -> None:
     """List all accounts visible to the authed Tradovate user."""
     env_map = _load_env()

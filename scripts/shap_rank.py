@@ -7,6 +7,7 @@ is the importance. Pairs with gbm_filter.py.
 Usage:
     python scripts/shap_rank.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,8 +43,8 @@ def _sigmoid(x):
 def _train(X, y):
     w = [0.0] * len(X[0])
     for _ in range(200):
-        for xi, yi in zip(X, y):
-            z = sum(w_ * x_ for w_, x_ in zip(w, xi))
+        for xi, yi in zip(X, y, strict=False):
+            z = sum(w_ * x_ for w_, x_ in zip(w, xi, strict=False))
             p = _sigmoid(z)
             err = p - yi
             for j in range(len(w)):
@@ -53,8 +54,9 @@ def _train(X, y):
 
 def _acc(w, X, y):
     correct = sum(
-        1 for xi, yi in zip(X, y)
-        if (_sigmoid(sum(w_ * x_ for w_, x_ in zip(w, xi))) >= 0.5) == bool(yi)
+        1
+        for xi, yi in zip(X, y, strict=False)
+        if (_sigmoid(sum(w_ * x_ for w_, x_ in zip(w, xi, strict=False))) >= 0.5) == bool(yi)
     )
     return correct / max(1, len(X))
 

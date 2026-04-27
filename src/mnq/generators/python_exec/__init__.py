@@ -1,4 +1,5 @@
 """[REAL] Python executor generator — public surface."""
+
 from __future__ import annotations
 
 from mnq.generators.python_exec.base import (

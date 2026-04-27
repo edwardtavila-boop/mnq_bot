@@ -151,6 +151,31 @@ This document maps every data point in the dashboard to its source report file. 
   `inputs{trades_path, mae_mfe_path, rationales_path}`.
 - Used in: **Jarvis tab** (monthly deep review panel).
 
+### `<eta_engine>/docs/integrations_latest.json` — Integration topology snapshot
+- Produced by `python -m eta_engine.scripts.build_integrations_report`
+  (backed by `eta_engine.funnel.integrations.build_integrations_report`).
+- Canonical source of truth for every wire The Firm touches: venues, bots,
+  funnel layers, fiat→crypto onramp routes, staking protocols, and
+  observability surfaces. Mirror of the Python pydantic model
+  `IntegrationsReport`.
+- Schema: `schema_version`, `generated_at_utc`, `venues[{name,kind,assets,
+  status,notes}]`, `bots[{name,venue,layer,tier,status,notes}]`,
+  `funnel_layers[{id,label,sweep_pct,kill_dd_pct,leverage_max,tier,notes}]`,
+  `onramp_routes[{fiat,provider,crypto,per_txn_limit_usd,monthly_limit_usd}]`,
+  `staking[{protocol,chain,asset_in,asset_out,apy_pct,notes}]`,
+  `observability[{name,kind,status,notes}]`, `summary{venues_ready,
+  bots_paper,bots_live,obs_active,obs_dry_run}`.
+- Status vocabularies: venues/bots = READY / PAPER / LIVE / NEEDS_FUNDING /
+  BLOCKED; observability = ACTIVE / DRY_RUN / OFFLINE.
+- Optional text companion: `<eta_engine>/docs/integrations_latest.txt`
+  (80-col human summary, same data).
+- Live overlay merge: `build_integrations_report` accepts an optional
+  `live_status` dict (loaded from `docs/integrations_live_status.json`)
+  that can patch `status` / `notes` on any venue / bot / observability
+  row without forking the canonical topology.
+- Used in: **Integrations tab** (all six panels — funnel waterfall, bots,
+  venues, onramps, staking, observability).
+
 ## Verification rules
 
 When populating the artifact, verify:

@@ -9,6 +9,7 @@ Stub form — real feed needs NYSE TICK via broker API.
 Usage:
     python scripts/breadth_monitor.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,8 +30,10 @@ def main() -> int:
     trin = 1.00
     add = 0
     confirmation = (
-        "🟢 BULLISH confirmation" if trin < 0.8 and add > 500
-        else "🔴 BEARISH confirmation" if trin > 1.2 and add < -500
+        "🟢 BULLISH confirmation"
+        if trin < 0.8 and add > 500
+        else "🔴 BEARISH confirmation"
+        if trin > 1.2 and add < -500
         else "🟡 NEUTRAL / MIXED"
     )
 

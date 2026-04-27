@@ -10,6 +10,7 @@ stronger filtering mechanism.
 
 Output: ``reports/hard_gate_sweep.md``
 """
+
 from __future__ import annotations
 
 import argparse
@@ -153,18 +154,20 @@ def _run_sweep(
         avg = total_pnl / n_trades if n_trades > 0 else 0.0
         block_rate = n_skip / len(days) if days else 0.0
 
-        results.append(SweepResult(
-            skip_threshold=skip_t,
-            reduce_threshold=reduce_t,
-            total_pnl=round(total_pnl, 2),
-            n_trades=n_trades,
-            n_full=n_full,
-            n_reduced=n_reduced,
-            n_skip=n_skip,
-            avg_pnl_per_trade=round(avg, 2),
-            n_days=len(days),
-            block_rate=round(block_rate, 3),
-        ))
+        results.append(
+            SweepResult(
+                skip_threshold=skip_t,
+                reduce_threshold=reduce_t,
+                total_pnl=round(total_pnl, 2),
+                n_trades=n_trades,
+                n_full=n_full,
+                n_reduced=n_reduced,
+                n_skip=n_skip,
+                avg_pnl_per_trade=round(avg, 2),
+                n_days=len(days),
+                block_rate=round(block_rate, 3),
+            )
+        )
         print(
             f"  skip={skip_t:.2f} reduce={reduce_t:.2f} → "
             f"PnL=${total_pnl:+,.2f}, trades={n_trades}, "
@@ -181,7 +184,9 @@ def _render(results: list[SweepResult]) -> str:
     lines.append("Batch 9B. Sweeps gauntlet hard-gate skip/reduce thresholds.")
     lines.append("Baseline: (0.00, 0.00) = no filtering.")
     lines.append("")
-    lines.append("| Skip | Reduce | PnL | Trades | Full | Reduced | Skip | Block% | Avg PnL/trade |")
+    lines.append(
+        "| Skip | Reduce | PnL | Trades | Full | Reduced | Skip | Block% | Avg PnL/trade |"
+    )
     lines.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
     best = max(results, key=lambda r: r.total_pnl)
@@ -198,8 +203,12 @@ def _render(results: list[SweepResult]) -> str:
 
     lines.append("")
     diff = best.total_pnl - baseline.total_pnl
-    lines.append(f"**Best config:** skip={best.skip_threshold:.2f}, reduce={best.reduce_threshold:.2f}")
-    lines.append(f"- PnL: ${best.total_pnl:+,.2f} (baseline: ${baseline.total_pnl:+,.2f}, Δ=${diff:+,.2f})")
+    lines.append(
+        f"**Best config:** skip={best.skip_threshold:.2f}, reduce={best.reduce_threshold:.2f}"
+    )
+    lines.append(
+        f"- PnL: ${best.total_pnl:+,.2f} (baseline: ${baseline.total_pnl:+,.2f}, Δ=${diff:+,.2f})"
+    )
     lines.append(f"- Block rate: {best.block_rate:.1%}")
     lines.append(f"- Avg PnL/trade: ${best.avg_pnl_per_trade:+,.2f}")
     lines.append("")

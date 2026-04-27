@@ -33,6 +33,7 @@ The ``the_firm_complete`` agents are NOT imported here. Consumers
 (firm_live_review, scripts/eta_v3_meta.py, run_all_phases Phase F)
 read the payload fragment through the existing bridge shim.
 """
+
 from __future__ import annotations
 
 import sys
@@ -60,6 +61,7 @@ class MetaSnapshot:
     JSON-serialisable via ``as_dict``. Kept intentionally small so the
     enrichment doesn't bloat AgentInput.payload or the event journal.
     """
+
     regime_vote: str
     pm_threshold: float
     enabled_setups: list[str]
@@ -97,6 +99,7 @@ def _ensure_eta_v3_on_path() -> bool:
         sys.path.insert(0, p)
     try:
         import firm_meta  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -114,6 +117,7 @@ def probe_meta_firm_engine() -> dict[str, Any]:
         return {"available": False, "reason": "firm_meta import failed"}
     try:
         import firm_meta  # type: ignore
+
         voices = [n for n in dir(firm_meta) if n.startswith("mv_")]
         return {
             "available": True,
@@ -144,13 +148,23 @@ def build_meta_context(**fields: Any) -> Any | None:
     # supplies and let dataclass fail loudly for type errors we want
     # surfaced (e.g., wrong dict type for regime_history).
     allowed = {
-        "recent_trades", "recent_decisions",
-        "rolling_win_rate", "rolling_pf", "rolling_dd",
-        "current_equity_r", "peak_equity_r",
-        "consecutive_losses", "consecutive_wins",
-        "days_since_last_win", "regime_history",
-        "avg_atr", "avg_adx", "avg_vol_z",
-        "hour_et", "weekday", "now_utc",
+        "recent_trades",
+        "recent_decisions",
+        "rolling_win_rate",
+        "rolling_pf",
+        "rolling_dd",
+        "current_equity_r",
+        "peak_equity_r",
+        "consecutive_losses",
+        "consecutive_wins",
+        "days_since_last_win",
+        "regime_history",
+        "avg_atr",
+        "avg_adx",
+        "avg_vol_z",
+        "hour_et",
+        "weekday",
+        "now_utc",
     }
     clean = {k: v for k, v in fields.items() if k in allowed}
     try:
@@ -159,8 +173,7 @@ def build_meta_context(**fields: Any) -> Any | None:
         return None
 
 
-def run_meta_evaluation(ctx: Any, base_pm: float = _DEFAULT_PM_THRESHOLD
-                        ) -> MetaSnapshot | None:
+def run_meta_evaluation(ctx: Any, base_pm: float = _DEFAULT_PM_THRESHOLD) -> MetaSnapshot | None:
     """Call firm_meta.run_meta_firm and package the verdict.
 
     ``ctx`` must be (or duck-type) firm_meta.MetaContext. Accepts either
@@ -190,18 +203,12 @@ def run_meta_evaluation(ctx: Any, base_pm: float = _DEFAULT_PM_THRESHOLD
         enabled = list(_DEFAULT_ENABLED_SETUPS)
 
     try:
-        voices = {
-            str(k): float(v)
-            for k, v in dict(getattr(decision, "voices", {})).items()
-        }
+        voices = {str(k): float(v) for k, v in dict(getattr(decision, "voices", {})).items()}
     except Exception:
         voices = {}
 
     try:
-        audit = {
-            str(k): str(v)
-            for k, v in dict(getattr(decision, "audit", {})).items()
-        }
+        audit = {str(k): str(v) for k, v in dict(getattr(decision, "audit", {})).items()}
     except Exception:
         audit = {}
 
@@ -219,8 +226,9 @@ def run_meta_evaluation(ctx: Any, base_pm: float = _DEFAULT_PM_THRESHOLD
     )
 
 
-def meta_to_firm_payload(base_payload: dict[str, Any],
-                         snapshot: MetaSnapshot | None) -> dict[str, Any]:
+def meta_to_firm_payload(
+    base_payload: dict[str, Any], snapshot: MetaSnapshot | None
+) -> dict[str, Any]:
     """Return a NEW dict with ``eta_v3_meta`` enrichment added.
 
     If ``snapshot`` is None the base is copied and returned unchanged
@@ -257,8 +265,9 @@ def summarize_meta(snapshot: MetaSnapshot | None) -> str:
     )
 
 
-def apply_meta_overrides(strategy_params: dict[str, Any],
-                         snapshot: MetaSnapshot | None) -> dict[str, Any]:
+def apply_meta_overrides(
+    strategy_params: dict[str, Any], snapshot: MetaSnapshot | None
+) -> dict[str, Any]:
     """Fold meta-decisions into a strategy params dict, non-destructively.
 
     The orchestrator passes its base strategy params (pm_gate, size,

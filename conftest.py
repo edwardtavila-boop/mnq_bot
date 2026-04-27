@@ -12,6 +12,7 @@ Once the OneDrive sync artifact is fixed (either by relocating
 firm_runtime.py out of the synced tree, or write-protecting it), this
 module becomes a no-op.
 """
+
 from __future__ import annotations
 
 import sys

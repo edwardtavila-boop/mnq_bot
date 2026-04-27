@@ -11,6 +11,7 @@ Pin the contract:
   * Multiple fills on the same date count toward the rate but the
     date-bucket counts only once
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -35,7 +36,8 @@ def test_no_journal_returns_none(monkeypatch, tmp_path: Path) -> None:
     fake = tmp_path / "missing.sqlite"
     monkeypatch.setattr(runtime_payload, "_journal_trades_per_day", _journal_trades_per_day)
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", fake,
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        fake,
     )
     # The helper imports LIVE_SIM_JOURNAL inside the function so the
     # patch needs to take effect at call time.
@@ -63,7 +65,8 @@ def test_journal_with_fills_returns_rate(monkeypatch, tmp_path: Path) -> None:
         )
 
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", journal_path,
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        journal_path,
     )
     rate = _journal_trades_per_day()
     # Journal entries are written with NOW timestamps, not our fixture
@@ -80,7 +83,8 @@ def test_empty_journal_returns_none(monkeypatch, tmp_path: Path) -> None:
     journal_path = tmp_path / "empty.sqlite"
     EventJournal(journal_path)  # initializes schema, no events
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", journal_path,
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        journal_path,
     )
     assert _journal_trades_per_day() is None
 
@@ -91,11 +95,13 @@ def test_empty_journal_returns_none(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_build_spec_payload_falls_back_when_no_journal(
-    monkeypatch, tmp_path: Path,
+    monkeypatch,
+    tmp_path: Path,
 ) -> None:
     """No journal -> sample_size uses TRADES_PER_DAY_PROXY (=2)."""
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", tmp_path / "missing.sqlite",
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        tmp_path / "missing.sqlite",
     )
     payload = build_spec_payload("r5_real_wide_target")
     # cached backtest has 15 days for r5_real_wide_target ->
@@ -104,7 +110,8 @@ def test_build_spec_payload_falls_back_when_no_journal(
 
 
 def test_build_spec_payload_uses_journal_rate(
-    monkeypatch, tmp_path: Path,
+    monkeypatch,
+    tmp_path: Path,
 ) -> None:
     """Journal with N fills across M dates -> sample_size scales."""
     journal_path = tmp_path / "j.sqlite"
@@ -117,7 +124,8 @@ def test_build_spec_payload_uses_journal_rate(
             {"venue_fill_id": f"fill_{i}", "qty": 1, "price": "21000.0"},
         )
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", journal_path,
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        journal_path,
     )
     payload = build_spec_payload("r5_real_wide_target")
     # cached backtest has 15 days -> sample_size = round(15 * 12.0) = 180
@@ -125,19 +133,22 @@ def test_build_spec_payload_uses_journal_rate(
 
 
 def test_journal_with_zero_fills_falls_back(
-    monkeypatch, tmp_path: Path,
+    monkeypatch,
+    tmp_path: Path,
 ) -> None:
     """Journal has rows but no FILL_REALIZED events -> fallback."""
     journal_path = tmp_path / "j.sqlite"
     j = EventJournal(journal_path)
     # ORDER_SUBMITTED but no FILL_REALIZED
     from mnq.storage.schema import ORDER_SUBMITTED
+
     j.append(
         ORDER_SUBMITTED,
         {"symbol": "MNQ", "side": "long", "qty": 1},
     )
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", journal_path,
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        journal_path,
     )
     payload = build_spec_payload("r5_real_wide_target")
     # No fills means rate=None means fallback to 2
@@ -145,7 +156,8 @@ def test_journal_with_zero_fills_falls_back(
 
 
 def test_journal_corrupted_falls_back_silently(
-    monkeypatch, tmp_path: Path,
+    monkeypatch,
+    tmp_path: Path,
 ) -> None:
     """Unreadable journal -> rate=None -> caller fallback. Defensive
     invariant: build_spec_payload must NEVER crash even on a bad
@@ -153,7 +165,8 @@ def test_journal_corrupted_falls_back_silently(
     bad_path = tmp_path / "corrupt.sqlite"
     bad_path.write_bytes(b"this is not a valid sqlite file")
     monkeypatch.setattr(
-        "mnq.core.paths.LIVE_SIM_JOURNAL", bad_path,
+        "mnq.core.paths.LIVE_SIM_JOURNAL",
+        bad_path,
     )
     payload = build_spec_payload("r5_real_wide_target")
     # Should not crash; should fall back

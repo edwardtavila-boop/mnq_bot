@@ -14,6 +14,7 @@ Usage:
     python scripts/shadow_parity.py --realistic    # with fixed 1-tick slip + 50ms
     python scripts/shadow_parity.py --days 30      # more days
 """
+
 from __future__ import annotations
 
 import argparse
@@ -63,6 +64,7 @@ class _SignalLike:
 # Parity data types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TradePair:
     """One sim trade matched against its shadow counterpart."""
@@ -103,6 +105,7 @@ class ParityResult:
 # Shadow fill parsing
 # ---------------------------------------------------------------------------
 
+
 def _parse_shadow_fills(jsonl_path: Path) -> list[dict]:
     if not jsonl_path.exists():
         return []
@@ -125,6 +128,7 @@ def _pair_shadow_fills(fills: list[dict]) -> list[tuple[dict, dict]]:
 # Core comparison
 # ---------------------------------------------------------------------------
 
+
 def run_parity(
     *,
     n_days: int = 15,
@@ -135,7 +139,9 @@ def run_parity(
 ) -> ParityResult:
     """Run sim + shadow side-by-side, compare fills."""
     bar_days: list[list[Bar]] = load_real_days(
-        DEFAULT_CSV, min_bars_per_day=380, timeframe_sec=60,
+        DEFAULT_CSV,
+        min_bars_per_day=380,
+        timeframe_sec=60,
     )[:n_days]
     if not bar_days:
         raise RuntimeError("No bar data available")
@@ -244,25 +250,29 @@ def run_parity(
             if not side_match:
                 side_mismatches += 1
 
-            pairs.append(TradePair(
-                day_label=day_label,
-                sim_side=sim_trade.side.value,
-                sim_pnl=sim_trade.pnl_dollars,
-                shadow_pnl=shadow_pnl,
-                pnl_diff=pnl_diff,
-                side_match=side_match,
-                matched=True,
-            ))
+            pairs.append(
+                TradePair(
+                    day_label=day_label,
+                    sim_side=sim_trade.side.value,
+                    sim_pnl=sim_trade.pnl_dollars,
+                    shadow_pnl=shadow_pnl,
+                    pnl_diff=pnl_diff,
+                    side_match=side_match,
+                    matched=True,
+                )
+            )
         else:
-            pairs.append(TradePair(
-                day_label=day_label,
-                sim_side=sim_trade.side.value,
-                sim_pnl=sim_trade.pnl_dollars,
-                shadow_pnl=None,
-                pnl_diff=None,
-                side_match=False,
-                matched=False,
-            ))
+            pairs.append(
+                TradePair(
+                    day_label=day_label,
+                    sim_side=sim_trade.side.value,
+                    sim_pnl=sim_trade.pnl_dollars,
+                    shadow_pnl=None,
+                    pnl_diff=None,
+                    side_match=False,
+                    matched=False,
+                )
+            )
 
     matched = sum(1 for p in pairs if p.matched)
     unmatched_sim = sum(1 for p in pairs if not p.matched)
@@ -310,9 +320,14 @@ def run_parity(
 # Report rendering
 # ---------------------------------------------------------------------------
 
+
 def render_parity_report(result: ParityResult) -> str:
     lines: list[str] = []
-    mode = "REALISTIC (1-tick slip + 50ms latency)" if result.realistic else "DETERMINISTIC (zero-slip)"
+    mode = (
+        "REALISTIC (1-tick slip + 50ms latency)"
+        if result.realistic
+        else "DETERMINISTIC (zero-slip)"
+    )
     lines.append("# Shadow → Sim Parity Report")
     lines.append("")
     lines.append(f"**Mode:** {mode}")
@@ -323,8 +338,12 @@ def render_parity_report(result: ParityResult) -> str:
     lines.append("## Summary")
     lines.append("")
     lines.append(f"- Sim trades: **{result.sim_trades}**")
-    lines.append(f"- Shadow fills: **{result.shadow_fills}** ({result.shadow_trades} paired trades)")
-    lines.append(f"- Matched: **{result.matched}** / Unmatched sim: **{result.unmatched_sim}** / Unmatched shadow: **{result.unmatched_shadow}**")
+    lines.append(
+        f"- Shadow fills: **{result.shadow_fills}** ({result.shadow_trades} paired trades)"
+    )
+    lines.append(
+        f"- Matched: **{result.matched}** / Unmatched sim: **{result.unmatched_sim}** / Unmatched shadow: **{result.unmatched_shadow}**"
+    )
     lines.append(f"- Side mismatches: **{result.side_mismatches}**")
     lines.append("")
     lines.append(f"- Total sim PnL: **${float(result.total_sim_pnl):+.2f}**")
@@ -350,7 +369,9 @@ def render_parity_report(result: ParityResult) -> str:
         shadow_pnl = f"${float(p.shadow_pnl):+.2f}" if p.shadow_pnl is not None else "—"
         diff = f"${float(p.pnl_diff):+.2f}" if p.pnl_diff is not None else "—"
         match_icon = "✓" if p.matched and p.side_match else "✗"
-        lines.append(f"| {i} | {p.day_label} | {p.sim_side} | {sim_pnl} | {shadow_pnl} | {diff} | {match_icon} |")
+        lines.append(
+            f"| {i} | {p.day_label} | {p.sim_side} | {sim_pnl} | {shadow_pnl} | {diff} | {match_icon} |"
+        )
 
     lines.append("")
     lines.append("## Interpretation")
@@ -371,6 +392,7 @@ def render_parity_report(result: ParityResult) -> str:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Shadow → Sim parity check")

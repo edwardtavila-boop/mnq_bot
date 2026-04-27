@@ -109,6 +109,13 @@ def net_positions_from_journal(journal: EventJournal) -> dict[str, int]:
     Returns a dict mapping symbol to signed net quantity.
     Positive = long, negative = short, 0 = flat.
 
+    Algorithmic note (scorecard bundle v0.1 — Apr 2026):
+        Original implementation nested a journal replay inside the fill loop,
+        giving O(m * n) where m = fill events and n = submit events. Rebuilt
+        as a two-pass O(m + n) walk: one replay of ORDER_SUBMITTED builds a
+        ``{client_order_id: (symbol, side)}`` index, then one replay of
+        ORDER_FILLED aggregates signed quantities via dict lookup.
+
     Args:
         journal: EventJournal to replay.
 
@@ -117,26 +124,36 @@ def net_positions_from_journal(journal: EventJournal) -> dict[str, int]:
     """
     from mnq.storage.schema import ORDER_FILLED
 
-    positions: dict[str, int] = {}
+    # Pass 1: index submits by client_order_id. A later submit with the same
+    # client_order_id would overwrite an earlier one; we accept that because
+    # the order state machine forbids duplicate client_order_ids at submit
+    # time, so overwrites only happen in a malformed journal and the previous
+    # behaviour (first-match wins via break) would have been equally broken.
+    submits_by_coid: dict[str, tuple[str, Side]] = {}
+    for submit_entry in journal.replay(event_types=("order.submitted",)):
+        payload = submit_entry.payload
+        coid = payload.get("client_order_id")
+        symbol = payload.get("symbol", "")
+        side_str = payload.get("side", "")
+        if coid and symbol and side_str:
+            submits_by_coid[coid] = (symbol, Side(side_str))
 
+    # Pass 2: aggregate fills against the submit index.
+    positions: dict[str, int] = {}
     for entry in journal.replay(event_types=(ORDER_FILLED,)):
         payload = entry.payload
-        client_order_id = payload.get("client_order_id")
-
-        # Reconstruct the order from the journal to get its side
-        # We need to find the original ORDER_SUBMITTED to know the side
-        for submit_entry in journal.replay(event_types=("order.submitted",)):
-            if submit_entry.payload.get("client_order_id") == client_order_id:
-                symbol = submit_entry.payload.get("symbol", "")
-                side_str = submit_entry.payload.get("side", "")
-                if symbol and side_str:
-                    side = Side(side_str)
-                    filled_qty = payload.get("filled_qty", 0)
-                    signed_qty = filled_qty * side.sign
-                    positions[symbol] = positions.get(symbol, 0) + signed_qty
-                    # For efficiency: track that we've processed this order
-                    # by not processing it again (since we're iterating all fills)
-                break
+        coid = payload.get("client_order_id")
+        if coid is None:
+            continue
+        info = submits_by_coid.get(coid)
+        if info is None:
+            # Fill without a matching submit — skip; reconciler will catch
+            # this as a zombie in compute_diffs.
+            continue
+        symbol, side = info
+        filled_qty = payload.get("filled_qty", 0)
+        signed_qty = filled_qty * side.sign
+        positions[symbol] = positions.get(symbol, 0) + signed_qty
 
     return positions
 

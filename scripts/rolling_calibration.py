@@ -11,6 +11,7 @@ Usage:
 
 Self-contained — no desktop_app/firm imports.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -58,10 +59,7 @@ def _load_outcomes_from_reports() -> list[tuple[float, int]]:
             # Look for lines with gauntlet_score and pnl data
             if "gauntlet_score=" in line and "pnl=" in line:
                 parts = {
-                    k: v
-                    for item in line.split()
-                    if "=" in item
-                    for k, v in [item.split("=", 1)]
+                    k: v for item in line.split() if "=" in item for k, v in [item.split("=", 1)]
                 }
                 if "gauntlet_score" in parts and "pnl" in parts:
                     try:

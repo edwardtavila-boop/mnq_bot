@@ -21,6 +21,7 @@ Usage:
 
     python scripts/firm_live_review.py --variant r5_real_wide_target
 """
+
 from __future__ import annotations
 
 import argparse
@@ -75,9 +76,7 @@ def _derive_spec_payload(variant_name: str) -> dict:
     else:
         oos_deg = 0.0
 
-    regimes_approved = [
-        k for k, v in result.per_regime.items() if v["n"] and float(v["pnl"]) > 0
-    ]
+    regimes_approved = [k for k, v in result.per_regime.items() if v["n"] and float(v["pnl"]) > 0]
 
     spec_payload = {
         "strategy_id": cfg.name,
@@ -160,8 +159,10 @@ def _build_real_tape_bar(firm_engine_mod, *, warmup_bars: int = 80):
     fe_bars = [
         firm_engine_mod.Bar(
             time=int(b.ts.timestamp()),
-            open=float(b.open), high=float(b.high),
-            low=float(b.low), close=float(b.close),
+            open=float(b.open),
+            high=float(b.high),
+            low=float(b.low),
+            close=float(b.close),
             volume=float(b.volume),
         )
         for b in recent
@@ -190,7 +191,7 @@ def _build_real_tape_bar(firm_engine_mod, *, warmup_bars: int = 80):
     if len(atr_vals) >= 2:
         mean_atr = sum(atr_vals) / len(atr_vals)
         var = sum((a - mean_atr) ** 2 for a in atr_vals) / len(atr_vals)
-        std_atr = var ** 0.5 or 1.0
+        std_atr = var**0.5 or 1.0
         vol_z = ((last.atr or 0.0) - mean_atr) / std_atr
     else:
         vol_z = 0.0
@@ -242,6 +243,7 @@ def _derive_apex_snapshot(variant_name: str, spec_payload: dict):
     try:
         import sys as _sys
         from pathlib import Path as _Path
+
         APEX_PY = _Path(__file__).resolve().parents[1] / "eta_v3_framework" / "python"  # noqa: N806 -- module-path constant, retained from pre-B4 code for stability
         if str(APEX_PY) not in _sys.path:
             _sys.path.insert(0, str(APEX_PY))
@@ -256,9 +258,14 @@ def _derive_apex_snapshot(variant_name: str, spec_payload: dict):
     regime = str(approved[0]).upper() if approved else "NEUTRAL"
     # firm_engine canonicalizes to RISK-ON / RISK-OFF / NEUTRAL / CRISIS.
     regime_map = {
-        "TREND": "RISK-ON", "RISK_ON": "RISK-ON", "RISK-ON": "RISK-ON",
-        "RANGE": "NEUTRAL", "NEUTRAL": "NEUTRAL",
-        "CHOPPY": "RISK-OFF", "RISK_OFF": "RISK-OFF", "RISK-OFF": "RISK-OFF",
+        "TREND": "RISK-ON",
+        "RISK_ON": "RISK-ON",
+        "RISK-ON": "RISK-ON",
+        "RANGE": "NEUTRAL",
+        "NEUTRAL": "NEUTRAL",
+        "CHOPPY": "RISK-OFF",
+        "RISK_OFF": "RISK-OFF",
+        "RISK-OFF": "RISK-OFF",
         "CRISIS": "CRISIS",
     }
     regime = regime_map.get(regime, "NEUTRAL")
@@ -270,18 +277,33 @@ def _derive_apex_snapshot(variant_name: str, spec_payload: dict):
         # Legacy synthetic bar (pre-v0.2.6 fallback).
         bar = firm_engine.Bar(
             time=0,
-            open=21000.0, high=21012.0, low=20995.0, close=21010.0,
-            volume=1500.0, atr=4.5, vwap=21006.0,
-            ema9=21008.0, ema21=21003.0, ema50=20998.0,
-            rsi=58.0, adx=24.0,
-            htf_close=21000.0, htf_ema50=20985.0,
+            open=21000.0,
+            high=21012.0,
+            low=20995.0,
+            close=21010.0,
+            volume=1500.0,
+            atr=4.5,
+            vwap=21006.0,
+            ema9=21008.0,
+            ema21=21003.0,
+            ema50=20998.0,
+            rsi=58.0,
+            adx=24.0,
+            htf_close=21000.0,
+            htf_ema50=20985.0,
         )
         ctx = {
-            "atr_ma20": 4.2, "vol_z": 0.3, "prev_adx_3": 22.0,
-            "range_avg_20": 14.0, "vol_z_prev_1": 0.25,
-            "vol_z_prev_2": 0.20, "highest_5_prev": 21012.0,
-            "lowest_5_prev": 20992.0, "recent_losses": 0,
-            "prev_day_high": 21020.0, "prev_day_low": 20980.0,
+            "atr_ma20": 4.2,
+            "vol_z": 0.3,
+            "prev_adx_3": 22.0,
+            "range_avg_20": 14.0,
+            "vol_z_prev_1": 0.25,
+            "vol_z_prev_2": 0.20,
+            "highest_5_prev": 21012.0,
+            "lowest_5_prev": 20992.0,
+            "recent_losses": 0,
+            "prev_day_high": 21020.0,
+            "prev_day_low": 20980.0,
         }
 
     # Trigger state mirrors the variant's side.
@@ -291,21 +313,29 @@ def _derive_apex_snapshot(variant_name: str, spec_payload: dict):
         ema_trend_bull=(side == "long"),
         ema_trend_bear=(side == "short"),
         ema_in_zone=False,
-        orb_score=4, ema_score=3, sweep_score=0,
+        orb_score=4,
+        ema_score=3,
+        sweep_score=0,
     )
     return run_apex_evaluation(
-        bar, setup, regime=regime,
-        atr_ma20=ctx["atr_ma20"], vol_z=ctx["vol_z"],
-        prev_adx_3=ctx["prev_adx_3"], range_avg_20=ctx["range_avg_20"],
-        vol_z_prev_1=ctx["vol_z_prev_1"], vol_z_prev_2=ctx["vol_z_prev_2"],
-        highest_5_prev=ctx["highest_5_prev"], lowest_5_prev=ctx["lowest_5_prev"],
+        bar,
+        setup,
+        regime=regime,
+        atr_ma20=ctx["atr_ma20"],
+        vol_z=ctx["vol_z"],
+        prev_adx_3=ctx["prev_adx_3"],
+        range_avg_20=ctx["range_avg_20"],
+        vol_z_prev_1=ctx["vol_z_prev_1"],
+        vol_z_prev_2=ctx["vol_z_prev_2"],
+        highest_5_prev=ctx["highest_5_prev"],
+        lowest_5_prev=ctx["lowest_5_prev"],
         recent_losses=ctx["recent_losses"],
-        prev_day_high=ctx["prev_day_high"], prev_day_low=ctx["prev_day_low"],
+        prev_day_high=ctx["prev_day_high"],
+        prev_day_low=ctx["prev_day_low"],
     )
 
 
-def _render_verdict(variant: str, spec_payload: dict, stages: dict,
-                    apex_snapshot=None) -> str:
+def _render_verdict(variant: str, spec_payload: dict, stages: dict, apex_snapshot=None) -> str:
     lines = [f"# Firm Review (LIVE) — `{variant}`", ""]
     lines.append("This review was produced by the real six-stage Firm Python")
     lines.append("agents, invoked through `mnq.firm_runtime.run_six_stage_review`.")
@@ -442,8 +472,7 @@ def main(argv: list[str] | None = None) -> int:
         confluence_result=confluence_result,
     )
 
-    md = _render_verdict(args.variant, spec_payload, stages,
-                         apex_snapshot=apex_snapshot)
+    md = _render_verdict(args.variant, spec_payload, stages, apex_snapshot=apex_snapshot)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     dest = args.output_dir / f"{args.variant}_live.md"
     dest.write_text(md)

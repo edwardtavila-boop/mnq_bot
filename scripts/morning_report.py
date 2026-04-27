@@ -28,6 +28,7 @@ Usage
 Exit code is 0 always (this is a reporter). The doctor's own exit
 code is preserved in the JSON output as ``doctor_exit_code``.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,7 +56,8 @@ def _load_script(name: str) -> Any:
     sys.modules with the wrong name."""
     path = SCRIPTS / f"{name}.py"
     spec = importlib.util.spec_from_file_location(
-        f"_morning_{name}", path,
+        f"_morning_{name}",
+        path,
     )
     if spec is None or spec.loader is None:
         raise ImportError(f"can't load {path}")
@@ -84,10 +86,7 @@ def _gather_doctor() -> dict[str, Any]:
             "checks": [],
             "exit_code": None,
         }
-    checks = [
-        {"name": r.name, "status": r.status, "detail": r.detail}
-        for r in results
-    ]
+    checks = [{"name": r.name, "status": r.status, "detail": r.detail} for r in results]
     n_fail = sum(1 for r in results if r.status == "fail")
     n_warn = sum(1 for r in results if r.status == "warn")
     return {
@@ -115,7 +114,9 @@ def _gather_variants() -> dict[str, Any]:
             "error": f"{type(e).__name__}: {e}",
         }
     by_bucket: dict[str, list[str]] = {
-        pruner.PRUNE: [], pruner.WATCH: [], pruner.KEEP: [],
+        pruner.PRUNE: [],
+        pruner.WATCH: [],
+        pruner.KEEP: [],
     }
     for row in rows:
         by_bucket[row["bucket"]].append(row["variant"])
@@ -149,21 +150,25 @@ def _gather_drift(variants: dict[str, Any]) -> list[dict[str, Any]]:
         delta = rec - e
         if abs(delta) >= DRIFT_THRESHOLD_R:
             tag = "FADING" if delta < 0 else "GROWING"
-            drifters.append({
-                "variant": row["variant"],
-                "tag": tag,
-                "expected_expectancy_r": e,
-                "recency_weighted_expectancy_r": rec,
-                "delta_r": delta,
-                "bucket": row.get("bucket"),
-            })
+            drifters.append(
+                {
+                    "variant": row["variant"],
+                    "tag": tag,
+                    "expected_expectancy_r": e,
+                    "recency_weighted_expectancy_r": rec,
+                    "delta_r": delta,
+                    "bucket": row.get("bucket"),
+                }
+            )
     # Sort by abs delta desc -- biggest drift first
     drifters.sort(key=lambda d: -abs(d["delta_r"]))
     return drifters
 
 
 def _gather_top_variants(
-    variants: dict[str, Any], *, top_n: int = 5,
+    variants: dict[str, Any],
+    *,
+    top_n: int = 5,
 ) -> list[dict[str, Any]]:
     """Top N variants by E_recency (descending). Returns rows with
     variant / E_total / E_recency / drift."""
@@ -171,10 +176,7 @@ def _gather_top_variants(
         return []
     rows = variants.get("rows") or []
     # Filter to those with a real recency value
-    scored = [
-        r for r in rows
-        if r.get("recency_weighted_expectancy_r") is not None
-    ]
+    scored = [r for r in rows if r.get("recency_weighted_expectancy_r") is not None]
     scored.sort(
         key=lambda r: -float(r.get("recency_weighted_expectancy_r", 0.0)),
     )
@@ -182,9 +184,7 @@ def _gather_top_variants(
         {
             "variant": r["variant"],
             "expected_expectancy_r": r.get("expected_expectancy_r", 0.0),
-            "recency_weighted_expectancy_r": (
-                r.get("recency_weighted_expectancy_r")
-            ),
+            "recency_weighted_expectancy_r": (r.get("recency_weighted_expectancy_r")),
             "bucket": r.get("bucket"),
         }
         for r in scored[:top_n]
@@ -258,8 +258,7 @@ def _render_variants_section(variants: dict[str, Any]) -> list[str]:
         lines.append("")
     if variants["prune_sample"]:
         lines.append(
-            f"**PRUNE** -- showing first {len(variants['prune_sample'])} "
-            f"of {variants['n_prune']}:",
+            f"**PRUNE** -- showing first {len(variants['prune_sample'])} of {variants['n_prune']}:",
         )
         for v in variants["prune_sample"]:
             lines.append(f"  * `{v}`")
@@ -340,11 +339,14 @@ def render_markdown(snap: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT,
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
         help=f"output markdown file (default: {DEFAULT_OUTPUT})",
     )
     p.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="emit JSON instead of markdown (machine-readable)",
     )
     args = p.parse_args(argv)
@@ -373,8 +375,7 @@ def main(argv: list[str] | None = None) -> int:
     drift = snap["drift_watch"]
     if doctor.get("available"):
         d_summary = (
-            f"doctor: {doctor['n_ok']} ok / {doctor['n_warn']} warn / "
-            f"{doctor['n_fail']} fail"
+            f"doctor: {doctor['n_ok']} ok / {doctor['n_warn']} warn / {doctor['n_fail']} fail"
         )
     else:
         d_summary = "doctor: unavailable"
@@ -385,9 +386,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     else:
         v_summary = "variants: unavailable"
-    drift_summary = (
-        f"drift: {len(drift)} variant(s) past +/-{DRIFT_THRESHOLD_R}R"
-    )
+    drift_summary = f"drift: {len(drift)} variant(s) past +/-{DRIFT_THRESHOLD_R}R"
     print(f"summary: {d_summary} | {v_summary} | {drift_summary}")
     return 0
 

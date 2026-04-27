@@ -26,10 +26,9 @@ Usage:
   tier, size, label = classify_by_score(score)
 """
 
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
-from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
 ET = ZoneInfo("America/New_York")
 
@@ -37,13 +36,14 @@ ET = ZoneInfo("America/New_York")
 @dataclass
 class ScoreComponents:
     """Breakdown of the 0-100 confluence score by category."""
-    structure: float = 0.0      # 0-20
-    liquidity: float = 0.0      # 0-15
-    volume: float = 0.0         # 0-15
-    time_session: float = 0.0   # 0-15
-    intermarket: float = 0.0    # 0-15
-    edge_stack: float = 0.0     # 0-20
-    total: float = 0.0          # 0-100
+
+    structure: float = 0.0  # 0-20
+    liquidity: float = 0.0  # 0-15
+    volume: float = 0.0  # 0-15
+    time_session: float = 0.0  # 0-15
+    intermarket: float = 0.0  # 0-15
+    edge_stack: float = 0.0  # 0-20
+    total: float = 0.0  # 0-100
 
     def as_dict(self):
         return {
@@ -57,7 +57,7 @@ class ScoreComponents:
         }
 
 
-def _voice(voices: Dict[str, float], key: str) -> float:
+def _voice(voices: dict[str, float], key: str) -> float:
     """Safely fetch a voice score, default 0."""
     return voices.get(key, 0.0)
 
@@ -77,26 +77,26 @@ def _signed_bonus(voice_val: float, side: str, max_pts: float = 5.0) -> float:
 def score_structure(voices, side) -> float:
     """0-20 points for higher/lower TF structure alignment."""
     pts = 0.0
-    pts += _signed_bonus(_voice(voices, "v6"), side, max_pts=8.0)   # HTF bias
-    pts += _signed_bonus(_voice(voices, "v2"), side, max_pts=7.0)   # EMA pullback/trend
-    pts += _signed_bonus(_voice(voices, "v1"), side, max_pts=5.0)   # Primary ORB
+    pts += _signed_bonus(_voice(voices, "v6"), side, max_pts=8.0)  # HTF bias
+    pts += _signed_bonus(_voice(voices, "v2"), side, max_pts=7.0)  # EMA pullback/trend
+    pts += _signed_bonus(_voice(voices, "v1"), side, max_pts=5.0)  # Primary ORB
     return min(20.0, pts)
 
 
 def score_liquidity(voices, side) -> float:
     """0-15 points for liquidity context."""
     pts = 0.0
-    pts += _signed_bonus(_voice(voices, "v3"), side, max_pts=7.0)   # Sweep+Reclaim
+    pts += _signed_bonus(_voice(voices, "v3"), side, max_pts=7.0)  # Sweep+Reclaim
     pts += _signed_bonus(_voice(voices, "v14"), side, max_pts=4.0)  # Premium/Discount
-    pts += _signed_bonus(_voice(voices, "v7"), side, max_pts=4.0)   # Liq Vacuum
+    pts += _signed_bonus(_voice(voices, "v7"), side, max_pts=4.0)  # Liq Vacuum
     return min(15.0, pts)
 
 
 def score_volume(voices, side) -> float:
     """0-15 points for volume confirmation."""
     pts = 0.0
-    pts += _signed_bonus(_voice(voices, "v5"), side, max_pts=8.0)   # Momentum (incl volume)
-    pts += _signed_bonus(_voice(voices, "v4"), side, max_pts=7.0)   # VWAP MR
+    pts += _signed_bonus(_voice(voices, "v5"), side, max_pts=8.0)  # Momentum (incl volume)
+    pts += _signed_bonus(_voice(voices, "v4"), side, max_pts=7.0)  # VWAP MR
     return min(15.0, pts)
 
 
@@ -110,26 +110,27 @@ def score_time_session(voices, tod_bucket, dow) -> float:
 
     # TOD bucket weights (from edge_discovery: 3yr NQ data)
     tod_weights = {
-        "lunch":       6.0,   # +2.40R total, PF inf - strongest
-        "mid_am":      5.0,   # +2.15R, PF 3.15
-        "moc":         4.0,   # +1.20R, PF inf
-        "power_hour":  2.5,   # +0.05R, marginal
-        "early_pm":    1.0,   # -0.40R, weak
-        "open_30min":  0.0,   # -8.05R - disaster zone gets zero
-        "premarket":   0.0,
+        "lunch": 6.0,  # +2.40R total, PF inf - strongest
+        "mid_am": 5.0,  # +2.15R, PF 3.15
+        "moc": 4.0,  # +1.20R, PF inf
+        "power_hour": 2.5,  # +0.05R, marginal
+        "early_pm": 1.0,  # -0.40R, weak
+        "open_30min": 0.0,  # -8.05R - disaster zone gets zero
+        "premarket": 0.0,
         "after_hours": 0.0,
-        "weekend":     0.0,
+        "weekend": 0.0,
     }
     pts += tod_weights.get(tod_bucket, 0.0)
 
     # DOW weights (from edge_discovery: 3yr NQ data)
     dow_weights = {
-        "Thu": 4.0,   # +4.10R, PF 2.03 - best day
-        "Fri": 2.0,   # +0.30R, PF 1.04
-        "Wed": 1.0,   # -1.60R
-        "Tue": 0.0,   # -2.40R
-        "Mon": 0.0,   # -3.05R - worst day
-        "Sat": 0.0, "Sun": 0.0,
+        "Thu": 4.0,  # +4.10R, PF 2.03 - best day
+        "Fri": 2.0,  # +0.30R, PF 1.04
+        "Wed": 1.0,  # -1.60R
+        "Tue": 0.0,  # -2.40R
+        "Mon": 0.0,  # -3.05R - worst day
+        "Sat": 0.0,
+        "Sun": 0.0,
     }
     pts += dow_weights.get(dow, 0.0)
 
@@ -139,8 +140,8 @@ def score_time_session(voices, tod_bucket, dow) -> float:
 def score_intermarket(voices, side) -> float:
     """0-15 points for intermarket confirmation."""
     pts = 0.0
-    pts += _signed_bonus(_voice(voices, "v9"), side, max_pts=7.0)   # ES correlation
-    pts += _signed_bonus(_voice(voices, "v8"), side, max_pts=4.0)   # VIX
+    pts += _signed_bonus(_voice(voices, "v9"), side, max_pts=7.0)  # ES correlation
+    pts += _signed_bonus(_voice(voices, "v8"), side, max_pts=4.0)  # VIX
     pts += _signed_bonus(_voice(voices, "v11"), side, max_pts=4.0)  # TICK
     return min(15.0, pts)
 
@@ -153,8 +154,9 @@ def score_edge_stack(voices, side) -> float:
     return min(20.0, pts)
 
 
-def score_signal(voices: Dict[str, float], tod_bucket: str, dow: str,
-                 regime: str, side: str) -> Tuple[float, ScoreComponents]:
+def score_signal(
+    voices: dict[str, float], tod_bucket: str, dow: str, regime: str, side: str
+) -> tuple[float, ScoreComponents]:
     """Compute objective 0-100 signal strength score.
     Returns (total_score, component_breakdown)."""
     c = ScoreComponents()
@@ -167,13 +169,17 @@ def score_signal(voices: Dict[str, float], tod_bucket: str, dow: str,
     # Explicit cap to bound total in canonical [0, 100] range even if
     # component math overflows due to upstream bugs. Protects sizing logic.
     # See BASEMENT_THEORY_AUDIT.md Fix #5.
-    c.total = min(100.0, max(0.0,
-        c.structure + c.liquidity + c.volume + c.time_session + c.intermarket + c.edge_stack
-    ))
+    c.total = min(
+        100.0,
+        max(
+            0.0,
+            c.structure + c.liquidity + c.volume + c.time_session + c.intermarket + c.edge_stack,
+        ),
+    )
     return c.total, c
 
 
-def classify_by_score(score: float) -> Tuple[int, float, str]:
+def classify_by_score(score: float) -> tuple[int, float, str]:
     """Map 0-100 score to (tier, size_mult, label).
     Tier 0 = skip (score < 40)."""
     if score < 40:
@@ -188,75 +194,103 @@ def classify_by_score(score: float) -> Tuple[int, float, str]:
 
 
 def tod_bucket_from_ts(ts: int) -> str:
-    et = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(ET)
+    et = datetime.fromtimestamp(ts, tz=UTC).astimezone(ET)
     m = et.hour * 60 + et.minute
-    if et.weekday() >= 5: return "weekend"
-    if m < 9*60+30: return "premarket"
-    if m < 10*60+30: return "open_30min"
-    if m < 11*60+30: return "mid_am"
-    if m < 13*60+30: return "lunch"
-    if m < 14*60+30: return "early_pm"
-    if m < 15*60+30: return "power_hour"
-    if m < 16*60: return "moc"
+    if et.weekday() >= 5:
+        return "weekend"
+    if m < 9 * 60 + 30:
+        return "premarket"
+    if m < 10 * 60 + 30:
+        return "open_30min"
+    if m < 11 * 60 + 30:
+        return "mid_am"
+    if m < 13 * 60 + 30:
+        return "lunch"
+    if m < 14 * 60 + 30:
+        return "early_pm"
+    if m < 15 * 60 + 30:
+        return "power_hour"
+    if m < 16 * 60:
+        return "moc"
     return "after_hours"
 
 
 def dow_from_ts(ts: int) -> str:
-    et = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(ET)
-    return ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][et.weekday()]
+    et = datetime.fromtimestamp(ts, tz=UTC).astimezone(ET)
+    return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][et.weekday()]
 
 
 # ─── Validation: run on V1 3-year trade log to see score distribution ───
 def validate_on_trade_log(csv_path: str):
     """Apply scorer to the V1 3yr trade log and show how scores correlate with outcomes."""
     import csv
+
     trades = []
     voice_keys = []
     with open(csv_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
             if not voice_keys:
-                voice_keys = [k for k in row.keys() if k.startswith('v') and k[1:].replace('+','').replace('-','').isdigit()]
+                voice_keys = [
+                    k
+                    for k in row
+                    if k.startswith("v") and k[1:].replace("+", "").replace("-", "").isdigit()
+                ]
             trades.append(row)
 
     by_tier = {0: [], 1: [], 2: [], 3: []}
     for t in trades:
-        ts = int(t['open_time'])
+        ts = int(t["open_time"])
         voices = {k: float(t.get(k, 0)) for k in voice_keys}
         tod = tod_bucket_from_ts(ts)
         dow = dow_from_ts(ts)
-        score, comps = score_signal(voices, tod, dow, t['regime'], t['side'])
+        score, comps = score_signal(voices, tod, dow, t["regime"], t["side"])
         tier, size, label = classify_by_score(score)
-        by_tier[tier].append({
-            'trade': t, 'score': score, 'tier': tier, 'size': size,
-            'pnl_r': float(t['pnl_r']),
-        })
+        by_tier[tier].append(
+            {
+                "trade": t,
+                "score": score,
+                "tier": tier,
+                "size": size,
+                "pnl_r": float(t["pnl_r"]),
+            }
+        )
 
-    print(f"\n{'='*72}")
+    print(f"\n{'=' * 72}")
     print(f"OBJECTIVE SCORER VALIDATION on {len(trades)} V1 trades")
-    print(f"{'='*72}")
-    print(f"{'Tier':<6s} {'Label':<25s} {'n':>5s} {'Wins':>5s} {'Losses':>7s} {'TotR':>8s} {'AvgR':>8s} {'Str%':>6s}")
+    print(f"{'=' * 72}")
+    print(
+        f"{'Tier':<6s} {'Label':<25s} {'n':>5s} {'Wins':>5s} {'Losses':>7s} {'TotR':>8s} {'AvgR':>8s} {'Str%':>6s}"
+    )
     for tier in [1, 2, 3, 0]:
         ts = by_tier[tier]
         if not ts:
             continue
-        wins = sum(1 for t in ts if t['pnl_r'] > 0)
-        losses = sum(1 for t in ts if t['pnl_r'] < 0)
-        total_r = sum(t['pnl_r'] for t in ts)
+        wins = sum(1 for t in ts if t["pnl_r"] > 0)
+        losses = sum(1 for t in ts if t["pnl_r"] < 0)
+        total_r = sum(t["pnl_r"] for t in ts)
         avg_r = total_r / len(ts) if ts else 0
         n_res = wins + losses
         strike = (wins / n_res * 100) if n_res > 0 else 0
-        labels = {1: "Tier1+ premium/A+", 2: "Tier2 standard",
-                  3: "Tier3 speculative", 0: "SKIP (score<40)"}
-        print(f"  {tier:<4d} {labels[tier]:<25s} {len(ts):>5d} {wins:>5d} {losses:>7d} "
-              f"{total_r:>+7.2f} {avg_r:>+8.4f} {strike:>5.1f}%")
+        labels = {
+            1: "Tier1+ premium/A+",
+            2: "Tier2 standard",
+            3: "Tier3 speculative",
+            0: "SKIP (score<40)",
+        }
+        print(
+            f"  {tier:<4d} {labels[tier]:<25s} {len(ts):>5d} {wins:>5d} {losses:>7d} "
+            f"{total_r:>+7.2f} {avg_r:>+8.4f} {strike:>5.1f}%"
+        )
 
     # Score distribution
-    all_scores = [s for tier_list in by_tier.values() for s in (t['score'] for t in tier_list)]
+    all_scores = [s for tier_list in by_tier.values() for s in (t["score"] for t in tier_list)]
     if all_scores:
-        print(f"\nScore distribution:")
-        print(f"  Min: {min(all_scores):.1f}  Max: {max(all_scores):.1f}  Mean: {sum(all_scores)/len(all_scores):.1f}")
-        buckets = [(0, 40, 'SKIP'), (40, 60, 'T3'), (60, 75, 'T2'), (75, 90, 'T1'), (90, 200, 'A+')]
+        print("\nScore distribution:")
+        print(
+            f"  Min: {min(all_scores):.1f}  Max: {max(all_scores):.1f}  Mean: {sum(all_scores) / len(all_scores):.1f}"
+        )
+        buckets = [(0, 40, "SKIP"), (40, 60, "T3"), (60, 75, "T2"), (75, 90, "T1"), (90, 200, "A+")]
         for lo, hi, lbl in buckets:
             count = sum(1 for s in all_scores if lo <= s < hi)
             bar = "█" * int(count / max(1, max(all_scores)) * 40)
@@ -265,6 +299,7 @@ def validate_on_trade_log(csv_path: str):
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) > 1:
         validate_on_trade_log(sys.argv[1])
     else:

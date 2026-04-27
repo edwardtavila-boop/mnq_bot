@@ -34,6 +34,7 @@ This module provides:
 The agent's mutation operators (in spec/mutations.py) operate on Nodes,
 not strings, ensuring every produced spec parses by construction.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -42,8 +43,10 @@ from typing import Any
 
 # ---- AST nodes ----
 
+
 class Node:
     """Base AST node."""
+
     def children(self) -> Iterator[Node]:
         return iter(())
 
@@ -51,6 +54,7 @@ class Node:
 @dataclass(frozen=True)
 class Or(Node):
     children_: tuple[Node, ...]
+
     def children(self) -> Iterator[Node]:
         return iter(self.children_)
 
@@ -58,6 +62,7 @@ class Or(Node):
 @dataclass(frozen=True)
 class And(Node):
     children_: tuple[Node, ...]
+
     def children(self) -> Iterator[Node]:
         return iter(self.children_)
 
@@ -65,6 +70,7 @@ class And(Node):
 @dataclass(frozen=True)
 class Not(Node):
     child: Node
+
     def children(self) -> Iterator[Node]:
         return iter((self.child,))
 
@@ -76,7 +82,7 @@ class FeatureRef(Node):
 
 @dataclass(frozen=True)
 class Builtin(Node):
-    name: str   # "close", "high", etc.
+    name: str  # "close", "high", etc.
 
 
 @dataclass(frozen=True)
@@ -87,7 +93,7 @@ class Number(Node):
 @dataclass(frozen=True)
 class Comparison(Node):
     left: Node
-    op: str               # ">", "<", "crosses_above", etc.
+    op: str  # ">", "<", "crosses_above", etc.
     right: Node
     within_bars: int | None = None
     for_bars: int | None = None
@@ -142,10 +148,19 @@ class Falling(Node):
 
 # Tokens: keywords, comparators, identifiers, numbers, punctuation.
 COMPARATORS: tuple[str, ...] = (
-    ">=", "<=", "==", "!=", ">", "<",
-    "crosses_above", "crosses_below", "crosses",
+    ">=",
+    "<=",
+    "==",
+    "!=",
+    ">",
+    "<",
+    "crosses_above",
+    "crosses_below",
+    "crosses",
 )
-BUILTINS: frozenset[str] = frozenset(("open", "high", "low", "close", "volume", "hl2", "hlc3", "ohlc4"))
+BUILTINS: frozenset[str] = frozenset(
+    ("open", "high", "low", "close", "volume", "hl2", "hlc3", "ohlc4")
+)
 
 
 class ParseError(ValueError):
@@ -158,7 +173,7 @@ def parse(s: str) -> Node:
     parser = _Parser(tokens)
     node = parser.parse_or()
     if parser.pos != len(tokens):
-        raise ParseError(f"trailing tokens: {tokens[parser.pos:]!r}")
+        raise ParseError(f"trailing tokens: {tokens[parser.pos :]!r}")
     return node
 
 
@@ -283,7 +298,7 @@ class _Parser:
     def _parse_operand(self) -> Node:
         tok = self.eat()
         if tok.startswith("feature:"):
-            return FeatureRef(name=tok[len("feature:"):])
+            return FeatureRef(name=tok[len("feature:") :])
         if tok in BUILTINS:
             return Builtin(name=tok)
         try:
@@ -307,10 +322,13 @@ class _Parser:
         elif self.peek() == "on_bar":
             self.eat("on_bar")
             on_bar = self.eat_int()
-        return Comparison(left, op, right, within_bars=within_bars, for_bars=for_bars, on_bar=on_bar)
+        return Comparison(
+            left, op, right, within_bars=within_bars, for_bars=for_bars, on_bar=on_bar
+        )
 
 
 # ---- visitor base ----
+
 
 class Visitor:
     """Override visit_<NodeClass> methods. Default visits children."""

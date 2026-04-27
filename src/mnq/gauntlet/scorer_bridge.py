@@ -28,6 +28,7 @@ Usage:
     voice_score = gauntlet_voice(verdicts)
     # voice_score is in [-100, +100], ready for V3 engine injection
 """
+
 from __future__ import annotations
 
 from mnq.gauntlet.gates.gauntlet12 import GateVerdict

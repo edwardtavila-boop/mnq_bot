@@ -1,4 +1,4 @@
-# Rule Adherence · 2026-04-17 01:39:39 UTC
+# Rule Adherence · 2026-04-26 14:25:59 UTC
 
 - trades: **37** · rules-followed: **0** · violated: **37**
 - adherence: **0.0%**
@@ -13,6 +13,6 @@
 - `no_trade_after_2_losses`: True
 
 ## Top violations
-- **off-hours (H01)** — 37×
+- **off-hours (H00)** — 37×
 - **over daily cap** — 37×
 - **revenge-trade (≥2 prior losses)** — 4×

@@ -4,6 +4,7 @@
 read-only tool registered. `serve_stdio(...)` runs the server over
 stdio transport — used by `mnq mcp serve --transport stdio`.
 """
+
 from __future__ import annotations
 
 import asyncio

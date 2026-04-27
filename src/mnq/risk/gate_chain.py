@@ -24,6 +24,7 @@ Design notes:
   non-configurable; bespoke envs (shadow, tiered-live) build their
   own chain via :func:`build_default_chain` overrides.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,7 +32,7 @@ import sqlite3
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Protocol
 
 
 @dataclass(frozen=True, slots=True)
@@ -241,7 +242,7 @@ governor_gate.name = "governor"  # type: ignore[attr-defined]
 _BETAS = {
     "MNQ": 1.0,
     "MES": 0.78,
-    "YM":  0.65,
+    "YM": 0.65,
     "RTY": 0.72,
 }
 
@@ -290,8 +291,12 @@ def deadman_gate(
         return GateResult(False, "deadman", "bad-heartbeat-ts", {"raw": ts_raw})
     age = (datetime.now(tz=UTC) - ts).total_seconds()
     if age > cutoff_sec:
-        return GateResult(False, "deadman", f"heartbeat age {age:.0f}s > cutoff {cutoff_sec}s",
-                          {"age_sec": age, "pre_trade": _safe_load_json(pre_trade_path)})
+        return GateResult(
+            False,
+            "deadman",
+            f"heartbeat age {age:.0f}s > cutoff {cutoff_sec}s",
+            {"age_sec": age, "pre_trade": _safe_load_json(pre_trade_path)},
+        )
     return GateResult(True, "deadman", "safe", {"age_sec": age})
 
 

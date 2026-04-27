@@ -6,6 +6,7 @@ Batch 10A. Covers:
 - outcome_weighted_pass_rate vs raw pass_rate
 - Edge cases: empty data, all-pass, all-fail, single gate
 """
+
 from __future__ import annotations
 
 import pytest
@@ -22,6 +23,7 @@ from mnq.gauntlet.outcome_weights import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_records_positive_corr() -> list[GateDayRecord]:
     """Gate A passes on profitable days, fails on losing days.
 
@@ -31,20 +33,24 @@ def _make_records_positive_corr() -> list[GateDayRecord]:
     for i in range(50):
         if i < 30:
             # Profitable day, gate A passes
-            records.append(GateDayRecord(
-                day_idx=i,
-                gate_passed={"gate_a": True, "gate_b": True},
-                gate_scores={"gate_a": 0.9, "gate_b": 0.8},
-                pnl=10.0 + i * 0.1,
-            ))
+            records.append(
+                GateDayRecord(
+                    day_idx=i,
+                    gate_passed={"gate_a": True, "gate_b": True},
+                    gate_scores={"gate_a": 0.9, "gate_b": 0.8},
+                    pnl=10.0 + i * 0.1,
+                )
+            )
         else:
             # Losing day, gate A fails
-            records.append(GateDayRecord(
-                day_idx=i,
-                gate_passed={"gate_a": False, "gate_b": True},
-                gate_scores={"gate_a": 0.2, "gate_b": 0.7},
-                pnl=-5.0 - (i - 30) * 0.1,
-            ))
+            records.append(
+                GateDayRecord(
+                    day_idx=i,
+                    gate_passed={"gate_a": False, "gate_b": True},
+                    gate_scores={"gate_a": 0.2, "gate_b": 0.7},
+                    pnl=-5.0 - (i - 30) * 0.1,
+                )
+            )
     return records
 
 
@@ -57,41 +63,49 @@ def _make_records_negative_corr() -> list[GateDayRecord]:
     for i in range(50):
         if i < 30:
             # Profitable day, gate A fails (anti-correlated)
-            records.append(GateDayRecord(
-                day_idx=i,
-                gate_passed={"gate_a": False, "gate_b": True},
-                gate_scores={"gate_a": 0.2, "gate_b": 0.8},
-                pnl=10.0 + i * 0.1,
-            ))
+            records.append(
+                GateDayRecord(
+                    day_idx=i,
+                    gate_passed={"gate_a": False, "gate_b": True},
+                    gate_scores={"gate_a": 0.2, "gate_b": 0.8},
+                    pnl=10.0 + i * 0.1,
+                )
+            )
         else:
             # Losing day, gate A passes (anti-correlated)
-            records.append(GateDayRecord(
-                day_idx=i,
-                gate_passed={"gate_a": True, "gate_b": True},
-                gate_scores={"gate_a": 0.9, "gate_b": 0.7},
-                pnl=-5.0 - (i - 30) * 0.1,
-            ))
+            records.append(
+                GateDayRecord(
+                    day_idx=i,
+                    gate_passed={"gate_a": True, "gate_b": True},
+                    gate_scores={"gate_a": 0.9, "gate_b": 0.7},
+                    pnl=-5.0 - (i - 30) * 0.1,
+                )
+            )
     return records
 
 
 def _make_records_no_corr() -> list[GateDayRecord]:
     """Gate passes and fails regardless of PnL — no correlation."""
     import random
+
     rng = random.Random(42)
     records = []
     for i in range(100):
-        records.append(GateDayRecord(
-            day_idx=i,
-            gate_passed={"gate_a": rng.random() > 0.5, "gate_b": True},
-            gate_scores={"gate_a": rng.random(), "gate_b": 0.8},
-            pnl=rng.uniform(-10, 10),
-        ))
+        records.append(
+            GateDayRecord(
+                day_idx=i,
+                gate_passed={"gate_a": rng.random() > 0.5, "gate_b": True},
+                gate_scores={"gate_a": rng.random(), "gate_b": 0.8},
+                pnl=rng.uniform(-10, 10),
+            )
+        )
     return records
 
 
 # ---------------------------------------------------------------------------
 # Tests: GateDayRecord
 # ---------------------------------------------------------------------------
+
 
 class TestGateDayRecord:
     def test_creation(self) -> None:
@@ -119,6 +133,7 @@ class TestGateDayRecord:
 # ---------------------------------------------------------------------------
 # Tests: compute_gate_weights
 # ---------------------------------------------------------------------------
+
 
 class TestComputeGateWeights:
     def test_positive_correlation_high_weight(self) -> None:
@@ -193,6 +208,7 @@ class TestComputeGateWeights:
 # Tests: outcome_weighted_pass_rate
 # ---------------------------------------------------------------------------
 
+
 class TestOutcomeWeightedPassRate:
     def test_all_pass_high_weight(self) -> None:
         gate_passed = {"gate_a": True, "gate_b": True}
@@ -244,6 +260,7 @@ class TestOutcomeWeightedPassRate:
 # Tests: outcome_weighted_score
 # ---------------------------------------------------------------------------
 
+
 class TestOutcomeWeightedScore:
     def test_weighted_score(self) -> None:
         gate_scores = {"gate_a": 0.8, "gate_b": 0.4}
@@ -267,6 +284,7 @@ class TestOutcomeWeightedScore:
 # ---------------------------------------------------------------------------
 # Tests: Integration — full pipeline
 # ---------------------------------------------------------------------------
+
 
 class TestIntegration:
     def test_positive_corr_improves_filtering(self) -> None:

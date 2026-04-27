@@ -1,4 +1,5 @@
 """Level-1 tests for mnq.sim.layer2."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -50,16 +51,22 @@ class TestFills:
 
     def test_short_entry_slipped_down(self) -> None:
         b = _bar(0, 100, 100.5, 99.5, 100.25)
-        f = simulate_entry_at_open(b, Side.SHORT, qty=1, slippage_ticks=2, tick_size=Decimal("0.25"))
+        f = simulate_entry_at_open(
+            b, Side.SHORT, qty=1, slippage_ticks=2, tick_size=Decimal("0.25")
+        )
         assert f.price == Decimal("99.50")  # open - 2 ticks
 
     def test_long_stop_hits_first(self) -> None:
         # Long position; bar range touches both stop and TP → adverse (stop) wins.
         b = _bar(0, 100, 103, 95, 101)  # big range
         fill = simulate_exit_within_bar(
-            b, position_side=Side.LONG, qty=1,
-            stop_px=Decimal("98"), tp_px=Decimal("102"),
-            stop_slippage_ticks=2, limit_slippage_ticks=0,
+            b,
+            position_side=Side.LONG,
+            qty=1,
+            stop_px=Decimal("98"),
+            tp_px=Decimal("102"),
+            stop_slippage_ticks=2,
+            limit_slippage_ticks=0,
             tick_size=Decimal("0.25"),
         )
         assert fill is not None
@@ -70,9 +77,13 @@ class TestFills:
     def test_long_target_fills_without_stop_reach(self) -> None:
         b = _bar(0, 100, 103, 99.5, 102)
         fill = simulate_exit_within_bar(
-            b, position_side=Side.LONG, qty=1,
-            stop_px=Decimal("98"), tp_px=Decimal("102"),
-            stop_slippage_ticks=2, limit_slippage_ticks=0,
+            b,
+            position_side=Side.LONG,
+            qty=1,
+            stop_px=Decimal("98"),
+            tp_px=Decimal("102"),
+            stop_slippage_ticks=2,
+            limit_slippage_ticks=0,
             tick_size=Decimal("0.25"),
         )
         assert fill is not None
@@ -81,8 +92,11 @@ class TestFills:
     def test_no_exit_if_bar_inside(self) -> None:
         b = _bar(0, 100, 100.5, 99.5, 100.25)
         fill = simulate_exit_within_bar(
-            b, position_side=Side.LONG, qty=1,
-            stop_px=Decimal("95"), tp_px=Decimal("110"),
+            b,
+            position_side=Side.LONG,
+            qty=1,
+            stop_px=Decimal("95"),
+            tp_px=Decimal("110"),
             tick_size=Decimal("0.25"),
         )
         assert fill is None
@@ -90,9 +104,13 @@ class TestFills:
     def test_short_symmetry(self) -> None:
         b = _bar(0, 100, 103, 98, 99)
         fill = simulate_exit_within_bar(
-            b, position_side=Side.SHORT, qty=1,
-            stop_px=Decimal("102"), tp_px=Decimal("98"),
-            stop_slippage_ticks=2, tick_size=Decimal("0.25"),
+            b,
+            position_side=Side.SHORT,
+            qty=1,
+            stop_px=Decimal("102"),
+            tp_px=Decimal("98"),
+            stop_slippage_ticks=2,
+            tick_size=Decimal("0.25"),
         )
         assert fill is not None
         assert fill.reason == "stop"
@@ -136,11 +154,17 @@ class TestEngine:
         bars[6] = _bar(6, 100.0, 102.0, 99.5, 101.5)
 
         signal = Signal(
-            side=Side.LONG, qty=1, ref_price=Decimal("100.00"),
-            stop=Decimal("99.00"), take_profit=Decimal("101.00"),
-            order_type=OrderType.MARKET, limit_offset_ticks=0,
-            market_fallback_ms=500, time_stop_bars=20,
-            spec_hash="", spec_semver="0.1.0",
+            side=Side.LONG,
+            qty=1,
+            ref_price=Decimal("100.00"),
+            stop=Decimal("99.00"),
+            take_profit=Decimal("101.00"),
+            order_type=OrderType.MARKET,
+            limit_offset_ticks=0,
+            market_fallback_ms=500,
+            time_stop_bars=20,
+            spec_hash="",
+            spec_semver="0.1.0",
         )
 
         strat = _ToyStrategy(spec, [(2, signal)])
@@ -160,9 +184,14 @@ class TestEngine:
         bars = [_bar(i, 100.0, 100.5, 99.5, 100.0) for i in range(30)]
         bars[6] = _bar(6, 100.0, 102.0, 99.5, 101.5)
         sig = Signal(
-            side=Side.LONG, qty=1, ref_price=Decimal("100.00"),
-            stop=Decimal("99.00"), take_profit=Decimal("101.00"),
-            order_type=OrderType.MARKET, spec_hash="", spec_semver="0.1.0",
+            side=Side.LONG,
+            qty=1,
+            ref_price=Decimal("100.00"),
+            stop=Decimal("99.00"),
+            take_profit=Decimal("101.00"),
+            order_type=OrderType.MARKET,
+            spec_hash="",
+            spec_semver="0.1.0",
         )
 
         def _run():

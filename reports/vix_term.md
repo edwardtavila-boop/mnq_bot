@@ -1,4 +1,4 @@
-# VIX Term Structure · 2026-04-17 01:39:40 UTC
+# VIX Term Structure · 2026-04-26 14:26:04 UTC
 
 - feed configured: no (stub)
 - verdict: **🟢 CONTANGO — calm regime, tighter stops ok**

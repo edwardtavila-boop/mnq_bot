@@ -1,4 +1,5 @@
 """Level-1 unit tests: pure, no I/O, no network. Tag everything with `level1`."""
+
 from __future__ import annotations
 
 import pytest

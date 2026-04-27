@@ -11,6 +11,7 @@ Pin the contract:
   * Filled cells show "n=<days>/E=<expectancy_r:+.3f>R"
   * Summary block includes total + provenance + evidence counts
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -27,7 +28,8 @@ SCRIPT = REPO_ROOT / "scripts" / "regime_report.py"
 @pytest.fixture(scope="module")
 def report_mod():
     spec = importlib.util.spec_from_file_location(
-        "regime_report_for_test", SCRIPT,
+        "regime_report_for_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -80,8 +82,10 @@ def test_render_markdown_has_header_and_summary(report_mod) -> None:
             "regimes_approved": ["low-vol-trend"],
             "regime_expectancy": {
                 "low-vol-trend": {
-                    "n_days": 10.0, "total_pnl": 100.0,
-                    "pnl_per_day": 10.0, "expectancy_r": 0.5,
+                    "n_days": 10.0,
+                    "total_pnl": 100.0,
+                    "pnl_per_day": 10.0,
+                    "expectancy_r": 0.5,
                 },
             },
             "provenance": ["variant_cfg", "baseline_yaml"],
@@ -99,9 +103,16 @@ def test_render_markdown_has_all_canonical_regimes_as_columns(
     """The 10 canonical regime values must each appear as a column."""
     md = report_mod._render_markdown([])
     expected = [
-        "low-vol-trend", "low-vol-range", "low-vol-reversal",
-        "high-vol-trend", "high-vol-range", "high-vol-reversal",
-        "crash", "euphoria", "dead-zone", "transition",
+        "low-vol-trend",
+        "low-vol-range",
+        "low-vol-reversal",
+        "high-vol-trend",
+        "high-vol-range",
+        "high-vol-reversal",
+        "crash",
+        "euphoria",
+        "dead-zone",
+        "transition",
     ]
     for regime in expected:
         assert regime in md, f"missing column: {regime}"
@@ -170,15 +181,21 @@ def test_render_markdown_summary_counts_real_edge(report_mod) -> None:
 
 
 def test_main_json_mode_emits_parseable_json(
-    report_mod, capsys, tmp_path: Path,
+    report_mod,
+    capsys,
+    tmp_path: Path,
 ) -> None:
     """--json should emit valid JSON to stdout, not write the markdown file."""
     output = tmp_path / "out.md"
-    rc = report_mod.main([
-        "--variants", "r5_real_wide_target",
-        "--output", str(output),
-        "--json",
-    ])
+    rc = report_mod.main(
+        [
+            "--variants",
+            "r5_real_wide_target",
+            "--output",
+            str(output),
+            "--json",
+        ]
+    )
     assert rc == 0
     captured = capsys.readouterr()
     parsed = json.loads(captured.out)
@@ -191,29 +208,40 @@ def test_main_json_mode_emits_parseable_json(
 
 
 def test_main_filter_restricts_variants(
-    report_mod, capsys, tmp_path: Path,
+    report_mod,
+    capsys,
+    tmp_path: Path,
 ) -> None:
     """--variants filter limits the output to the named variants."""
     output = tmp_path / "out.md"
-    report_mod.main([
-        "--variants", "r5_real_wide_target",
-        "--output", str(output),
-        "--json",
-    ])
+    report_mod.main(
+        [
+            "--variants",
+            "r5_real_wide_target",
+            "--output",
+            str(output),
+            "--json",
+        ]
+    )
     parsed = json.loads(capsys.readouterr().out)
     names = {v["variant"] for v in parsed["variants"]}
     assert names == {"r5_real_wide_target"}
 
 
 def test_main_writes_markdown_by_default(
-    report_mod, tmp_path: Path,
+    report_mod,
+    tmp_path: Path,
 ) -> None:
     """Without --json, the script writes a markdown file at --output."""
     output = tmp_path / "report.md"
-    rc = report_mod.main([
-        "--variants", "r5_real_wide_target",
-        "--output", str(output),
-    ])
+    rc = report_mod.main(
+        [
+            "--variants",
+            "r5_real_wide_target",
+            "--output",
+            str(output),
+        ]
+    )
     assert rc == 0
     assert output.exists()
     content = output.read_text(encoding="utf-8")
@@ -222,15 +250,21 @@ def test_main_writes_markdown_by_default(
 
 
 def test_main_unknown_variant_yields_empty_report(
-    report_mod, capsys, tmp_path: Path,
+    report_mod,
+    capsys,
+    tmp_path: Path,
 ) -> None:
     """A variant filter that matches nothing produces a no-rows report."""
     output = tmp_path / "out.md"
-    rc = report_mod.main([
-        "--variants", "this_variant_does_not_exist",
-        "--output", str(output),
-        "--json",
-    ])
+    rc = report_mod.main(
+        [
+            "--variants",
+            "this_variant_does_not_exist",
+            "--output",
+            str(output),
+            "--json",
+        ]
+    )
     # Empty result -> rc=0 and stderr message, not crash
     assert rc == 0
 
@@ -246,8 +280,12 @@ def test_build_rows_returns_dicts_with_required_keys(report_mod) -> None:
     rows = report_mod._build_rows(["r5_real_wide_target"])
     assert len(rows) == 1
     required = {
-        "variant", "sample_size", "expected_expectancy_r",
-        "regimes_approved", "regime_expectancy", "provenance",
+        "variant",
+        "sample_size",
+        "expected_expectancy_r",
+        "regimes_approved",
+        "regime_expectancy",
+        "provenance",
     }
     missing = required - set(rows[0].keys())
     assert not missing, f"missing: {missing}"

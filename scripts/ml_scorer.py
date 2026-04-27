@@ -25,6 +25,7 @@ first live_sim run). As the journal accumulates more real trades the
 scorer gets sharper.  The strategy side integration is deferred — for
 now the scorer is a standalone artifact we write to ``models/scorer.pkl``.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -163,7 +164,9 @@ class Scorer:
         return e / (1.0 + e)
 
     def score_batch(self, df: pl.DataFrame) -> list[float]:
-        return [self.score({c: float(r[c]) for c in self.features}) for r in df.iter_rows(named=True)]
+        return [
+            self.score({c: float(r[c]) for c in self.features}) for r in df.iter_rows(named=True)
+        ]
 
     # ----- persistence ----------------------------------------------------
 
@@ -305,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
 
     wins = int(df["label"].sum())
     total = len(df)
-    print(f"Class balance: {wins}/{total} wins = {wins/total:.1%}")
+    print(f"Class balance: {wins}/{total} wins = {wins / total:.1%}")
 
     scorer = train_scorer(df)
     saved = scorer.save(args.out)
@@ -313,8 +316,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Training accuracy: {scorer.train_accuracy:.1%}  (n={scorer.n_train})")
 
     # Report top positive / negative coefficients for interpretability.
-    pairs = sorted(zip(scorer.features, scorer.coefficients, strict=True),
-                   key=lambda p: p[1], reverse=True)
+    pairs = sorted(
+        zip(scorer.features, scorer.coefficients, strict=True), key=lambda p: p[1], reverse=True
+    )
     print("\nTop positive (predict WIN):")
     for name, coef in pairs[:5]:
         print(f"  {name:<24s}  {coef:+.4f}")
@@ -330,9 +334,7 @@ def main(argv: list[str] | None = None) -> int:
                     "n_train": scorer.n_train,
                     "train_accuracy": scorer.train_accuracy,
                     "train_class_balance": scorer.train_class_balance,
-                    "coefficients": dict(
-                        zip(scorer.features, scorer.coefficients, strict=True)
-                    ),
+                    "coefficients": dict(zip(scorer.features, scorer.coefficients, strict=True)),
                     "intercept": scorer.intercept,
                     "metadata": scorer.metadata,
                 },

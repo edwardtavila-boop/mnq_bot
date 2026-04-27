@@ -18,25 +18,22 @@ Usage:
 import argparse
 import random
 import statistics
-from datetime import datetime, timezone
-from typing import List
 
-from firm_engine import FirmConfig, Bar
 from backtest import Backtester, V1DetectorConfig, load_csv
+from firm_engine import FirmConfig
 
 
-def run_backtest(csv_path, pm, vix=None, es=None, dxy=None, tick=None,
-                 use_kelly=False, slip_R=0.0):
+def run_backtest(csv_path, pm, vix=None, es=None, dxy=None, tick=None, use_kelly=False, slip_R=0.0):
     """Run the backtest and return the trade R sequence."""
     if vix or es or dxy or tick:
         from intermarket import load_with_intermarket
+
         bars = load_with_intermarket(csv_path, vix=vix, es=es, dxy=dxy, tick=tick)
     else:
         bars = load_csv(csv_path)
     cfg = FirmConfig(pm_threshold=pm, require_setup=True)
     det_cfg = V1DetectorConfig()
-    bt = Backtester(cfg=cfg, detector_cfg=det_cfg, use_kelly=use_kelly,
-                    slip_per_trade_R=slip_R)
+    bt = Backtester(cfg=cfg, detector_cfg=det_cfg, use_kelly=use_kelly, slip_per_trade_R=slip_R)
     bt.run(bars)
     return [t.pnl_r for t in bt.trades]
 
@@ -129,7 +126,7 @@ def stress_test(trade_seq):
     worst_streak_dd = sum(worst_5_losses)
 
     # Original equity stats
-    orig = equity_stats(trade_seq)
+    equity_stats(trade_seq)
 
     # Simulate adding 3 consecutive worst losses to current curve
     pessimistic = trade_seq + ([losses_sorted[0]] * 3 if losses_sorted else [])
@@ -168,33 +165,49 @@ def main():
     p.add_argument("csv")
     p.add_argument("--pm", type=float, default=30.0)
     p.add_argument("--sims", type=int, default=1000)
-    p.add_argument("--ruin-dd", type=float, default=3.0,
-                   help="Drawdown level (R) considered 'ruin' for probability calc")
-    p.add_argument("--vix"); p.add_argument("--es")
-    p.add_argument("--dxy"); p.add_argument("--tick")
+    p.add_argument(
+        "--ruin-dd",
+        type=float,
+        default=3.0,
+        help="Drawdown level (R) considered 'ruin' for probability calc",
+    )
+    p.add_argument("--vix")
+    p.add_argument("--es")
+    p.add_argument("--dxy")
+    p.add_argument("--tick")
     p.add_argument("--kelly", action="store_true")
-    p.add_argument("--slip", type=float, default=0.0,
-                   help="Slippage R per trade (e.g. 0.05 for MNQ realistic)")
+    p.add_argument(
+        "--slip", type=float, default=0.0, help="Slippage R per trade (e.g. 0.05 for MNQ realistic)"
+    )
     args = p.parse_args()
 
-    print(f"{'='*70}")
-    print(f"APEX v2 MONTE CARLO & STRESS TEST")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
+    print("APEX v2 MONTE CARLO & STRESS TEST")
+    print(f"{'=' * 70}")
     print(f"Data: {args.csv}")
-    print(f"PM threshold: {args.pm}  Sims: {args.sims}  Slippage: {args.slip}R/trade  Kelly: {args.kelly}\n")
+    print(
+        f"PM threshold: {args.pm}  Sims: {args.sims}  Slippage: {args.slip}R/trade  Kelly: {args.kelly}\n"
+    )
 
     print("Running backtest to extract trade sequence...")
-    trade_seq = run_backtest(args.csv, args.pm,
-                              vix=args.vix, es=args.es, dxy=args.dxy, tick=args.tick,
-                              use_kelly=args.kelly, slip_R=args.slip)
+    trade_seq = run_backtest(
+        args.csv,
+        args.pm,
+        vix=args.vix,
+        es=args.es,
+        dxy=args.dxy,
+        tick=args.tick,
+        use_kelly=args.kelly,
+        slip_R=args.slip,
+    )
     print(f"Got {len(trade_seq)} trades from backtest.")
     if not trade_seq:
         print("No trades — cannot run Monte Carlo.")
         return
 
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print("ORIGINAL BACKTEST STATS")
-    print(f"{'─'*70}")
+    print(f"{'─' * 70}")
     orig = equity_stats(trade_seq)
     print(f"  Trades:          {orig['n_trades']}")
     print(f"  Total R:         {orig['total_r']:+.2f}")
@@ -204,22 +217,28 @@ def main():
     print(f"  Longest loss:    {orig['longest_loss_streak']} trades")
     print(f"  Longest win:     {orig['longest_win_streak']} trades")
 
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print(f"MONTE CARLO ({args.sims} simulations, bootstrap resampling)")
-    print(f"{'─'*70}")
+    print(f"{'─' * 70}")
     mc = monte_carlo(trade_seq, n_sims=args.sims, ruin_dd=args.ruin_dd)
     if mc:
         print(f"\n                    {'5th %ile':>10s}  {'Median':>10s}  {'95th %ile':>10s}")
-        print(f"  Total R:          {mc['total_r_p5']:>+10.2f}  {mc['total_r_p50']:>+10.2f}  {mc['total_r_p95']:>+10.2f}")
-        print(f"  Max drawdown:     {mc['max_dd_p5']:>10.2f}  {mc['max_dd_p50']:>10.2f}  {mc['max_dd_p95']:>10.2f}")
-        print(f"  Win rate:         {mc['win_rate_p5']:>9.1f}%  {mc['win_rate_p50']:>9.1f}%  {mc['win_rate_p95']:>9.1f}%")
+        print(
+            f"  Total R:          {mc['total_r_p5']:>+10.2f}  {mc['total_r_p50']:>+10.2f}  {mc['total_r_p95']:>+10.2f}"
+        )
+        print(
+            f"  Max drawdown:     {mc['max_dd_p5']:>10.2f}  {mc['max_dd_p50']:>10.2f}  {mc['max_dd_p95']:>10.2f}"
+        )
+        print(
+            f"  Win rate:         {mc['win_rate_p5']:>9.1f}%  {mc['win_rate_p50']:>9.1f}%  {mc['win_rate_p95']:>9.1f}%"
+        )
         print(f"\n  Median PF:                          {mc['pf_p50']:.2f}")
         print(f"  Longest loss streak (95th %ile):    {mc['longest_loss_streak_p95']}")
         print(f"  P(ruin >= {args.ruin_dd}R drawdown):           {mc['ruin_probability_pct']:.2f}%")
 
-    print(f"\n{'─'*70}")
-    print(f"STRESS TEST")
-    print(f"{'─'*70}")
+    print(f"\n{'─' * 70}")
+    print("STRESS TEST")
+    print(f"{'─' * 70}")
     stress = stress_test(trade_seq)
     if stress:
         print(f"  Worst single loss:           {stress['worst_single_loss']:+.2f}R")
@@ -230,15 +249,19 @@ def main():
         print(f"  # drawdown periods:          {stress['n_drawdown_periods']}")
 
     # Verdict
-    print(f"\n{'='*70}")
-    print(f"VERDICT")
-    print(f"{'='*70}")
-    pass_ci = mc['total_r_p5'] > 0 if mc else False
-    pass_dd = mc['max_dd_p95'] <= 2.5 if mc else False
-    pass_ruin = mc['ruin_probability_pct'] < 5.0 if mc else False
+    print(f"\n{'=' * 70}")
+    print("VERDICT")
+    print(f"{'=' * 70}")
+    pass_ci = mc["total_r_p5"] > 0 if mc else False
+    pass_dd = mc["max_dd_p95"] <= 2.5 if mc else False
+    pass_ruin = mc["ruin_probability_pct"] < 5.0 if mc else False
     print(f"  ✓ 5th %ile total R > 0:       {pass_ci}  ({mc['total_r_p5']:+.2f}R)" if mc else "—")
     print(f"  ✓ 95th %ile DD <= 2.5R:       {pass_dd}  ({mc['max_dd_p95']:.2f}R)" if mc else "—")
-    print(f"  ✓ Ruin probability < 5%:      {pass_ruin}  ({mc['ruin_probability_pct']:.2f}%)" if mc else "—")
+    print(
+        f"  ✓ Ruin probability < 5%:      {pass_ruin}  ({mc['ruin_probability_pct']:.2f}%)"
+        if mc
+        else "—"
+    )
     print()
     if pass_ci and pass_dd and pass_ruin:
         print("  >> SYSTEM PASSES MONTE CARLO VALIDATION <<")

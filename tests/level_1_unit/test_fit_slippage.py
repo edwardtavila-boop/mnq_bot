@@ -1,4 +1,5 @@
 """Level-1 tests for mnq.calibration.fit_slippage."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -81,13 +82,15 @@ class TestRegimeKey:
 
 
 class TestFitPerRegime:
-    def _make_synthetic_fills(self, rng: np.random.Generator, n_per_regime: int = 60) -> pl.DataFrame:
+    def _make_synthetic_fills(
+        self, rng: np.random.Generator, n_per_regime: int = 60
+    ) -> pl.DataFrame:
         """Three regimes with distinct (a, b) so we can verify separation."""
         # (phase_minute, volume, true_a, true_b)
         regime_specs = [
-            (600, 1000, 0.20, 0.05),   # open, normal
-            (720, 200, 0.40, 0.10),    # mid, low — low-liquidity, worse slippage
-            (930, 5000, 0.15, 0.04),   # close, high — liquid, better
+            (600, 1000, 0.20, 0.05),  # open, normal
+            (720, 200, 0.40, 0.10),  # mid, low — low-liquidity, worse slippage
+            (930, 5000, 0.15, 0.04),  # close, high — liquid, better
         ]
         rows = []
         for phase_min, vol, a, b in regime_specs:
@@ -95,12 +98,14 @@ class TestFitPerRegime:
             noise = rng.normal(0.0, 0.04, size=n_per_regime)
             slip = a + b * atr + noise
             for s, x in zip(slip, atr, strict=True):
-                rows.append({
-                    "session_phase_minute": phase_min,
-                    "bar_volume": float(vol),
-                    "slippage_ticks": float(s),
-                    "bar_atr_ticks": float(x),
-                })
+                rows.append(
+                    {
+                        "session_phase_minute": phase_min,
+                        "bar_volume": float(vol),
+                        "slippage_ticks": float(s),
+                        "bar_atr_ticks": float(x),
+                    }
+                )
         return pl.DataFrame(rows)
 
     def test_separates_regimes_and_recovers_coefficients(self) -> None:

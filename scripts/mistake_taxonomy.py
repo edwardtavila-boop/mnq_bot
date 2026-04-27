@@ -9,6 +9,7 @@ Usage:
     python scripts/mistake_taxonomy.py
     python scripts/mistake_taxonomy.py --tag seq=42 --category "chased breakout"
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,12 +25,21 @@ REPORT_PATH = REPO_ROOT / "reports" / "mistake_taxonomy.md"
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from _trade_utils import load_trades  # noqa: E402
 
-
 CANONICAL_CATEGORIES = [
-    "chased breakout", "faded strength", "revenge trade", "oversize",
-    "off-hours", "ignored stop", "moved stop", "held too long",
-    "cut winner early", "skipped pre-trade check", "traded news event",
-    "FOMO entry", "doubled down on loser", "no-edge setup",
+    "chased breakout",
+    "faded strength",
+    "revenge trade",
+    "oversize",
+    "off-hours",
+    "ignored stop",
+    "moved stop",
+    "held too long",
+    "cut winner early",
+    "skipped pre-trade check",
+    "traded news event",
+    "FOMO entry",
+    "doubled down on loser",
+    "no-edge setup",
 ]
 
 

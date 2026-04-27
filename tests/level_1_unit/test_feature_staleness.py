@@ -1,4 +1,5 @@
 """Level-1 unit tests for mnq.features.staleness."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -164,9 +165,7 @@ class TestFeatureStalenessMonitor:
         worst = mon.worst_staleness(datetime.now(UTC))
         assert worst == 0
 
-    def test_journal_emits_feature_staleness_event(
-        self, temp_journal_path: Path
-    ) -> None:
+    def test_journal_emits_feature_staleness_event(self, temp_journal_path: Path) -> None:
         journal = EventJournal(temp_journal_path)
         now = datetime(2026, 4, 14, 10, 0, 0, tzinfo=UTC)
         last_update = now - timedelta(seconds=300 * 3)
@@ -186,9 +185,7 @@ class TestFeatureStalenessMonitor:
         assert events[0].payload["feature_name"] == "stale_feature"
         assert events[0].payload["age_seconds"] == pytest.approx(900.0, rel=0.01)
 
-    def test_journal_only_emits_for_stale_features(
-        self, temp_journal_path: Path
-    ) -> None:
+    def test_journal_only_emits_for_stale_features(self, temp_journal_path: Path) -> None:
         journal = EventJournal(temp_journal_path)
         now = datetime(2026, 4, 14, 10, 0, 0, tzinfo=UTC)
 

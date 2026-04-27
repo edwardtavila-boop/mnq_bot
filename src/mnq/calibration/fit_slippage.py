@@ -17,6 +17,7 @@ Definition of done (handoff spec):
     - Feed 200 synthetic fills with known a and b, recover within 5%.
     - The test in tests/level_1_unit/test_fit_slippage.py locks this in.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
@@ -34,11 +35,11 @@ import polars as pl
 class SlippageFit:
     """OLS fit for a single regime."""
 
-    a: float                       # intercept, in ticks
-    b: float                       # slope on atr_ticks
-    n: int                         # number of observations
-    r2: float                      # coefficient of determination
-    residual_std_ticks: float      # sample std of residuals
+    a: float  # intercept, in ticks
+    b: float  # slope on atr_ticks
+    n: int  # number of observations
+    r2: float  # coefficient of determination
+    residual_std_ticks: float  # sample std of residuals
 
     def predict(self, atr_ticks: float) -> float:
         return float(self.a + self.b * atr_ticks)
@@ -205,9 +206,7 @@ def fit_per_regime(
     """
 
     if "slippage_ticks" not in fills.columns or "bar_atr_ticks" not in fills.columns:
-        raise ValueError(
-            "fills must have columns 'slippage_ticks' and 'bar_atr_ticks'"
-        )
+        raise ValueError("fills must have columns 'slippage_ticks' and 'bar_atr_ticks'")
 
     # Compute regime keys via a single iter_rows pass, then group via numpy
     # fancy-indexing rather than dict-of-lists. On 50k fills this is ~20x
@@ -233,8 +232,6 @@ def fit_per_regime(
     fallback_fit: SlippageFit | None = None
     if len(x_all) > 0:
         a, b, r2, s = _ols_single_regressor(x_all, y_all)
-        fallback_fit = SlippageFit(
-            a=a, b=b, n=int(len(x_all)), r2=r2, residual_std_ticks=s
-        )
+        fallback_fit = SlippageFit(a=a, b=b, n=int(len(x_all)), r2=r2, residual_std_ticks=s)
 
     return SlippageModel(fits=fits, fallback=fallback_fit)

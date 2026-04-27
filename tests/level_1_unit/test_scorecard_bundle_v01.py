@@ -15,6 +15,7 @@ fixes called out by the EVOLUTIONARY TRADING ALGO SCORECARD:
 These tests stay narrow and reference-style so the intent stays legible
 when future refactors touch these hotspots.
 """
+
 from __future__ import annotations
 
 import math
@@ -55,6 +56,7 @@ def _reset_metrics() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Fix 1: SMA running sum — must produce the same values as the naive impl.
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestSMARunningSum:
     def test_matches_naive_reference_across_long_series(self) -> None:
@@ -105,6 +107,7 @@ class TestSMARunningSum:
 # Fix 2: RMA.step() public scalar hook + ATR uses it (no private mutation).
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestRMAStepPublic:
     def test_step_matches_update_path(self) -> None:
         """RMA.step(x) and RMA.update(bar_with_close=x) produce equal values."""
@@ -116,9 +119,17 @@ class TestRMAStepPublic:
         got_update: list[float | None] = []
         for i, x in enumerate(xs):
             got_step.append(r_step.step(x))
-            got_update.append(r_update.update(make_bar(
-                start + timedelta(minutes=i), x, x + 0.1, x - 0.1, x,
-            )))
+            got_update.append(
+                r_update.update(
+                    make_bar(
+                        start + timedelta(minutes=i),
+                        x,
+                        x + 0.1,
+                        x - 0.1,
+                        x,
+                    )
+                )
+            )
         for s, u in zip(got_step, got_update, strict=True):
             if s is None:
                 assert u is None
@@ -148,6 +159,7 @@ class TestRMAStepPublic:
 # Fix 3 + 4: orders_cancelled_total exists and is incremented on cancel().
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def tmp_journal(tmp_path: Path) -> EventJournal:
     db = tmp_path / "journal.db"
@@ -155,13 +167,14 @@ def tmp_journal(tmp_path: Path) -> EventJournal:
 
 
 class TestOrdersCancelledCounter:
-    def test_cancel_increments_cancelled_not_rejected(
-        self, tmp_journal: EventJournal
-    ) -> None:
+    def test_cancel_increments_cancelled_not_rejected(self, tmp_journal: EventJournal) -> None:
         """cancel() must emit orders_cancelled_total — not orders_rejected_total."""
         book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
-            symbol="MNQ", side=Side.LONG, qty=1, order_type=OrderType.MARKET,
+            symbol="MNQ",
+            side=Side.LONG,
+            qty=1,
+            order_type=OrderType.MARKET,
         )
         book.ack(order.client_order_id, "V1")
 
@@ -176,13 +189,14 @@ class TestOrdersCancelledCounter:
         assert after_cancelled - before_cancelled == 1
         assert after_rejected == before_rejected  # untouched
 
-    def test_reject_still_increments_rejected(
-        self, tmp_journal: EventJournal
-    ) -> None:
+    def test_reject_still_increments_rejected(self, tmp_journal: EventJournal) -> None:
         """Regression guard — reject() keeps its own counter."""
         book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
-            symbol="MNQ", side=Side.SHORT, qty=2, order_type=OrderType.MARKET,
+            symbol="MNQ",
+            side=Side.SHORT,
+            qty=2,
+            order_type=OrderType.MARKET,
         )
         before = orders_rejected_total.labels(reason="risk")._value.get()
         book.reject(order.client_order_id, "risk")
@@ -194,10 +208,9 @@ class TestOrdersCancelledCounter:
 # Fix 5: reconciler.net_positions_from_journal — single-pass correctness.
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestReconcilerSinglePass:
-    def test_large_journal_aggregates_correctly(
-        self, tmp_journal: EventJournal
-    ) -> None:
+    def test_large_journal_aggregates_correctly(self, tmp_journal: EventJournal) -> None:
         """50 fills against 50 distinct submits still net to the right qty."""
         book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         longs = shorts = 0
@@ -205,7 +218,10 @@ class TestReconcilerSinglePass:
             side = Side.LONG if i % 2 == 0 else Side.SHORT
             qty = 1 + (i % 3)
             order = book.submit(
-                symbol="MNQ", side=side, qty=qty, order_type=OrderType.MARKET,
+                symbol="MNQ",
+                side=side,
+                qty=qty,
+                order_type=OrderType.MARKET,
             )
             book.ack(order.client_order_id, f"V{i}")
             book.apply_fill(
@@ -229,21 +245,31 @@ class TestReconcilerSinglePass:
         """Multiple symbols are netted independently."""
         book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         # MNQ +3
-        o = book.submit(symbol="MNQ", side=Side.LONG, qty=3,
-                        order_type=OrderType.MARKET)
+        o = book.submit(symbol="MNQ", side=Side.LONG, qty=3, order_type=OrderType.MARKET)
         book.ack(o.client_order_id, "V1")
-        book.apply_fill(Fill(
-            client_order_id=o.client_order_id, venue_fill_id="F1",
-            price=Decimal("21000"), qty=3, ts=datetime.now(UTC), trace_id=None,
-        ))
+        book.apply_fill(
+            Fill(
+                client_order_id=o.client_order_id,
+                venue_fill_id="F1",
+                price=Decimal("21000"),
+                qty=3,
+                ts=datetime.now(UTC),
+                trace_id=None,
+            )
+        )
         # ES -2
-        o = book.submit(symbol="ES", side=Side.SHORT, qty=2,
-                        order_type=OrderType.MARKET)
+        o = book.submit(symbol="ES", side=Side.SHORT, qty=2, order_type=OrderType.MARKET)
         book.ack(o.client_order_id, "V2")
-        book.apply_fill(Fill(
-            client_order_id=o.client_order_id, venue_fill_id="F2",
-            price=Decimal("5000"), qty=2, ts=datetime.now(UTC), trace_id=None,
-        ))
+        book.apply_fill(
+            Fill(
+                client_order_id=o.client_order_id,
+                venue_fill_id="F2",
+                price=Decimal("5000"),
+                qty=2,
+                ts=datetime.now(UTC),
+                trace_id=None,
+            )
+        )
         positions = net_positions_from_journal(tmp_journal)
         assert positions["MNQ"] == 3
         assert positions["ES"] == -2
@@ -252,19 +278,24 @@ class TestReconcilerSinglePass:
         """Multiple partial fills against one submit net as expected."""
         book = OrderBook.unsafe_no_gate_chain(tmp_journal)
         order = book.submit(
-            symbol="MNQ", side=Side.LONG, qty=5, order_type=OrderType.MARKET,
+            symbol="MNQ",
+            side=Side.LONG,
+            qty=5,
+            order_type=OrderType.MARKET,
         )
         book.ack(order.client_order_id, "V1")
         # Two partials of 2+3 = 5
         for i, q in enumerate([2, 3]):
-            book.apply_fill(Fill(
-                client_order_id=order.client_order_id,
-                venue_fill_id=f"F{i}",
-                price=Decimal("21000"),
-                qty=q,
-                ts=datetime.now(UTC),
-                trace_id=None,
-            ))
+            book.apply_fill(
+                Fill(
+                    client_order_id=order.client_order_id,
+                    venue_fill_id=f"F{i}",
+                    price=Decimal("21000"),
+                    qty=q,
+                    ts=datetime.now(UTC),
+                    trace_id=None,
+                )
+            )
         positions = net_positions_from_journal(tmp_journal)
         assert positions["MNQ"] == 5
 
@@ -272,6 +303,7 @@ class TestReconcilerSinglePass:
 # ─────────────────────────────────────────────────────────────────────────────
 # Fix 6: gauntlet12 gate_regime threshold + gate_correlation sample Pearson.
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _regime_ctx(regime: str, side: str = "long") -> GauntletContext:
     return GauntletContext(

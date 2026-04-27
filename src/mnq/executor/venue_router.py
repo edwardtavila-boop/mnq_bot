@@ -20,14 +20,13 @@ Usage:
     router = VenueRouter(order_book, venue, shadow=True)
     order = router.submit_order(symbol, side, qty, order_type)
 """
+
 from __future__ import annotations
 
-import asyncio
+import contextlib
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
 
 from mnq.core.types import Side
 from mnq.executor.orders import (
@@ -39,7 +38,6 @@ from mnq.executor.orders import (
     OrderType,
 )
 from mnq.venues.base import (
-    OrderAck,
     OrderRequest,
     VenueAdapter,
     VenueFill,
@@ -214,9 +212,7 @@ class VenueRouter:
             return self.order_book.get(client_order_id)
 
         if order.venue_order_id:
-            ack = await self.venue.cancel_order(
-                client_order_id, order.venue_order_id
-            )
+            ack = await self.venue.cancel_order(client_order_id, order.venue_order_id)
             if ack.success:
                 self.order_book.cancel(client_order_id, reason="user cancel")
         else:
@@ -231,10 +227,8 @@ class VenueRouter:
 
         for oid, order in list(self._pending_orders.items()):
             if symbol is None or order.symbol == symbol:
-                try:
+                with contextlib.suppress(Exception):
                     self.order_book.cancel(oid, reason="cancel_all")
-                except Exception:
-                    pass
         self._pending_orders.clear()
 
     async def flatten(self, symbol: str | None = None) -> None:

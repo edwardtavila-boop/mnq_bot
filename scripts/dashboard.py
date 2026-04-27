@@ -18,6 +18,7 @@ Run with::
 (Streamlit isn't a hard dep — the script also exits cleanly with a
 helpful message if Streamlit isn't installed.)
 """
+
 from __future__ import annotations
 
 import sys
@@ -67,9 +68,7 @@ with st.sidebar:
     st.header("Journal")
     journal_path = st.text_input("Path", value=DEFAULT_JOURNAL)
     refresh = st.button("Refresh")
-    st.caption(
-        "Reads the event SQLite journal in WAL mode. The same store the bot writes to."
-    )
+    st.caption("Reads the event SQLite journal in WAL mode. The same store the bot writes to.")
 
 if not Path(journal_path).exists():
     st.error(f"Journal not found: {journal_path}")
@@ -101,21 +100,23 @@ def load_trades(path: str) -> pd.DataFrame:
         if "pnl_dollars" not in p or "entry_ts" not in p:
             continue
         try:
-            rows.append({
-                "trace_id": entry.trace_id,
-                "entry_ts": p.get("entry_ts"),
-                "exit_ts": p.get("exit_ts"),
-                "side": p.get("side"),
-                "qty": p.get("qty"),
-                "entry_price": float(p.get("entry_price", 0)),
-                "exit_price": float(p.get("exit_price", 0)),
-                "pnl_dollars": float(p.get("pnl_dollars", 0)),
-                "commission_dollars": float(p.get("commission_dollars", 0)),
-                "exit_reason": p.get("exit_reason"),
-                "regime": p.get("regime", "unknown"),
-                "slippage_ticks": float(p.get("slippage_ticks", 0)),
-                "entry_slip_ticks": float(p.get("entry_slip_ticks", 0)),
-            })
+            rows.append(
+                {
+                    "trace_id": entry.trace_id,
+                    "entry_ts": p.get("entry_ts"),
+                    "exit_ts": p.get("exit_ts"),
+                    "side": p.get("side"),
+                    "qty": p.get("qty"),
+                    "entry_price": float(p.get("entry_price", 0)),
+                    "exit_price": float(p.get("exit_price", 0)),
+                    "pnl_dollars": float(p.get("pnl_dollars", 0)),
+                    "commission_dollars": float(p.get("commission_dollars", 0)),
+                    "exit_reason": p.get("exit_reason"),
+                    "regime": p.get("regime", "unknown"),
+                    "slippage_ticks": float(p.get("slippage_ticks", 0)),
+                    "entry_slip_ticks": float(p.get("entry_slip_ticks", 0)),
+                }
+            )
         except (ValueError, TypeError):
             continue
     df = pd.DataFrame(rows)
@@ -132,13 +133,15 @@ def load_drift(path: str) -> pd.DataFrame:
     rows = []
     for entry in j.replay(event_types=(DRIFT_OK, DRIFT_ALERT)):
         p = entry.payload
-        rows.append({
-            "ts": entry.ts,
-            "event": entry.event_type,
-            "metric": p.get("metric"),
-            "z_score": float(p.get("z_score", 0)),
-            "realized": float(p.get("realized", 0)),
-        })
+        rows.append(
+            {
+                "ts": entry.ts,
+                "event": entry.event_type,
+                "metric": p.get("metric"),
+                "z_score": float(p.get("z_score", 0)),
+                "realized": float(p.get("realized", 0)),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -159,8 +162,7 @@ col1.metric("Signals", counters.get(ORDER_SUBMITTED, 0))
 col2.metric("Fills", counters.get(ORDER_FILLED, 0))
 col3.metric("Round trips", counters.get(FILL_REALIZED, 0))
 col4.metric("Position updates", counters.get(POSITION_UPDATE, 0))
-col5.metric("Drift events",
-            counters.get(DRIFT_OK, 0) + counters.get(DRIFT_ALERT, 0))
+col5.metric("Drift events", counters.get(DRIFT_OK, 0) + counters.get(DRIFT_ALERT, 0))
 
 # ---------------------------------------------------------------------------
 # Trades panel
@@ -188,10 +190,12 @@ cd.metric("Avg slippage", f"{mean_slip:+.2f} ticks")
 st.subheader("Per regime")
 by_regime = (
     trades.groupby("regime")
-    .agg(n=("pnl_dollars", "size"),
-         wins=("pnl_dollars", lambda s: (s > 0).sum()),
-         pnl=("pnl_dollars", "sum"),
-         avg_slip=("slippage_ticks", "mean"))
+    .agg(
+        n=("pnl_dollars", "size"),
+        wins=("pnl_dollars", lambda s: (s > 0).sum()),
+        pnl=("pnl_dollars", "sum"),
+        avg_slip=("slippage_ticks", "mean"),
+    )
     .reset_index()
 )
 by_regime["win_rate"] = by_regime["wins"] / by_regime["n"]
@@ -236,9 +240,16 @@ st.subheader("All trades")
 st.dataframe(
     trades[
         [
-            "entry_ts", "exit_ts", "regime", "side", "exit_reason",
-            "entry_price", "exit_price", "pnl_dollars",
-            "slippage_ticks", "entry_slip_ticks",
+            "entry_ts",
+            "exit_ts",
+            "regime",
+            "side",
+            "exit_reason",
+            "entry_price",
+            "exit_price",
+            "pnl_dollars",
+            "slippage_ticks",
+            "entry_slip_ticks",
         ]
     ].sort_values("entry_ts"),
     use_container_width=True,

@@ -1548,6 +1548,149 @@ function JarvisTab() {
   );
 }
 
+// ── Integrations tab ─────────────────────────────────────────────
+// Surfaces the canonical funnel topology: venues -> bots -> layers ->
+// onramps -> staking -> observability. Data comes from
+// eta_engine/docs/integrations_latest.json (built by
+// `python -m eta_engine.scripts.build_integrations_report`).
+
+function integrationStatusColor(status) {
+  if (status === "READY" || status === "ACTIVE" || status === "LIVE") return "green";
+  if (status === "PAPER" || status === "DRY_RUN") return "blue";
+  if (status === "NEEDS_FUNDING" || status === "PENDING" || status === "DEGRADED") return "amber";
+  if (status === "BLOCKED" || status === "KILLED" || status === "OFFLINE") return "red";
+  return "dim";
+}
+
+function IntegrationsTab() {
+  const readyVenues  = INTEGRATIONS.venues.filter(v => v.status === "READY").length;
+  const paperBots    = INTEGRATIONS.bots.filter(b => b.status === "PAPER").length;
+  const liveBots     = INTEGRATIONS.bots.filter(b => b.status === "LIVE").length;
+  const activeObs    = INTEGRATIONS.observability.filter(o => o.status === "ACTIVE").length;
+  const dryRunObs    = INTEGRATIONS.observability.filter(o => o.status === "DRY_RUN").length;
+  const totalApy     = INTEGRATIONS.staking.reduce((a, s) => a + s.apy, 0);
+  const avgApy       = (totalApy / INTEGRATIONS.staking.length).toFixed(1);
+  const monthlyUsd   = INTEGRATIONS.onrampRoutes.reduce((a, r) => a + r.monthly, 0);
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 20 }}>
+        <KPI label="Venues" value={`${readyVenues}/${INTEGRATIONS.venues.length}`} sub="ready / total" color={colors.green} />
+        <KPI label="Bots" value={`${paperBots}P ${liveBots}L`} sub={`${INTEGRATIONS.bots.length} total`} color={colors.blue} />
+        <KPI label="Layers" value={INTEGRATIONS.funnelLayers.length} sub="waterfall tiers" color={colors.cyan} />
+        <KPI label="Onramps" value={INTEGRATIONS.onrampRoutes.length} sub={`$${(monthlyUsd / 1000).toFixed(0)}k/mo cap`} color={colors.amber} />
+        <KPI label="Staking" value={`${avgApy}%`} sub={`${INTEGRATIONS.staking.length} protocols avg APY`} color={colors.green} />
+        <KPI label="Observability" value={`${activeObs}/${INTEGRATIONS.observability.length}`} sub={`${dryRunObs} dry-run`} color={activeObs === INTEGRATIONS.observability.length ? colors.green : colors.amber} />
+      </div>
+
+      <Section title="Profit Waterfall — Funnel Layers" pad={false}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><TH>Layer</TH><TH>Label</TH><TH>Tier</TH><TH align="right">Sweep</TH><TH align="right">Kill DD</TH><TH align="right">Leverage</TH><TH>Notes</TH></tr></thead>
+          <tbody>
+            {INTEGRATIONS.funnelLayers.map(l => (
+              <tr key={l.id}>
+                <TD mono color={colors.cyan}>{l.id}</TD>
+                <TD>{l.label}</TD>
+                <TD><Pill color={l.tier === "A" ? "green" : l.tier === "B" ? "blue" : l.tier === "CASINO" ? "amber" : "dim"}>{l.tier}</Pill></TD>
+                <TD align="right" mono color={colors.textMuted}>{(l.sweep * 100).toFixed(0)}%</TD>
+                <TD align="right" mono color={colors.red}>{(l.killDD * 100).toFixed(0)}%</TD>
+                <TD align="right" mono color={colors.amber}>{l.lev.toFixed(1)}x</TD>
+                <TD color={colors.textMuted}>{l.notes}</TD>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Section title="Bots" pad={false}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><TH>Bot</TH><TH>Venue</TH><TH>Layer</TH><TH>Tier</TH><TH>Status</TH></tr></thead>
+            <tbody>
+              {INTEGRATIONS.bots.map(b => (
+                <tr key={b.name}>
+                  <TD mono>{b.name}</TD>
+                  <TD color={colors.textMuted}>{b.venue}</TD>
+                  <TD mono color={colors.cyan}>{b.layer.replace("LAYER_", "L")}</TD>
+                  <TD><Pill color={b.tier === "A" ? "green" : b.tier === "SEED" ? "blue" : b.tier === "CASINO" ? "amber" : "dim"}>{b.tier}</Pill></TD>
+                  <TD><Pill color={integrationStatusColor(b.status)}>{b.status}</Pill></TD>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+
+        <Section title="Venues" pad={false}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><TH>Venue</TH><TH>Kind</TH><TH>Assets</TH><TH>Status</TH></tr></thead>
+            <tbody>
+              {INTEGRATIONS.venues.map(v => (
+                <tr key={v.name}>
+                  <TD mono>{v.name}</TD>
+                  <TD color={colors.textMuted}>{v.kind}</TD>
+                  <TD color={colors.textMuted} mono>{v.assets}</TD>
+                  <TD><Pill color={integrationStatusColor(v.status)}>{v.status}</Pill></TD>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Section title="Onramp Routes (Fiat → Crypto)" pad={false}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><TH>Fiat</TH><TH>Provider</TH><TH>Crypto</TH><TH align="right">Per-Txn</TH><TH align="right">Monthly</TH></tr></thead>
+            <tbody>
+              {INTEGRATIONS.onrampRoutes.map((r, i) => (
+                <tr key={i}>
+                  <TD mono color={colors.amber}>{r.fiat}</TD>
+                  <TD mono color={colors.textMuted}>{r.provider}</TD>
+                  <TD mono>{r.crypto}</TD>
+                  <TD align="right" mono color={colors.textMuted}>${(r.perTxn / 1000).toFixed(0)}k</TD>
+                  <TD align="right" mono color={colors.textMuted}>${(r.monthly / 1000).toFixed(0)}k</TD>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+
+        <Section title="Staking (Terminal Sink)" pad={false}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><TH>Protocol</TH><TH>Chain</TH><TH>In → Out</TH><TH align="right">APY</TH></tr></thead>
+            <tbody>
+              {INTEGRATIONS.staking.map(s => (
+                <tr key={s.protocol}>
+                  <TD mono>{s.protocol}</TD>
+                  <TD color={colors.textMuted}>{s.chain}</TD>
+                  <TD mono color={colors.cyan}>{s.assetIn} → {s.assetOut}</TD>
+                  <TD align="right" mono color={colors.green}>{s.apy.toFixed(1)}%</TD>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      </div>
+
+      <Section title="Observability Surfaces" pad={false}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><TH>Name</TH><TH>Kind</TH><TH>Status</TH><TH>Notes</TH></tr></thead>
+          <tbody>
+            {INTEGRATIONS.observability.map(o => (
+              <tr key={o.name}>
+                <TD mono>{o.name}</TD>
+                <TD color={colors.textMuted}>{o.kind}</TD>
+                <TD><Pill color={integrationStatusColor(o.status)}>{o.status}</Pill></TD>
+                <TD color={colors.textMuted}>{o.notes}</TD>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+    </div>
+  );
+}
+
 // ── Main layout ──────────────────────────────────────────────────
 
 const TABS = [
@@ -1558,6 +1701,7 @@ const TABS = [
   { key: "verdict", label: "Firm Verdict" },
   { key: "risk", label: "Risk & Calibration" },
   { key: "walkforward", label: "Walk-Forward" },
+  { key: "integrations", label: "Integrations" },
 ];
 
 export default function FirmCommandCenter() {
@@ -1571,6 +1715,7 @@ export default function FirmCommandCenter() {
     verdict: <VerdictTab />,
     risk: <RiskTab />,
     walkforward: <WalkForwardTab />,
+    integrations: <IntegrationsTab />,
   };
 
   const [jarvisPillColor] = jarvisActionColor(JARVIS.premarket.action);

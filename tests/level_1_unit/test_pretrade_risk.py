@@ -356,9 +356,7 @@ class TestFeatureStalenessCheck:
             critical_features=("ema_fast", "ema_slow"),
             max_bars=2,
         )
-        context = replace(sample_context, 
-            feature_staleness_bars={"ema_fast": 0, "ema_slow": 1}
-        )
+        context = replace(sample_context, feature_staleness_bars={"ema_fast": 0, "ema_slow": 1})
 
         decision = check.check(
             symbol="MNQ",
@@ -376,9 +374,7 @@ class TestFeatureStalenessCheck:
             critical_features=("ema_fast", "ema_slow"),
             max_bars=2,
         )
-        context = replace(sample_context, 
-            feature_staleness_bars={"ema_fast": 0, "ema_slow": 5}
-        )
+        context = replace(sample_context, feature_staleness_bars={"ema_fast": 0, "ema_slow": 5})
 
         decision = check.check(
             symbol="MNQ",
@@ -397,9 +393,7 @@ class TestFeatureStalenessCheck:
             critical_features=("ema_fast",),
             max_bars=2,
         )
-        context = replace(sample_context, 
-            feature_staleness_bars={"ema_fast": 1, "ema_slow": 10}
-        )
+        context = replace(sample_context, feature_staleness_bars={"ema_fast": 1, "ema_slow": 10})
 
         decision = check.check(
             symbol="MNQ",
@@ -417,8 +411,9 @@ class TestFeatureStalenessCheck:
             critical_features=("ema_fast", "ema_slow"),
             max_bars=2,
         )
-        context = replace(sample_context, 
-            feature_staleness_bars={"ema_fast": 1}  # ema_slow missing
+        context = replace(
+            sample_context,
+            feature_staleness_bars={"ema_fast": 1},  # ema_slow missing
         )
 
         decision = check.check(
@@ -487,7 +482,9 @@ class TestCompositeRiskCheck:
         assert not decision.allowed
         assert decision.reason == "daily_loss"
 
-    def test_journals_each_decision(self, tmp_journal: EventJournal, sample_context: RiskContext) -> None:
+    def test_journals_each_decision(
+        self, tmp_journal: EventJournal, sample_context: RiskContext
+    ) -> None:
         """CompositeRiskCheck logs one SAFETY_DECISION event per check."""
         check1 = MaxOpenContractsCheck(max_contracts=5)
         check2 = MaxDailyLossCheck(max_loss_usd=Decimal("500"))
@@ -502,10 +499,7 @@ class TestCompositeRiskCheck:
         )
 
         # Verify 2 SAFETY_DECISION events were written
-        entries = [
-            e for e in tmp_journal.replay()
-            if e.event_type == "safety.decision"
-        ]
+        entries = [e for e in tmp_journal.replay() if e.event_type == "safety.decision"]
         assert len(entries) == 2
 
     def test_no_journal_still_works(self, sample_context: RiskContext) -> None:
@@ -537,9 +531,11 @@ class TestCircuitBreakerIntegration:
         breaker.record_trade(Decimal("-250"), datetime.now(UTC))
         # Now breaker would block (5 consecutive losses)
 
-        pretrade = CompositeRiskCheck([
-            MaxOpenContractsCheck(max_contracts=0),  # Blocks immediately
-        ])
+        pretrade = CompositeRiskCheck(
+            [
+                MaxOpenContractsCheck(max_contracts=0),  # Blocks immediately
+            ]
+        )
 
         decision = breaker.allow_trade_with_checks(
             datetime.now(UTC),
@@ -559,9 +555,11 @@ class TestCircuitBreakerIntegration:
         breaker.record_trade(Decimal("-250"), datetime.now(UTC))
         breaker.record_trade(Decimal("-250"), datetime.now(UTC))
 
-        pretrade = CompositeRiskCheck([
-            MaxOpenContractsCheck(max_contracts=5),
-        ])
+        pretrade = CompositeRiskCheck(
+            [
+                MaxOpenContractsCheck(max_contracts=5),
+            ]
+        )
 
         decision = breaker.allow_trade_with_checks(
             datetime.now(UTC),
@@ -576,10 +574,12 @@ class TestCircuitBreakerIntegration:
         """Both pre-trade and breaker pass."""
         breaker = CircuitBreaker()
 
-        pretrade = CompositeRiskCheck([
-            MaxOpenContractsCheck(max_contracts=5),
-            MaxDailyLossCheck(max_loss_usd=Decimal("500")),
-        ])
+        pretrade = CompositeRiskCheck(
+            [
+                MaxOpenContractsCheck(max_contracts=5),
+                MaxDailyLossCheck(max_loss_usd=Decimal("500")),
+            ]
+        )
 
         decision = breaker.allow_trade_with_checks(
             datetime.now(UTC),

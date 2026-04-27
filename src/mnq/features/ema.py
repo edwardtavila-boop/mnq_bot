@@ -5,6 +5,7 @@ Pine semantics:
     ema[0] = sma(source, length) at bar `length-1` (seed with SMA of first N)
     ema[i] = alpha * source[i] + (1 - alpha) * ema[i-1]
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -15,7 +16,15 @@ from mnq.features._source import price_from_source
 
 
 class EMA:
-    __slots__ = ("length", "source", "_alpha", "_seed_buf", "_value", "_count", "_last_update_bar_ts")
+    __slots__ = (
+        "length",
+        "source",
+        "_alpha",
+        "_seed_buf",
+        "_value",
+        "_count",
+        "_last_update_bar_ts",
+    )
 
     def __init__(self, length: int, source: str = "close") -> None:
         if length < 2:

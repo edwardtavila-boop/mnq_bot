@@ -23,6 +23,7 @@ Usage:
     python scripts/backtest_real_v3.py --pm 35 --no-partials
     python scripts/backtest_real_v3.py --exit-mode r_multiple
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,20 +50,21 @@ for p in (str(SRC), str(SCRIPTS), str(V3_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from real_bars import load_databento_days  # noqa: E402
-from mnq.core.types import Bar as MnqBar  # noqa: E402
+from backtest import V1Detector, V1DetectorConfig  # noqa: E402
 
 # V3 imports — these come from eta_v3_framework/python/
 from firm_engine import (  # noqa: E402
     Bar as V3Bar,
-    SetupTriggers,
+)
+from firm_engine import (
     FirmConfig,
-    FirmDecision,
     detect_regime,
     evaluate,
 )
 from indicator_state import IndicatorState  # noqa: E402
-from backtest import V1Detector, V1DetectorConfig, Backtester  # noqa: E402
+from real_bars import load_databento_days  # noqa: E402
+
+from mnq.core.types import Bar as MnqBar  # noqa: E402
 
 TICK = 0.25
 POINT_VALUE = 2.00  # MNQ $2/point
@@ -71,6 +73,7 @@ POINT_VALUE = 2.00  # MNQ $2/point
 # ─────────────────────────────────────────────────────────────────────────────
 # BAR CONVERSION & AGGREGATION
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _mnq_to_v3(bar: MnqBar) -> V3Bar:
     """Convert mnq.core.types.Bar (Decimal fields, .ts datetime) → V3 Bar."""
@@ -101,14 +104,16 @@ def _aggregate_1m_to_5m(bars_1m: list[V3Bar]) -> list[V3Bar]:
     bars_5m: list[V3Bar] = []
     for key in sorted(buckets.keys()):
         group = buckets[key]
-        bars_5m.append(V3Bar(
-            time=key,
-            open=group[0].open,
-            high=max(b.high for b in group),
-            low=min(b.low for b in group),
-            close=group[-1].close,
-            volume=sum(b.volume for b in group),
-        ))
+        bars_5m.append(
+            V3Bar(
+                time=key,
+                open=group[0].open,
+                high=max(b.high for b in group),
+                low=min(b.low for b in group),
+                close=group[-1].close,
+                volume=sum(b.volume for b in group),
+            )
+        )
     return bars_5m
 
 
@@ -131,6 +136,7 @@ def _scrub_v3_day(bars: list[V3Bar]) -> list[V3Bar]:
 # ─────────────────────────────────────────────────────────────────────────────
 # TRADE RESOLUTION ON 1M BARS
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class V3Trade:
@@ -183,6 +189,7 @@ class V3VariantStats:
 # RESOLVE EXIT ON 1M BARS FOR TICK-PRECISION
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _resolve_v3_exit_on_1m(
     *,
     side: str,
@@ -226,8 +233,11 @@ def _resolve_v3_exit_on_1m(
 
         # MFE-aware trailing
         if use_mfe_trail and mfe_r >= trail_arm_R and not tp1_filled and sl_dist > 0:
-            lock_price = entry_price + (sl_dist * trail_lock_R) if side == "long" \
+            lock_price = (
+                entry_price + (sl_dist * trail_lock_R)
+                if side == "long"
                 else entry_price - (sl_dist * trail_lock_R)
+            )
             if side == "long":
                 current_sl = max(current_sl, lock_price)
             else:
@@ -303,6 +313,7 @@ def _resolve_v3_exit_on_1m(
 # FIND 1M BAR INDEX CLOSEST TO 5M BAR TIME
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _find_1m_ix_for_5m_time(bars_1m: list[V3Bar], target_time: int) -> int:
     """Binary search for the 1m bar at or just after the 5m bar's close time."""
     lo, hi = 0, len(bars_1m) - 1
@@ -322,104 +333,154 @@ def _find_1m_ix_for_5m_time(bars_1m: list[V3Bar], target_time: int) -> int:
 V3_VARIANTS: list[tuple[str, FirmConfig, V1DetectorConfig]] = []
 
 # v3_0: Winning config from 5m walk-forward (fibonacci + partials + pullback)
-V3_VARIANTS.append((
-    "v3_0_fib_partial_pb",
-    FirmConfig(pm_threshold=40.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_0_fib_partial_pb",
+        FirmConfig(pm_threshold=40.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_1: Same but market entry (test pullback value)
-V3_VARIANTS.append((
-    "v3_1_fib_partial_mkt",
-    FirmConfig(pm_threshold=40.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="market",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_1_fib_partial_mkt",
+        FirmConfig(pm_threshold=40.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="market",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_2: R-multiple exits (legacy mode, control)
-V3_VARIANTS.append((
-    "v3_2_rmult_partial_pb",
-    FirmConfig(pm_threshold=40.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="r_multiple", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_2_rmult_partial_pb",
+        FirmConfig(pm_threshold=40.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="r_multiple",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_3: No partials (full-size TP2 exits)
-V3_VARIANTS.append((
-    "v3_3_fib_noptl_pb",
-    FirmConfig(pm_threshold=40.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=False, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_3_fib_noptl_pb",
+        FirmConfig(pm_threshold=40.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=False,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_4: Low PM threshold (more trades, test signal quality)
-V3_VARIANTS.append((
-    "v3_4_fib_partial_pm30",
-    FirmConfig(pm_threshold=30.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_4_fib_partial_pm30",
+        FirmConfig(pm_threshold=30.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_5: High PM threshold (fewer trades, higher quality)
-V3_VARIANTS.append((
-    "v3_5_fib_partial_pm50",
-    FirmConfig(pm_threshold=50.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_5_fib_partial_pm50",
+        FirmConfig(pm_threshold=50.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_6: No setup required (Firm-only signals)
-V3_VARIANTS.append((
-    "v3_6_firm_only",
-    FirmConfig(pm_threshold=40.0, require_setup=False),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_6_firm_only",
+        FirmConfig(pm_threshold=40.0, require_setup=False),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_7: Full session (not just Power Hours)
-V3_VARIANTS.append((
-    "v3_7_fib_full_session",
-    FirmConfig(pm_threshold=40.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Full Session", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_7_fib_full_session",
+        FirmConfig(pm_threshold=40.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Full Session",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_8: Hybrid exits (Alligator for EMA PB, Fibonacci for ORB/Sweep)
-V3_VARIANTS.append((
-    "v3_8_hybrid_exits",
-    FirmConfig(pm_threshold=40.0, require_setup=True),
-    V1DetectorConfig(
-        exit_mode="hybrid", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_8_hybrid_exits",
+        FirmConfig(pm_threshold=40.0, require_setup=True),
+        V1DetectorConfig(
+            exit_mode="hybrid",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 # v3_9: Aggressive red team (1.5x penalty)
-V3_VARIANTS.append((
-    "v3_9_strong_redteam",
-    FirmConfig(pm_threshold=40.0, require_setup=True, redteam_weight=1.5),
-    V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
-    ),
-))
+V3_VARIANTS.append(
+    (
+        "v3_9_strong_redteam",
+        FirmConfig(pm_threshold=40.0, require_setup=True, redteam_weight=1.5),
+        V1DetectorConfig(
+            exit_mode="fibonacci",
+            use_partials=True,
+            entry_mode="pullback",
+            ema_tod_filter="Power Hours",
+            ema_dow_filter="All Days",
+        ),
+    )
+)
 
 
 def _backtest_v3_day(
@@ -452,8 +513,11 @@ def _backtest_v3_day(
         regime = detect_regime(bar.adx or 20, bar.atr or 0, atr_ma20, vol_z)
 
         d = evaluate(
-            bar=bar, st=st, regime=regime,
-            atr_ma20=atr_ma20, vol_z=vol_z,
+            bar=bar,
+            st=st,
+            regime=regime,
+            atr_ma20=atr_ma20,
+            vol_z=vol_z,
             prev_adx_3=state.adx_3_bars_ago(),
             range_avg_20=state.range_avg_20(),
             vol_z_prev_1=state.vol_z_at(1),
@@ -477,8 +541,9 @@ def _backtest_v3_day(
         setup = d.setup_name or "FIRM"
 
         # Compute SL/TP using V3 Backtester logic
-        use_fib = (det_cfg.exit_mode == "fibonacci" or
-                   (det_cfg.exit_mode == "hybrid" and setup in ("ORB", "SWEEP")))
+        use_fib = det_cfg.exit_mode == "fibonacci" or (
+            det_cfg.exit_mode == "hybrid" and setup in ("ORB", "SWEEP")
+        )
 
         entry_price = bar.close
         atr = bar.atr or 1.0
@@ -493,8 +558,12 @@ def _backtest_v3_day(
             else:
                 sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
 
-            if (use_fib and or_low is not None and or_high is not None
-                    and (or_high - or_low) > atr * 0.5):
+            if (
+                use_fib
+                and or_low is not None
+                and or_high is not None
+                and (or_high - or_low) > atr * 0.5
+            ):
                 or_range = or_high - or_low
                 if side == "long":
                     tp1 = or_high + or_range * (det_cfg.fib_tp1_extension - 1.0)
@@ -504,16 +573,32 @@ def _backtest_v3_day(
                     tp2 = or_low - or_range * (det_cfg.fib_tp2_extension - 1.0)
             else:
                 sl_dist = abs(entry_price - sl) or atr
-                tp1 = entry_price + sl_dist * det_cfg.orb_tp1_r if side == "long" else entry_price - sl_dist * det_cfg.orb_tp1_r
-                tp2 = entry_price + sl_dist * det_cfg.orb_tp2_r if side == "long" else entry_price - sl_dist * det_cfg.orb_tp2_r
+                tp1 = (
+                    entry_price + sl_dist * det_cfg.orb_tp1_r
+                    if side == "long"
+                    else entry_price - sl_dist * det_cfg.orb_tp1_r
+                )
+                tp2 = (
+                    entry_price + sl_dist * det_cfg.orb_tp2_r
+                    if side == "long"
+                    else entry_price - sl_dist * det_cfg.orb_tp2_r
+                )
             timeout = det_cfg.orb_timeout
 
         elif setup == "EMA PB":
             sl_dist_calc = atr * det_cfg.ema_sl_atr
             sl = entry_price - sl_dist_calc if side == "long" else entry_price + sl_dist_calc
             sl_dist = abs(entry_price - sl) or atr
-            tp1 = entry_price + sl_dist * det_cfg.ema_tp1_r if side == "long" else entry_price - sl_dist * det_cfg.ema_tp1_r
-            tp2 = entry_price + sl_dist * det_cfg.ema_tp2_r if side == "long" else entry_price - sl_dist * det_cfg.ema_tp2_r
+            tp1 = (
+                entry_price + sl_dist * det_cfg.ema_tp1_r
+                if side == "long"
+                else entry_price - sl_dist * det_cfg.ema_tp1_r
+            )
+            tp2 = (
+                entry_price + sl_dist * det_cfg.ema_tp2_r
+                if side == "long"
+                else entry_price - sl_dist * det_cfg.ema_tp2_r
+            )
             timeout = det_cfg.ema_timeout
 
         elif setup == "SWEEP":
@@ -527,8 +612,12 @@ def _backtest_v3_day(
             else:
                 sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
 
-            if (use_fib and swept_lo is not None and swept_hi is not None
-                    and abs(swept_hi - swept_lo) > atr * 0.5):
+            if (
+                use_fib
+                and swept_lo is not None
+                and swept_hi is not None
+                and abs(swept_hi - swept_lo) > atr * 0.5
+            ):
                 swept_range = min(abs(swept_hi - swept_lo), atr * 3.0)
                 if side == "long":
                     tp1 = entry_price + swept_range * det_cfg.fib_tp1_extension
@@ -538,8 +627,16 @@ def _backtest_v3_day(
                     tp2 = entry_price - swept_range * det_cfg.fib_tp2_extension
             else:
                 sl_dist = abs(entry_price - sl) or atr
-                tp1 = entry_price + sl_dist * det_cfg.sweep_tp1_r if side == "long" else entry_price - sl_dist * det_cfg.sweep_tp1_r
-                tp2 = entry_price + sl_dist * det_cfg.sweep_tp2_r if side == "long" else entry_price - sl_dist * det_cfg.sweep_tp2_r
+                tp1 = (
+                    entry_price + sl_dist * det_cfg.sweep_tp1_r
+                    if side == "long"
+                    else entry_price - sl_dist * det_cfg.sweep_tp1_r
+                )
+                tp2 = (
+                    entry_price + sl_dist * det_cfg.sweep_tp2_r
+                    if side == "long"
+                    else entry_price - sl_dist * det_cfg.sweep_tp2_r
+                )
             timeout = det_cfg.sweep_timeout
         else:
             sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
@@ -572,29 +669,31 @@ def _backtest_v3_day(
 
         pnl_dollars = pnl_r * sl_dist * POINT_VALUE
 
-        trades.append(V3Trade(
-            day_date=day_date,
-            setup=setup,
-            side=side,
-            entry_bar_5m_ix=bar_ix,
-            entry_price=entry_price,
-            stop=sl,
-            tp1=tp1,
-            tp2=tp2,
-            sl_dist=sl_dist,
-            pm_final=d.pm_final,
-            quant_total=d.quant_total,
-            red_team=d.red_team,
-            regime=regime,
-            voice_agree=d.voice_agree,
-            exit_price=exit_px,
-            exit_reason=exit_reason,
-            pnl_r=pnl_r,
-            pnl_dollars=pnl_dollars,
-            bars_held_5m=bars_held_5m,
-            mfe_r=mfe_r,
-            mae_r=mae_r,
-        ))
+        trades.append(
+            V3Trade(
+                day_date=day_date,
+                setup=setup,
+                side=side,
+                entry_bar_5m_ix=bar_ix,
+                entry_price=entry_price,
+                stop=sl,
+                tp1=tp1,
+                tp2=tp2,
+                sl_dist=sl_dist,
+                pm_final=d.pm_final,
+                quant_total=d.quant_total,
+                red_team=d.red_team,
+                regime=regime,
+                voice_agree=d.voice_agree,
+                exit_price=exit_px,
+                exit_reason=exit_reason,
+                pnl_r=pnl_r,
+                pnl_dollars=pnl_dollars,
+                bars_held_5m=bars_held_5m,
+                mfe_r=mfe_r,
+                mae_r=mae_r,
+            )
+        )
 
         # Cooldown: skip next N 5m bars after a trade
         cooldown_until = bar_ix + det_cfg.cooldown
@@ -654,8 +753,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Batch 13 — V3 real-tape backtest")
     parser.add_argument("--max-days", type=int, default=0, help="Limit to last N days (0=all)")
     parser.add_argument("--variants", nargs="*", help="Variant names to test (default: all)")
-    parser.add_argument("--pm", type=float, default=None, help="Override PM threshold for all variants")
-    parser.add_argument("--no-partials", action="store_true", help="Disable partials for all variants")
+    parser.add_argument(
+        "--pm", type=float, default=None, help="Override PM threshold for all variants"
+    )
+    parser.add_argument(
+        "--no-partials", action="store_true", help="Disable partials for all variants"
+    )
     parser.add_argument("--exit-mode", default=None, choices=["r_multiple", "fibonacci", "hybrid"])
     args = parser.parse_args()
 
@@ -707,8 +810,11 @@ def main() -> None:
         new_variants = []
         for name, fc, dc in variants:
             if args.pm is not None:
-                fc = FirmConfig(pm_threshold=args.pm, require_setup=fc.require_setup,
-                               redteam_weight=fc.redteam_weight)
+                fc = FirmConfig(
+                    pm_threshold=args.pm,
+                    require_setup=fc.require_setup,
+                    redteam_weight=fc.redteam_weight,
+                )
             if args.no_partials:
                 dc = V1DetectorConfig(**{**dc.__dict__, "use_partials": False})
             if args.exit_mode:
@@ -728,7 +834,12 @@ def main() -> None:
 
         for day_date, bars_1m_v3, bars_5m in day_data:
             day_trades, dec, fired = _backtest_v3_day(
-                name, firm_cfg, det_cfg, bars_1m_v3, bars_5m, day_date,
+                name,
+                firm_cfg,
+                det_cfg,
+                bars_1m_v3,
+                bars_5m,
+                day_date,
             )
             all_trades.extend(day_trades)
             total_dec += dec
@@ -749,17 +860,24 @@ def main() -> None:
 
         elapsed = time.monotonic() - t2
         wr = vs.winners / vs.total_trades * 100 if vs.total_trades else 0
-        pf = (sum(t.pnl_r for t in all_trades if t.pnl_r > 0) /
-              abs(sum(t.pnl_r for t in all_trades if t.pnl_r < 0))
-              if any(t.pnl_r < 0 for t in all_trades) else float('inf'))
-        print(f"    {vs.total_trades} trades ({total_fired} signals), "
-              f"R={vs.total_pnl_r:+.2f}, ${vs.total_pnl_dollars:+.2f}, "
-              f"WR {wr:.0f}%, PF {pf:.2f}, MDD {vs.max_drawdown_r:.2f}R, {elapsed:.1f}s")
+        pf = (
+            sum(t.pnl_r for t in all_trades if t.pnl_r > 0)
+            / abs(sum(t.pnl_r for t in all_trades if t.pnl_r < 0))
+            if any(t.pnl_r < 0 for t in all_trades)
+            else float("inf")
+        )
+        print(
+            f"    {vs.total_trades} trades ({total_fired} signals), "
+            f"R={vs.total_pnl_r:+.2f}, ${vs.total_pnl_dollars:+.2f}, "
+            f"WR {wr:.0f}%, PF {pf:.2f}, MDD {vs.max_drawdown_r:.2f}R, {elapsed:.1f}s"
+        )
 
         # Setup breakdown
         for setup, st in vs.by_setup.items():
             setup_wr = st["wins"] / st["trades"] * 100 if st["trades"] else 0
-            print(f"      {setup:8s}: {st['trades']:3d} trades  {setup_wr:5.1f}% win  {st['total_r']:+.2f}R")
+            print(
+                f"      {setup:8s}: {st['trades']:3d} trades  {setup_wr:5.1f}% win  {st['total_r']:+.2f}R"
+            )
 
     # ─── Write Reports ───
     report_dir = REPO_ROOT / "reports"
@@ -768,7 +886,7 @@ def main() -> None:
     lines = [
         f"# Batch 13 — V3 Real-Tape Backtest — {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
         "",
-        f"Apex V3 15-voice engine on Databento MNQ 1m tape, aggregated to 5m for detection.",
+        "Apex V3 15-voice engine on Databento MNQ 1m tape, aggregated to 5m for detection.",
         f"**{len(day_data)} clean RTH days** ({first_date} → {last_date})",
         "",
         "Zero slippage, zero commission. Exits resolved on 1m bars for tick-precision.",
@@ -785,14 +903,14 @@ def main() -> None:
         avg_r = vs.total_pnl_r / vs.total_trades if vs.total_trades else 0
         gw = sum(t.pnl_r for t in vs.trades if t.pnl_r > 0)
         gl = abs(sum(t.pnl_r for t in vs.trades if t.pnl_r < 0))
-        pf = gw / gl if gl > 0 else float('inf')
+        pf = gw / gl if gl > 0 else float("inf")
         if len(vs.daily_pnls) > 1:
             mu = statistics.mean(vs.daily_pnls)
             sd = statistics.stdev(vs.daily_pnls)
-            sharpe = (mu / sd * (252 ** 0.5)) if sd > 0 else 0.0
+            sharpe = (mu / sd * (252**0.5)) if sd > 0 else 0.0
         else:
             sharpe = 0.0
-        pf_str = f"{pf:.2f}" if pf != float('inf') else "∞"
+        pf_str = f"{pf:.2f}" if pf != float("inf") else "∞"
         lines.append(
             f"| {vs.name} | {vs.total_trades} | {vs.decisions_fired} | {vs.winners} | {vs.losers} "
             f"| {wr:.1f} | {vs.total_pnl_r:+.2f} | {avg_r:+.3f} | {pf_str} "
@@ -815,12 +933,16 @@ def main() -> None:
         lines.append("  **By Setup:**")
         for setup, st in sorted(vs.by_setup.items()):
             setup_wr = st["wins"] / st["trades"] * 100 if st["trades"] else 0
-            lines.append(f"  - {setup}: {st['trades']} trades, {setup_wr:.0f}% WR, {st['total_r']:+.2f}R")
+            lines.append(
+                f"  - {setup}: {st['trades']} trades, {setup_wr:.0f}% WR, {st['total_r']:+.2f}R"
+            )
         lines.append("")
         lines.append("  **By Regime:**")
         for regime, rs in sorted(vs.by_regime.items()):
             reg_wr = rs["wins"] / rs["trades"] * 100 if rs["trades"] else 0
-            lines.append(f"  - {regime}: {rs['trades']} trades, {reg_wr:.0f}% WR, {rs['total_r']:+.2f}R")
+            lines.append(
+                f"  - {regime}: {rs['trades']} trades, {reg_wr:.0f}% WR, {rs['total_r']:+.2f}R"
+            )
 
     # Key finding
     best = top3[0] if top3 else None
@@ -831,24 +953,32 @@ def main() -> None:
         wr = best.winners / best.total_trades * 100
         avg_r = best.total_pnl_r / best.total_trades
         if best.total_pnl_r > 0 and wr > 50:
-            lines.append(f"**V3 ENGINE HAS EDGE** — Best: {best.name} with {best.total_trades} trades, "
-                        f"{wr:.0f}% WR, {best.total_pnl_r:+.2f}R total, "
-                        f"${best.total_pnl_dollars:+,.2f} over {best.total_days} days.")
+            lines.append(
+                f"**V3 ENGINE HAS EDGE** — Best: {best.name} with {best.total_trades} trades, "
+                f"{wr:.0f}% WR, {best.total_pnl_r:+.2f}R total, "
+                f"${best.total_pnl_dollars:+,.2f} over {best.total_days} days."
+            )
         elif best.total_pnl_r > 0:
-            lines.append(f"**V3 ENGINE MARGINAL** — Best: {best.name} with {best.total_trades} trades, "
-                        f"{wr:.0f}% WR, {best.total_pnl_r:+.2f}R. Positive but low WR — investigate.")
+            lines.append(
+                f"**V3 ENGINE MARGINAL** — Best: {best.name} with {best.total_trades} trades, "
+                f"{wr:.0f}% WR, {best.total_pnl_r:+.2f}R. Positive but low WR — investigate."
+            )
         else:
-            lines.append(f"**V3 ENGINE NO EDGE** — All variants net negative on real tape. "
-                        f"Best: {best.name} at {best.total_pnl_r:+.2f}R.")
+            lines.append(
+                f"**V3 ENGINE NO EDGE** — All variants net negative on real tape. "
+                f"Best: {best.name} at {best.total_pnl_r:+.2f}R."
+            )
     else:
-        lines.append("**NO TRADES** — V3 engine produced no signals on the real tape. "
-                     "Check PM threshold and setup detection parameters.")
+        lines.append(
+            "**NO TRADES** — V3 engine produced no signals on the real tape. "
+            "Check PM threshold and setup detection parameters."
+        )
 
     lines.append("")
     lines.append(f"*Generated in {time.monotonic() - t0:.1f}s*")
 
     (report_dir / "backtest_real_v3.md").write_text("\n".join(lines))
-    print(f"\nWrote reports/backtest_real_v3.md")
+    print("\nWrote reports/backtest_real_v3.md")
 
     # Trade log CSV
     csv_lines = [

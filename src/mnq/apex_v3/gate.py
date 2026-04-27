@@ -39,6 +39,7 @@ would have done.
 Any PM verdict that is not GO/MODIFY forces ``skip`` regardless of delta
 — the gate never overrides a KILL or HOLD.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -52,8 +53,8 @@ __all__ = [
 
 # --- constants ----------------------------------------------------------------
 
-DELTA_STRONG_DISSENT = -0.10   # below this → skip
-DELTA_SOFT_DISSENT = -0.05     # below this (and >= STRONG) → reduced
+DELTA_STRONG_DISSENT = -0.10  # below this → skip
+DELTA_SOFT_DISSENT = -0.05  # below this (and >= STRONG) → reduced
 DELTA_ACTIVE_CORROBORATE = 0.02  # above this → full
 
 SIZE_FULL = 1.0
@@ -64,6 +65,7 @@ GO_LIKE = frozenset({"GO", "MODIFY"})
 
 
 # --- public API ---------------------------------------------------------------
+
 
 class GateAction:
     """String constants for gate actions (simpler than an enum for JSON)."""
@@ -95,7 +97,8 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     # Defensive: empty/None input → fail-safe skip (can't ship a trade we can't verify)
     if not isinstance(pm_output, dict) or not pm_output:
         return _decision(
-            GateAction.SKIP, SIZE_SKIP,
+            GateAction.SKIP,
+            SIZE_SKIP,
             "pm_output_missing_or_invalid",
         )
 
@@ -104,7 +107,8 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     # PM authority is absolute: only GO/MODIFY can ship at all.
     if verdict not in GO_LIKE:
         return _decision(
-            GateAction.SKIP, SIZE_SKIP,
+            GateAction.SKIP,
+            SIZE_SKIP,
             f"pm_verdict_{verdict.lower() or 'unknown'}_blocks_ship",
         )
 
@@ -115,7 +119,8 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     # No Apex block or engine didn't consume → fall back to pre-Apex behavior.
     if not isinstance(apex, dict) or not apex.get("consumed"):
         return _decision(
-            GateAction.FULL, SIZE_FULL,
+            GateAction.FULL,
+            SIZE_FULL,
             "no_apex_signal_falling_back",
         )
 
@@ -124,7 +129,8 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     # Strong dissent → skip entirely
     if delta < DELTA_STRONG_DISSENT:
         return _decision(
-            GateAction.SKIP, SIZE_SKIP,
+            GateAction.SKIP,
+            SIZE_SKIP,
             f"apex_strong_dissent_delta={delta:+.3f}",
         )
 
@@ -132,14 +138,16 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     if delta < DELTA_SOFT_DISSENT:
         # already filtered: DELTA_STRONG_DISSENT <= delta < DELTA_SOFT_DISSENT
         return _decision(
-            GateAction.REDUCED, SIZE_REDUCED,
+            GateAction.REDUCED,
+            SIZE_REDUCED,
             f"apex_soft_dissent_delta={delta:+.3f}",
         )
 
     # Active corroboration → full
     if delta >= DELTA_ACTIVE_CORROBORATE:
         return _decision(
-            GateAction.FULL, SIZE_FULL,
+            GateAction.FULL,
+            SIZE_FULL,
             f"apex_corroborates_delta={delta:+.3f}",
         )
 
@@ -147,18 +155,21 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     # MODIFY is already a reduced-conviction verdict — trim further under neutral Apex.
     if verdict == "MODIFY":
         return _decision(
-            GateAction.REDUCED, SIZE_REDUCED,
+            GateAction.REDUCED,
+            SIZE_REDUCED,
             f"apex_neutral_on_modify_delta={delta:+.3f}",
         )
 
     # Clean GO with neutral Apex → ship full
     return _decision(
-        GateAction.FULL, SIZE_FULL,
+        GateAction.FULL,
+        SIZE_FULL,
         f"apex_neutral_on_go_delta={delta:+.3f}",
     )
 
 
 # --- helpers ------------------------------------------------------------------
+
 
 def _decision(action: str, size_mult: float, reason: str) -> GateDecision:
     return {"action": action, "size_mult": float(size_mult), "reason": reason}

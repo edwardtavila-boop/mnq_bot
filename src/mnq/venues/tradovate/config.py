@@ -4,6 +4,7 @@ See `docs/TRADOVATE_NOTES.md` §1 for sourcing. The live URLs are guarded by
 Hard Rule 3 — nothing in automated flows resolves to `Environment.LIVE`;
 only an explicit human CLI invocation may pass `--env live`.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,6 +28,7 @@ class Environment(str, Enum):
 @dataclass(frozen=True, slots=True)
 class Hosts:
     """Resolved host URLs for a given environment."""
+
     env: Environment
     rest_base: str
     trading_ws: str

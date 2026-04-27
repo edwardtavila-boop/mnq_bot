@@ -7,6 +7,7 @@ defined in :mod:`mnq.risk.heat_budget` (CanonicalRegime). Used by
 classifications instead of the v0.2.7 stub ("any positive-PnL day
 counts as normal_vol_trend").
 """
+
 from __future__ import annotations
 
 from mnq.regime.classifier import (

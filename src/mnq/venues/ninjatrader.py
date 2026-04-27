@@ -29,16 +29,17 @@ Config via environment variables:
   NT_PORT=36973 (default ATI port)
   NT_ACCOUNT=Sim101 (default paper account)
 """
+
 from __future__ import annotations
 
 import asyncio
-import json
+import contextlib
 import logging
 import os
-from dataclasses import dataclass, field
+from collections.abc import AsyncIterator, Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, AsyncIterator, Callable
 from uuid import uuid4
 
 from mnq.core.types import Side
@@ -132,7 +133,7 @@ class NinjaTraderVenue(VenueAdapter):
             # Start background listener for async fills/updates
             self._listen_task = asyncio.create_task(self._listen_loop())
 
-        except (ConnectionRefusedError, asyncio.TimeoutError, OSError) as exc:
+        except (TimeoutError, ConnectionRefusedError, OSError) as exc:
             self._state = ConnectionState.ERROR
             logger.error(
                 "Failed to connect to NinjaTrader ATI at %s:%d: %s",
@@ -150,17 +151,13 @@ class NinjaTraderVenue(VenueAdapter):
         """Gracefully disconnect from NinjaTrader ATI."""
         if self._listen_task and not self._listen_task.done():
             self._listen_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._listen_task
-            except asyncio.CancelledError:
-                pass
 
         if self._writer:
             self._writer.close()
-            try:
+            with contextlib.suppress(Exception):
                 await self._writer.wait_closed()
-            except Exception:
-                pass
 
         self._reader = None
         self._writer = None
@@ -178,7 +175,7 @@ class NinjaTraderVenue(VenueAdapter):
         if self._state != ConnectionState.CONNECTED or not self._writer or not self._reader:
             raise ConnectionError("Not connected to NinjaTrader ATI")
 
-        self._writer.write(f"{command}\n".encode("utf-8"))
+        self._writer.write(f"{command}\n".encode())
         await self._writer.drain()
 
         try:
@@ -187,7 +184,7 @@ class NinjaTraderVenue(VenueAdapter):
                 timeout=self.config.read_timeout,
             )
             return response.decode("utf-8").strip()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("ATI response timeout for command: %s", command[:50])
             return ""
 
@@ -262,18 +259,15 @@ class NinjaTraderVenue(VenueAdapter):
                 status="working",
                 ts=datetime.now(tz=UTC),
             )
-        else:
-            return OrderAck(
-                client_order_id=request.client_order_id,
-                venue_order_id="",
-                status="rejected",
-                reject_reason=response or "No response from ATI",
-                ts=datetime.now(tz=UTC),
-            )
+        return OrderAck(
+            client_order_id=request.client_order_id,
+            venue_order_id="",
+            status="rejected",
+            reject_reason=response or "No response from ATI",
+            ts=datetime.now(tz=UTC),
+        )
 
-    async def cancel_order(
-        self, client_order_id: str, venue_order_id: str
-    ) -> CancelAck:
+    async def cancel_order(self, client_order_id: str, venue_order_id: str) -> CancelAck:
         """Cancel an order via ATI CANCEL command."""
         command = f"CANCEL;{venue_order_id}"
         response = await self._send(command)
@@ -352,9 +346,7 @@ class NinjaTraderVenue(VenueAdapter):
 
         return positions
 
-    async def stream_quotes(
-        self, symbols: list[str]
-    ) -> AsyncIterator[QuoteTick]:
+    async def stream_quotes(self, symbols: list[str]) -> AsyncIterator[QuoteTick]:
         """Stream live quotes via ATI MARKETDATA subscription.
 
         ATI MARKETDATA format:
@@ -377,9 +369,7 @@ class NinjaTraderVenue(VenueAdapter):
             return
             yield  # type: ignore[misc]  # Makes this a generator
 
-    async def stream_bars(
-        self, symbol: str, timeframe: str = "1m"
-    ) -> AsyncIterator[BarUpdate]:
+    async def stream_bars(self, symbol: str, timeframe: str = "1m") -> AsyncIterator[BarUpdate]:
         """Stream completed bars.
 
         NinjaTrader ATI doesn't directly stream bars; we aggregate from

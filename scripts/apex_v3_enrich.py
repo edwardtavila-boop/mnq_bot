@@ -15,6 +15,7 @@ Writes ``reports/eta_v3_enrich.md`` with:
 
 Always exits 0 — observational. Fail-open on every branch.
 """
+
 from __future__ import annotations
 
 import json
@@ -47,6 +48,7 @@ def _try_build_agent_input(payload: dict[str, Any]) -> tuple[Any | None, str]:
     """
     try:
         from mnq import firm_runtime  # noqa: F401
+
         try:
             AgentInput = firm_runtime.AgentInput  # type: ignore[attr-defined]
             instance = AgentInput(payload=payload)  # type: ignore[call-arg]
@@ -101,24 +103,47 @@ def main() -> int:
     if probe.get("available"):
         try:
             import firm_engine  # type: ignore
+
             bar = firm_engine.Bar(
                 time=int(datetime.now(UTC).timestamp()),
-                open=21000.0, high=21010.0, low=20995.0, close=21008.0,
-                volume=1200.0, atr=4.5, vwap=21005.0,
-                ema9=21006.0, ema21=21001.0, ema50=20995.0,
-                rsi=55.0, adx=24.0,
-                htf_close=21000.0, htf_ema50=20985.0,
+                open=21000.0,
+                high=21010.0,
+                low=20995.0,
+                close=21008.0,
+                volume=1200.0,
+                atr=4.5,
+                vwap=21005.0,
+                ema9=21006.0,
+                ema21=21001.0,
+                ema50=20995.0,
+                rsi=55.0,
+                adx=24.0,
+                htf_close=21000.0,
+                htf_ema50=20985.0,
             )
             setup = firm_engine.SetupTriggers(
-                orb_long=True, ema_trend_bull=True, ema_in_zone=False,
-                orb_score=4, ema_score=3, sweep_score=0,
+                orb_long=True,
+                ema_trend_bull=True,
+                ema_in_zone=False,
+                orb_score=4,
+                ema_score=3,
+                sweep_score=0,
             )
             snapshot = run_apex_evaluation(
-                bar, setup, regime="NEUTRAL",
-                atr_ma20=4.2, vol_z=0.3, prev_adx_3=22.0, range_avg_20=14.0,
-                vol_z_prev_1=0.25, vol_z_prev_2=0.20,
-                highest_5_prev=21012.0, lowest_5_prev=20992.0,
-                recent_losses=0, prev_day_high=21020.0, prev_day_low=20980.0,
+                bar,
+                setup,
+                regime="NEUTRAL",
+                atr_ma20=4.2,
+                vol_z=0.3,
+                prev_adx_3=22.0,
+                range_avg_20=14.0,
+                vol_z_prev_1=0.25,
+                vol_z_prev_2=0.20,
+                highest_5_prev=21012.0,
+                lowest_5_prev=20992.0,
+                recent_losses=0,
+                prev_day_high=21020.0,
+                prev_day_low=20980.0,
             )
             snapshot_source = "eta_v3 firm_engine.evaluate"
         except Exception:
@@ -160,7 +185,9 @@ def main() -> int:
         "```json",
         json.dumps(
             {k: getattr(agent_input, "payload", {}).get(k) for k in added},
-            indent=2, default=str, sort_keys=True,
+            indent=2,
+            default=str,
+            sort_keys=True,
         ),
         "```",
         "",

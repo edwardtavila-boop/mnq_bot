@@ -8,6 +8,7 @@ swap in sklearn/lightgbm.
 Usage:
     python scripts/gbm_filter.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,8 +43,8 @@ def _train_logreg(X: list[list[float]], y: list[int], iters: int = 300, lr: floa
     n_feat = len(X[0])
     w = [0.0] * n_feat
     for _ in range(iters):
-        for xi, yi in zip(X, y):
-            z = sum(w_ * x_ for w_, x_ in zip(w, xi))
+        for xi, yi in zip(X, y, strict=False):
+            z = sum(w_ * x_ for w_, x_ in zip(w, xi, strict=False))
             p = _sigmoid(z)
             err = p - yi
             for j in range(n_feat):
@@ -71,17 +72,21 @@ def main() -> int:
 
     preds = []
     for t in test:
-        p = _sigmoid(sum(w_ * x_ for w_, x_ in zip(w, _features(t))))
+        p = _sigmoid(sum(w_ * x_ for w_, x_ in zip(w, _features(t), strict=False)))
         preds.append((t, p))
 
     n_tp = n_fp = n_fn = n_tn = 0
     for t, p in preds:
         pred_win = p >= 0.5
         actual_win = t.net_pnl > 0
-        if pred_win and actual_win: n_tp += 1
-        elif pred_win and not actual_win: n_fp += 1
-        elif not pred_win and actual_win: n_fn += 1
-        else: n_tn += 1
+        if pred_win and actual_win:
+            n_tp += 1
+        elif pred_win and not actual_win:
+            n_fp += 1
+        elif not pred_win and actual_win:
+            n_fn += 1
+        else:
+            n_tn += 1
 
     acc = (n_tp + n_tn) / max(1, len(test))
     prec = n_tp / max(1, n_tp + n_fp)
@@ -91,7 +96,7 @@ def main() -> int:
         f"# GBM Filter · {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
         "",
         f"- train: **{len(train)}** · test: **{len(test)}**",
-        f"- feature set: [bias, hour, weekday, qty, duration_s, is_long]",
+        "- feature set: [bias, hour, weekday, qty, duration_s, is_long]",
         f"- weights: {[round(x, 4) for x in w]}",
         "",
         "## Test performance",

@@ -23,6 +23,12 @@ orders_rejected_total = Counter(
     labelnames=["reason"],
 )
 
+orders_cancelled_total = Counter(
+    "orders_cancelled_total",
+    "Total orders cancelled",
+    labelnames=["reason"],
+)
+
 fill_slippage_ticks = Histogram(
     "fill_slippage_ticks",
     "Slippage in ticks at fill",

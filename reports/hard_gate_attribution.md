@@ -1,14 +1,14 @@
 # Hard-Gate Attribution — Which Days Get Blocked?
 
 Config: skip=0.5, reduce=0.67
-Sample: 200 days
+Sample: 15 days
 
 ## Action breakdown
 
 | Action | Days | PnL | Avg PnL/day |
 |---|---:|---:|---:|
-| Full | 178 | $+124.50 | $+0.70 |
-| Reduced | 22 | $+28.00 | $+1.27 |
+| Full | 14 | $+34.00 | $+2.43 |
+| Reduced | 1 | $-22.50 | $-22.50 |
 | Skipped | 0 | $+0.00 | $+0.00 |
 
 ## Skipped day analysis
@@ -24,21 +24,20 @@ Sample: 200 days
 |---|---:|
 | 0.0–0.33 | 0 |
 | 0.33–0.50 | 0 |
-| 0.50–0.67 | 22 |
-| 0.67–0.83 | 55 |
-| 0.83–1.0 | 123 |
+| 0.50–0.67 | 1 |
+| 0.67–0.83 | 2 |
+| 0.83–1.0 | 12 |
 
 ## Gate failure frequency (all days)
 
 | Gate | Failures | Rate |
 |---|---:|---:|
-| orderflow | 108 | 54.0% |
-| regime | 102 | 51.0% |
-| trend_align | 91 | 45.5% |
-| vol_band | 77 | 38.5% |
-| session | 10 | 5.0% |
-| cross_mag | 10 | 5.0% |
-| time_of_day | 3 | 1.5% |
+| regime | 11 | 73.3% |
+| orderflow | 6 | 40.0% |
+| vol_band | 4 | 26.7% |
+| trend_align | 3 | 20.0% |
+| session | 2 | 13.3% |
+| cross_mag | 1 | 6.7% |
 
 ## Interpretation
 

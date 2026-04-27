@@ -14,13 +14,11 @@ Each meta-voice (MV) scores -100 to +100, weighted, PM threshold applied.
 Just like the trade Firm — no single voice gets to be right alone.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
-import statistics
 import json
 import os
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
 
@@ -28,8 +26,9 @@ ET = ZoneInfo("America/New_York")
 @dataclass
 class MetaContext:
     """Everything the meta-Firm needs to make decisions."""
-    recent_trades: List[dict] = field(default_factory=list)  # last 20 trades
-    recent_decisions: List[dict] = field(default_factory=list)  # last 100 decisions
+
+    recent_trades: list[dict] = field(default_factory=list)  # last 20 trades
+    recent_decisions: list[dict] = field(default_factory=list)  # last 100 decisions
     rolling_win_rate: float = 0.0
     rolling_pf: float = 0.0
     rolling_dd: float = 0.0
@@ -38,32 +37,33 @@ class MetaContext:
     consecutive_losses: int = 0
     consecutive_wins: int = 0
     days_since_last_win: int = 0
-    regime_history: List[str] = field(default_factory=list)  # last 20 bars
+    regime_history: list[str] = field(default_factory=list)  # last 20 bars
     avg_atr: float = 0.0
     avg_adx: float = 0.0
     avg_vol_z: float = 0.0
     hour_et: int = 12
     weekday: int = 1  # 1=Mon
-    now_utc: Optional[datetime] = None
+    now_utc: datetime | None = None
 
 
 @dataclass
 class MetaDecision:
     regime_vote: str = "NEUTRAL"
     pm_threshold: float = 30.0
-    enabled_setups: List[str] = field(default_factory=lambda: ["ORB", "EMA PB", "SWEEP"])
+    enabled_setups: list[str] = field(default_factory=lambda: ["ORB", "EMA PB", "SWEEP"])
     risk_budget_R: float = 2.0  # max loss allowed today
     size_multiplier: float = 1.0
     trade_allowed: bool = True
     reason: str = ""
     confidence: float = 0.0  # 0-100
-    voices: Dict[str, float] = field(default_factory=dict)
-    audit: Dict[str, str] = field(default_factory=dict)
+    voices: dict[str, float] = field(default_factory=dict)
+    audit: dict[str, str] = field(default_factory=dict)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # META-VOICES: Each returns -100..+100, interpreted in context
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def mv_regime_stability(ctx: MetaContext) -> float:
     """Has the regime been stable or flip-flopping?
@@ -204,13 +204,13 @@ def mv_correlation_agreement(ctx: MetaContext) -> float:
 
 # Default meta-voice weights (can be overridden by learned weights)
 META_WEIGHTS = {
-    "regime_stability":    1.2,
-    "recent_performance":  1.5,
-    "drawdown_check":      1.8,  # drawdown is critical
-    "streak_detector":     1.0,
-    "volatility_regime":   1.2,
-    "time_of_day":         0.8,
-    "day_of_week":         1.0,
+    "regime_stability": 1.2,
+    "recent_performance": 1.5,
+    "drawdown_check": 1.8,  # drawdown is critical
+    "streak_detector": 1.0,
+    "volatility_regime": 1.2,
+    "time_of_day": 0.8,
+    "day_of_week": 1.0,
     "correlation_agreement": 1.1,
 }
 
@@ -218,13 +218,13 @@ META_WEIGHTS = {
 def run_meta_firm(ctx: MetaContext, base_pm: float = 30.0) -> MetaDecision:
     """Run all meta-voices and produce a MetaDecision."""
     voices = {
-        "regime_stability":      mv_regime_stability(ctx),
-        "recent_performance":    mv_recent_performance(ctx),
-        "drawdown_check":        mv_drawdown_check(ctx),
-        "streak_detector":       mv_streak_detector(ctx),
-        "volatility_regime":     mv_volatility_regime(ctx),
-        "time_of_day":           mv_time_of_day(ctx),
-        "day_of_week":           mv_day_of_week(ctx),
+        "regime_stability": mv_regime_stability(ctx),
+        "recent_performance": mv_recent_performance(ctx),
+        "drawdown_check": mv_drawdown_check(ctx),
+        "streak_detector": mv_streak_detector(ctx),
+        "volatility_regime": mv_volatility_regime(ctx),
+        "time_of_day": mv_time_of_day(ctx),
+        "day_of_week": mv_day_of_week(ctx),
         "correlation_agreement": mv_correlation_agreement(ctx),
     }
 
@@ -306,7 +306,9 @@ def run_meta_firm(ctx: MetaContext, base_pm: float = 30.0) -> MetaDecision:
         dec.reason = f"PAUSE: meta-confidence too low ({confidence:.0f})"
     else:
         dec.trade_allowed = True
-        dec.reason = f"TRADE: meta-confidence {confidence:.0f}/100, {len(dec.enabled_setups)} setups active"
+        dec.reason = (
+            f"TRADE: meta-confidence {confidence:.0f}/100, {len(dec.enabled_setups)} setups active"
+        )
 
     return dec
 
@@ -315,7 +317,7 @@ def save_meta_decision(decision: MetaDecision, path: str):
     """Persist a meta-decision to JSON for audit trail."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     payload = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "regime_vote": decision.regime_vote,
         "pm_threshold": decision.pm_threshold,
         "enabled_setups": decision.enabled_setups,
@@ -331,7 +333,7 @@ def save_meta_decision(decision: MetaDecision, path: str):
         json.dump(payload, f, indent=2)
 
 
-def load_recent_meta(dir_path: str, n: int = 10) -> List[dict]:
+def load_recent_meta(dir_path: str, n: int = 10) -> list[dict]:
     """Load last N meta-decisions from audit trail."""
     if not os.path.isdir(dir_path):
         return []

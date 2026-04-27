@@ -7,6 +7,7 @@ then ask which archetype is profitable.
 Usage:
     python scripts/trade_clusters.py --k 3
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,20 +30,22 @@ def _kmeans(points, k, iters=50, seed=0):
     for _ in range(iters):
         groups = [[] for _ in range(k)]
         for p in points:
-            dists = [sum((a - b) ** 2 for a, b in zip(p, c)) for c in centers]
+            dists = [sum((a - b) ** 2 for a, b in zip(p, c, strict=False)) for c in centers]
             groups[dists.index(min(dists))].append(p)
         new_centers = []
-        for g, c in zip(groups, centers):
+        for g, c in zip(groups, centers, strict=False):
             if g:
                 new_centers.append([statistics.fmean([p[i] for p in g]) for i in range(len(c))])
             else:
                 new_centers.append(c)
-        if all(math.isclose(new_centers[i][j], centers[i][j]) for i in range(k) for j in range(len(c))):
+        if all(
+            math.isclose(new_centers[i][j], centers[i][j]) for i in range(k) for j in range(len(c))
+        ):
             break
         centers = new_centers
     groups = [[] for _ in range(k)]
     for p in points:
-        dists = [sum((a - b) ** 2 for a, b in zip(p, c)) for c in centers]
+        dists = [sum((a - b) ** 2 for a, b in zip(p, c, strict=False)) for c in centers]
         groups[dists.index(min(dists))].append(p)
     return centers, groups
 
@@ -71,7 +74,7 @@ def main() -> int:
         "| # | N | Center (hour / dur_s / pnl) | Mean PnL | Hit rate |",
         "|---|---:|---|---:|---:|",
     ]
-    for i, (c, g) in enumerate(zip(centers, groups)):
+    for i, (c, g) in enumerate(zip(centers, groups, strict=False)):
         if not g:
             continue
         mean_pnl = statistics.fmean([p[2] for p in g])

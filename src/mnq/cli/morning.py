@@ -18,6 +18,7 @@ Usage
     mnq morning --output reports/today.md
     mnq morning --json
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -40,7 +41,8 @@ def _load_script() -> object:
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "scripts" / "morning_report.py"
     spec = importlib.util.spec_from_file_location(
-        "_mnq_cli_morning_report", script,
+        "_mnq_cli_morning_report",
+        script,
     )
     if spec is None or spec.loader is None:
         msg = f"can't load {script}"
@@ -56,7 +58,8 @@ def morning(
     output: Annotated[
         Path | None,
         typer.Option(
-            "--output", "-o",
+            "--output",
+            "-o",
             help="output markdown path (default: reports/morning_report.md)",
         ),
     ] = None,

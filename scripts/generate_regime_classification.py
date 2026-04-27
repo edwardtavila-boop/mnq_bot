@@ -24,6 +24,7 @@ Usage
 
 Exit code: 0 always (this is a producer, not a gate).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -66,22 +67,16 @@ def build_classification(variant: str) -> dict:
     """
     payload = build_spec_payload(variant)
     regime_exp = payload.get("regime_expectancy") or {}
-    seen = sorted(
-        regime
-        for regime, stats in regime_exp.items()
-        if stats.get("n_days", 0) > 0
-    )
+    seen = sorted(regime for regime, stats in regime_exp.items() if stats.get("n_days", 0) > 0)
     winning = sorted(
         regime
         for regime, stats in regime_exp.items()
-        if stats.get("n_days", 0) > 0
-        and stats.get("expectancy_r", 0.0) > LOSING_THRESHOLD_R
+        if stats.get("n_days", 0) > 0 and stats.get("expectancy_r", 0.0) > LOSING_THRESHOLD_R
     )
     losing = sorted(
         regime
         for regime, stats in regime_exp.items()
-        if stats.get("n_days", 0) > 0
-        and stats.get("expectancy_r", 0.0) <= LOSING_THRESHOLD_R
+        if stats.get("n_days", 0) > 0 and stats.get("expectancy_r", 0.0) <= LOSING_THRESHOLD_R
     )
     return {
         "variant": variant,
@@ -97,15 +92,20 @@ def build_classification(variant: str) -> dict:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument(
-        "--variant", type=str, default=DEFAULT_VARIANT,
+        "--variant",
+        type=str,
+        default=DEFAULT_VARIANT,
         help=f"variant to classify (default: {DEFAULT_VARIANT})",
     )
     p.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT,
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
         help=f"output JSON artifact (default: {DEFAULT_OUTPUT})",
     )
     p.add_argument(
-        "--quiet", action="store_true",
+        "--quiet",
+        action="store_true",
         help="suppress stdout summary",
     )
     args = p.parse_args(argv)
@@ -126,8 +126,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         if payload["losing_regimes"]:
             print(
-                "  losing regimes: "
-                + ", ".join(payload["losing_regimes"]),
+                "  losing regimes: " + ", ".join(payload["losing_regimes"]),
             )
     return 0
 

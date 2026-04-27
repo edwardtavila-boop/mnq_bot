@@ -33,13 +33,21 @@ def configure_logging(
     ]
 
     if json_output:
-        processors = common_processors + extra_processors + [
-            structlog.processors.JSONRenderer(),
-        ]
+        processors = (
+            common_processors
+            + extra_processors
+            + [
+                structlog.processors.JSONRenderer(),
+            ]
+        )
     else:
-        processors = common_processors + extra_processors + [
-            structlog.dev.ConsoleRenderer(),
-        ]
+        processors = (
+            common_processors
+            + extra_processors
+            + [
+                structlog.dev.ConsoleRenderer(),
+            ]
+        )
 
     structlog.configure(
         processors=processors,

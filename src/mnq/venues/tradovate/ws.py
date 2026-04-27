@@ -22,6 +22,7 @@ Invariants:
     - After (re)connect, the first thing we send is the plain-text authorize
       request; nothing else is sent until a 200 OK reply is observed.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -49,16 +50,17 @@ log = logging.getLogger(__name__)
 # Constants — see TRADOVATE_NOTES §3
 # ---------------------------------------------------------------------------
 
-HEARTBEAT_INTERVAL_S = 2.5         # we send '[]' this often
-STALE_CUTOFF_S = 7.0               # >this long without any inbound = dead
+HEARTBEAT_INTERVAL_S = 2.5  # we send '[]' this often
+STALE_CUTOFF_S = 7.0  # >this long without any inbound = dead
 CLIENT_HEARTBEAT_FRAME = "[]"
 RECONNECT_BACKOFF_S = (1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 60.0)
-HARD_DISCONNECT_AFTER = 3          # N consecutive reconnect failures
+HARD_DISCONNECT_AFTER = 3  # N consecutive reconnect failures
 
 
 # ---------------------------------------------------------------------------
 # Frame model
 # ---------------------------------------------------------------------------
+
 
 class FrameType(str, Enum):
     OPEN = "o"
@@ -77,8 +79,9 @@ class FrameType(str, Enum):
 @dataclass(frozen=True, slots=True)
 class WsFrame:
     """A parsed inbound WS frame."""
+
     type: FrameType
-    payload: Any = None           # list for ARRAY/CLOSE, None for OPEN/HEARTBEAT
+    payload: Any = None  # list for ARRAY/CLOSE, None for OPEN/HEARTBEAT
 
 
 class WsDisconnectError(Exception):
@@ -88,6 +91,7 @@ class WsDisconnectError(Exception):
 # ---------------------------------------------------------------------------
 # Pure parsers / builders
 # ---------------------------------------------------------------------------
+
 
 def parse_frame(raw: str) -> WsFrame:
     """Parse one raw WS text frame into a WsFrame.
@@ -161,6 +165,7 @@ OnStatus = Callable[[str], Awaitable[None]]
 # ---------------------------------------------------------------------------
 # Client
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class _WsStats:
@@ -299,9 +304,7 @@ class TradovateWsClient:
             asyncio.create_task(self._stale_check_loop(), name="ws-stale"),
         ]
         try:
-            done, pending = await asyncio.wait(
-                self._tasks, return_when=asyncio.FIRST_EXCEPTION
-            )
+            done, pending = await asyncio.wait(self._tasks, return_when=asyncio.FIRST_EXCEPTION)
             for t in pending:
                 t.cancel()
             for t in done:
@@ -335,7 +338,9 @@ class TradovateWsClient:
             await asyncio.sleep(1.0)
             since = self._clock() - self._stats.last_frame_in_ts
             if since > STALE_CUTOFF_S:
-                raise WsDisconnectError(f"no inbound frame for {since:.1f}s (>{STALE_CUTOFF_S}s cutoff)")
+                raise WsDisconnectError(
+                    f"no inbound frame for {since:.1f}s (>{STALE_CUTOFF_S}s cutoff)"
+                )
 
     async def _send_raw(self, text: str) -> None:
         assert self._ws is not None

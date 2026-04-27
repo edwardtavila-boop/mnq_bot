@@ -2,6 +2,7 @@
 
 Supports NQ/MNQ/ES/MES quarterly (H/M/U/Z) contracts with 2-digit or 4-digit years.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -89,8 +90,7 @@ class FuturesContract:
             raise ValueError(f"No month code found in symbol '{symbol}'")
         if month_code not in _MONTH_CODES:
             raise ValueError(
-                f"Invalid month code '{month_code}' in symbol '{symbol}'; "
-                f"expected H|M|U|Z"
+                f"Invalid month code '{month_code}' in symbol '{symbol}'; expected H|M|U|Z"
             )
 
         if not year_str:
@@ -106,9 +106,7 @@ class FuturesContract:
             elif len(year_str) == 4:
                 year = int(year_str)
             else:
-                raise ValueError(
-                    f"Year '{year_str}' must be 2 or 4 digits, got {len(year_str)}"
-                )
+                raise ValueError(f"Year '{year_str}' must be 2 or 4 digits, got {len(year_str)}")
         except ValueError as exc:
             raise ValueError(f"Could not parse year '{year_str}' in symbol '{symbol}'") from exc
 
@@ -126,9 +124,7 @@ class FuturesContract:
             Symbol string like 'NQH26' or 'MNQZ25'.
         """
         month_code = _CODE_BY_MONTH[self.month]
-        year_part = (
-            str(self.year % 100).zfill(2) if short_year else str(self.year)
-        )
+        year_part = str(self.year % 100).zfill(2) if short_year else str(self.year)
         return f"{self.root}{month_code}{year_part}"
 
     def is_front_month(self, on: date, cal: CMEFuturesCalendar) -> bool:

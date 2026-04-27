@@ -1,0 +1,9 @@
+{
+  "_comment": "SHA-256 of every file under eta_v3_framework/v1_locked/. v1 is intentionally frozen for reproducibility (see LOCKED.txt 2026-04-15). The pytest gate at tests/level_1_unit/test_v1_locked_frozen.py asserts every file's hash matches this manifest. Regenerate ONLY when LOCKED.txt is moved/replaced and a new freeze is intended.",
+  "_regen_command": "python -c \"import hashlib,json,pathlib; root=pathlib.Path('eta_v3_framework/v1_locked'); print(json.dumps({p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.glob('*')) if p.is_file()}, indent=2))\"",
+  "backtest.py":         "cd5ba9d377e66e7e7e9f342b42c9ae0d265e9bb29d7d2f1d1c078547e2a1d35d",
+  "firm_engine.py":      "05fc5c9527aa5b7bbea32a7db142f3b3d1a7c58322cab9141594aa6da9cb84eb",
+  "indicator_state.py":  "125941b48ec9518094d5061bfae8a02ae0fc5a52355850362d8bf80db9611e76",
+  "intermarket.py":      "a062cabc198710f71032d324c006fd475465f98631d6c47d4907c58318dc0444",
+  "LOCKED.txt":          "91b34f27b533771b5242e8759b0cb93a3dfaa2a478bd65df80b093b5092a95ef"
+}

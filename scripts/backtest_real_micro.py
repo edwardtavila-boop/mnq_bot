@@ -21,6 +21,7 @@ Usage:
     python scripts/backtest_real_micro.py
     python scripts/backtest_real_micro.py --max-days 200
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,19 +48,20 @@ for p in (str(SRC), str(SCRIPTS), str(V3_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from real_bars import load_databento_days  # noqa: E402
-from mnq.core.types import Bar as MnqBar  # noqa: E402
-
+from backtest import V1Detector, V1DetectorConfig  # noqa: E402
 from firm_engine import (  # noqa: E402
     Bar as V3Bar,
-    SetupTriggers,
+)
+from firm_engine import (
     FirmConfig,
     detect_regime,
     evaluate,
 )
 from indicator_state import IndicatorState  # noqa: E402
-from backtest import V1Detector, V1DetectorConfig  # noqa: E402
-from microstructure import MicroEntryRefiner, MicroBar  # noqa: E402
+from microstructure import MicroBar, MicroEntryRefiner  # noqa: E402
+from real_bars import load_databento_days  # noqa: E402
+
+from mnq.core.types import Bar as MnqBar  # noqa: E402
 
 TICK = 0.25
 POINT_VALUE = 2.00
@@ -97,14 +99,16 @@ def _aggregate_1m_to_5m(bars_1m: list[V3Bar]) -> list[V3Bar]:
     bars_5m: list[V3Bar] = []
     for key in sorted(buckets.keys()):
         group = buckets[key]
-        bars_5m.append(V3Bar(
-            time=key,
-            open=group[0].open,
-            high=max(b.high for b in group),
-            low=min(b.low for b in group),
-            close=group[-1].close,
-            volume=sum(b.volume for b in group),
-        ))
+        bars_5m.append(
+            V3Bar(
+                time=key,
+                open=group[0].open,
+                high=max(b.high for b in group),
+                low=min(b.low for b in group),
+                close=group[-1].close,
+                volume=sum(b.volume for b in group),
+            )
+        )
     return bars_5m
 
 
@@ -115,7 +119,11 @@ def _scrub_v3_day(bars: list[V3Bar]) -> list[V3Bar]:
     for b in bars[1:]:
         if b.close <= 0:
             continue
-        if clean and clean[-1].close > 0 and abs(b.close - clean[-1].close) / clean[-1].close > 0.03:
+        if (
+            clean
+            and clean[-1].close > 0
+            and abs(b.close - clean[-1].close) / clean[-1].close > 0.03
+        ):
             continue
         clean.append(b)
     return clean
@@ -177,7 +185,11 @@ def _resolve_exit_on_1m(
             mae_r = min(mae_r, adv)
 
         if use_mfe_trail and mfe_r >= trail_arm_R and not tp1_filled and sl_dist > 0:
-            lock = entry_price + (sl_dist * trail_lock_R) if side == "long" else entry_price - (sl_dist * trail_lock_R)
+            lock = (
+                entry_price + (sl_dist * trail_lock_R)
+                if side == "long"
+                else entry_price - (sl_dist * trail_lock_R)
+            )
             current_sl = max(current_sl, lock) if side == "long" else min(current_sl, lock)
 
         if side == "long":
@@ -193,32 +205,43 @@ def _resolve_exit_on_1m(
         bars_5m = held // 5
 
         if sl_hit:
-            actual_r = ((current_sl - entry_price) / sl_dist if side == "long"
-                       else (entry_price - current_sl) / sl_dist)
+            actual_r = (
+                (current_sl - entry_price) / sl_dist
+                if side == "long"
+                else (entry_price - current_sl) / sl_dist
+            )
             if tp1_filled:
                 return current_sl, "tp1_then_be", max(actual_r, 0.5), bars_5m, mfe_r, mae_r
-            elif actual_r > 0:
+            if actual_r > 0:
                 return current_sl, "trail_lock", actual_r, bars_5m, mfe_r, mae_r
-            else:
-                return current_sl, "stop", actual_r, bars_5m, mfe_r, mae_r
+            return current_sl, "stop", actual_r, bars_5m, mfe_r, mae_r
 
         if tp2_hit:
-            actual_r = ((tp2 - entry_price) / sl_dist if side == "long"
-                       else (entry_price - tp2) / sl_dist)
+            actual_r = (
+                (tp2 - entry_price) / sl_dist if side == "long" else (entry_price - tp2) / sl_dist
+            )
             if use_partials and tp1_filled:
                 return tp2, "tp2_partial", actual_r * 0.5 + 0.5, bars_5m, mfe_r, mae_r
             return tp2, "tp2", actual_r, bars_5m, mfe_r, mae_r
 
         if not use_partials and tp1_hit:
-            actual_r = ((tp1 - entry_price) / sl_dist if side == "long"
-                       else (entry_price - tp1) / sl_dist)
+            actual_r = (
+                (tp1 - entry_price) / sl_dist if side == "long" else (entry_price - tp1) / sl_dist
+            )
             return tp1, "tp1", actual_r, bars_5m, mfe_r, mae_r
 
         if held >= timeout_bars_1m:
             return bar.close, "timeout", (0.5 if tp1_filled else 0.0), bars_5m, mfe_r, mae_r
 
     last = bars_1m[-1] if bars_1m else bars_1m[signal_1m_ix]
-    return last.close, "session_end", (0.5 if tp1_filled else 0.0), (len(bars_1m) - signal_1m_ix) // 5, mfe_r, mae_r
+    return (
+        last.close,
+        "session_end",
+        (0.5 if tp1_filled else 0.0),
+        (len(bars_1m) - signal_1m_ix) // 5,
+        mfe_r,
+        mae_r,
+    )
 
 
 @dataclass
@@ -271,8 +294,9 @@ class MicroStats:
 def _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price):
     """Compute SL/TP for a given setup (mirrors V3 logic)."""
     atr = bar.atr or 1.0
-    use_fib = (det_cfg.exit_mode == "fibonacci" or
-               (det_cfg.exit_mode == "hybrid" and setup in ("ORB", "SWEEP")))
+    use_fib = det_cfg.exit_mode == "fibonacci" or (
+        det_cfg.exit_mode == "hybrid" and setup in ("ORB", "SWEEP")
+    )
 
     if setup == "ORB":
         or_low, or_high = detector.or_low, detector.or_high
@@ -283,7 +307,12 @@ def _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price):
         else:
             sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
 
-        if (use_fib and or_low is not None and or_high is not None and (or_high - or_low) > atr * 0.5):
+        if (
+            use_fib
+            and or_low is not None
+            and or_high is not None
+            and (or_high - or_low) > atr * 0.5
+        ):
             or_range = or_high - or_low
             if side == "long":
                 tp1 = or_high + or_range * (det_cfg.fib_tp1_extension - 1.0)
@@ -293,16 +322,32 @@ def _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price):
                 tp2 = or_low - or_range * (det_cfg.fib_tp2_extension - 1.0)
         else:
             sd = abs(entry_price - sl) or atr
-            tp1 = entry_price + sd * det_cfg.orb_tp1_r if side == "long" else entry_price - sd * det_cfg.orb_tp1_r
-            tp2 = entry_price + sd * det_cfg.orb_tp2_r if side == "long" else entry_price - sd * det_cfg.orb_tp2_r
+            tp1 = (
+                entry_price + sd * det_cfg.orb_tp1_r
+                if side == "long"
+                else entry_price - sd * det_cfg.orb_tp1_r
+            )
+            tp2 = (
+                entry_price + sd * det_cfg.orb_tp2_r
+                if side == "long"
+                else entry_price - sd * det_cfg.orb_tp2_r
+            )
         timeout = det_cfg.orb_timeout
 
     elif setup == "EMA PB":
         sl_dist_calc = atr * det_cfg.ema_sl_atr
         sl = entry_price - sl_dist_calc if side == "long" else entry_price + sl_dist_calc
         sd = abs(entry_price - sl) or atr
-        tp1 = entry_price + sd * det_cfg.ema_tp1_r if side == "long" else entry_price - sd * det_cfg.ema_tp1_r
-        tp2 = entry_price + sd * det_cfg.ema_tp2_r if side == "long" else entry_price - sd * det_cfg.ema_tp2_r
+        tp1 = (
+            entry_price + sd * det_cfg.ema_tp1_r
+            if side == "long"
+            else entry_price - sd * det_cfg.ema_tp1_r
+        )
+        tp2 = (
+            entry_price + sd * det_cfg.ema_tp2_r
+            if side == "long"
+            else entry_price - sd * det_cfg.ema_tp2_r
+        )
         timeout = det_cfg.ema_timeout
 
     elif setup == "SWEEP":
@@ -315,8 +360,12 @@ def _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price):
         else:
             sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
 
-        if (use_fib and swept_lo is not None and swept_hi is not None
-                and abs(swept_hi - swept_lo) > atr * 0.5):
+        if (
+            use_fib
+            and swept_lo is not None
+            and swept_hi is not None
+            and abs(swept_hi - swept_lo) > atr * 0.5
+        ):
             swept_range = min(abs(swept_hi - swept_lo), atr * 3.0)
             if side == "long":
                 tp1 = entry_price + swept_range * det_cfg.fib_tp1_extension
@@ -326,8 +375,16 @@ def _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price):
                 tp2 = entry_price - swept_range * det_cfg.fib_tp2_extension
         else:
             sd = abs(entry_price - sl) or atr
-            tp1 = entry_price + sd * det_cfg.sweep_tp1_r if side == "long" else entry_price - sd * det_cfg.sweep_tp1_r
-            tp2 = entry_price + sd * det_cfg.sweep_tp2_r if side == "long" else entry_price - sd * det_cfg.sweep_tp2_r
+            tp1 = (
+                entry_price + sd * det_cfg.sweep_tp1_r
+                if side == "long"
+                else entry_price - sd * det_cfg.sweep_tp1_r
+            )
+            tp2 = (
+                entry_price + sd * det_cfg.sweep_tp2_r
+                if side == "long"
+                else entry_price - sd * det_cfg.sweep_tp2_r
+            )
         timeout = det_cfg.sweep_timeout
     else:
         sl = entry_price - atr * 1.5 if side == "long" else entry_price + atr * 1.5
@@ -367,8 +424,11 @@ def _backtest_micro_day(
         regime = detect_regime(bar.adx or 20, bar.atr or 0, atr_ma20, vol_z)
 
         d = evaluate(
-            bar=bar, st=st, regime=regime,
-            atr_ma20=atr_ma20, vol_z=vol_z,
+            bar=bar,
+            st=st,
+            regime=regime,
+            atr_ma20=atr_ma20,
+            vol_z=vol_z,
             prev_adx_3=state.adx_3_bars_ago(),
             range_avg_20=state.range_avg_20(),
             vol_z_prev_1=state.vol_z_at(1),
@@ -415,9 +475,14 @@ def _backtest_micro_day(
                 micro = refiner.refine_orb(side, bar.close, sl, or_h, or_l, micro_bars)
             elif setup == "EMA PB":
                 micro = refiner.refine_ema_pullback(
-                    side, bar.close, sl,
-                    bar.ema9 or bar.close, bar.ema21 or bar.close,
-                    atr, micro_bars)
+                    side,
+                    bar.close,
+                    sl,
+                    bar.ema9 or bar.close,
+                    bar.ema21 or bar.close,
+                    atr,
+                    micro_bars,
+                )
             elif setup == "SWEEP":
                 swept = detector.swept_lo_px if side == "long" else detector.swept_hi_px
                 if swept is None:
@@ -441,7 +506,9 @@ def _backtest_micro_day(
                     if sl_dist <= 0:
                         continue
                     # Recompute TPs relative to new entry
-                    _, tp1, tp2, _ = _compute_sl_tp(setup, side, det_cfg, detector, bar, entry_price)
+                    _, tp1, tp2, _ = _compute_sl_tp(
+                        setup, side, det_cfg, detector, bar, entry_price
+                    )
                 else:
                     # No micro confirmation
                     if micro_mode == "strict":
@@ -477,30 +544,32 @@ def _backtest_micro_day(
 
         pnl_dollars = pnl_r * sl_dist * POINT_VALUE
 
-        trades.append(MicroTrade(
-            day_date=day_date,
-            setup=setup,
-            side=side,
-            micro_mode=micro_mode,
-            micro_confirmed=micro_confirmed,
-            micro_reason=micro_reason,
-            micro_confidence=micro_confidence,
-            micro_bars_waited=micro_bars_waited,
-            micro_refined_r=micro_refined_r,
-            entry_price=entry_price,
-            stop=final_sl,
-            tp1=tp1,
-            tp2=tp2,
-            sl_dist=sl_dist,
-            pm_final=d.pm_final,
-            regime=regime,
-            exit_price=exit_px,
-            exit_reason=exit_reason,
-            pnl_r=pnl_r,
-            pnl_dollars=pnl_dollars,
-            mfe_r=mfe_r,
-            mae_r=mae_r,
-        ))
+        trades.append(
+            MicroTrade(
+                day_date=day_date,
+                setup=setup,
+                side=side,
+                micro_mode=micro_mode,
+                micro_confirmed=micro_confirmed,
+                micro_reason=micro_reason,
+                micro_confidence=micro_confidence,
+                micro_bars_waited=micro_bars_waited,
+                micro_refined_r=micro_refined_r,
+                entry_price=entry_price,
+                stop=final_sl,
+                tp1=tp1,
+                tp2=tp2,
+                sl_dist=sl_dist,
+                pm_final=d.pm_final,
+                regime=regime,
+                exit_price=exit_px,
+                exit_reason=exit_reason,
+                pnl_r=pnl_r,
+                pnl_dollars=pnl_dollars,
+                mfe_r=mfe_r,
+                mae_r=mae_r,
+            )
+        )
         cooldown_until = bar_ix + det_cfg.cooldown
 
     return trades
@@ -595,8 +664,11 @@ def main() -> None:
     print(f"  {len(day_data)} clean days ({dropped} dropped)")
 
     det_cfg = V1DetectorConfig(
-        exit_mode="fibonacci", use_partials=True, entry_mode="pullback",
-        ema_tod_filter="Power Hours", ema_dow_filter="All Days",
+        exit_mode="fibonacci",
+        use_partials=True,
+        entry_mode="pullback",
+        ema_tod_filter="Power Hours",
+        ema_dow_filter="All Days",
     )
     refiner = MicroEntryRefiner()
 
@@ -610,8 +682,13 @@ def main() -> None:
 
         for day_date, bars_1m_v3, bars_5m in day_data:
             day_trades = _backtest_micro_day(
-                micro_mode, firm_cfg, det_cfg, refiner,
-                bars_1m_v3, bars_5m, day_date,
+                micro_mode,
+                firm_cfg,
+                det_cfg,
+                refiner,
+                bars_1m_v3,
+                bars_5m,
+                day_date,
             )
             all_trades.extend(day_trades)
 
@@ -627,16 +704,22 @@ def main() -> None:
         wr = vs.winners / vs.total_trades * 100 if vs.total_trades else 0
         gw = sum(t.pnl_r for t in all_trades if t.pnl_r > 0)
         gl = abs(sum(t.pnl_r for t in all_trades if t.pnl_r < 0))
-        pf = gw / gl if gl > 0 else float('inf')
-        print(f"    {vs.total_trades} trades (micro: {vs.micro_confirmed_count} confirmed, "
-              f"{vs.micro_skipped_count} skipped)")
-        print(f"    R={vs.total_pnl_r:+.2f}, ${vs.total_pnl_dollars:+.2f}, "
-              f"WR {wr:.0f}%, PF {pf:.2f}, MDD {vs.max_drawdown_r:.2f}R, {elapsed:.1f}s")
+        pf = gw / gl if gl > 0 else float("inf")
+        print(
+            f"    {vs.total_trades} trades (micro: {vs.micro_confirmed_count} confirmed, "
+            f"{vs.micro_skipped_count} skipped)"
+        )
+        print(
+            f"    R={vs.total_pnl_r:+.2f}, ${vs.total_pnl_dollars:+.2f}, "
+            f"WR {wr:.0f}%, PF {pf:.2f}, MDD {vs.max_drawdown_r:.2f}R, {elapsed:.1f}s"
+        )
         if vs.micro_avg_refined_r > 0:
             print(f"    avg micro R improvement: {vs.micro_avg_refined_r:.2f}x")
         for setup, st in vs.by_setup.items():
             setup_wr = st["wins"] / st["trades"] * 100 if st["trades"] else 0
-            print(f"      {setup:8s}: {st['trades']:3d} trades  {setup_wr:5.1f}% win  {st['total_r']:+.2f}R")
+            print(
+                f"      {setup:8s}: {st['trades']:3d} trades  {setup_wr:5.1f}% win  {st['total_r']:+.2f}R"
+            )
 
     # ─── Reports ───
     report_dir = REPO_ROOT / "reports"
@@ -645,7 +728,7 @@ def main() -> None:
     lines = [
         f"# Batch 14 — Micro Entry Refinement — {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
         "",
-        f"MicroEntryRefiner on V3 signals, Databento MNQ tape.",
+        "MicroEntryRefiner on V3 signals, Databento MNQ tape.",
         f"**{len(day_data)} clean RTH days** ({first_date} → {last_date})",
         "",
         "## Variant Summary",
@@ -658,8 +741,8 @@ def main() -> None:
         wr = vs.winners / vs.total_trades * 100 if vs.total_trades else 0
         gw = sum(t.pnl_r for t in vs.trades if t.pnl_r > 0)
         gl = abs(sum(t.pnl_r for t in vs.trades if t.pnl_r < 0))
-        pf = gw / gl if gl > 0 else float('inf')
-        pf_str = f"{pf:.2f}" if pf != float('inf') else "∞"
+        pf = gw / gl if gl > 0 else float("inf")
+        pf_str = f"{pf:.2f}" if pf != float("inf") else "∞"
         lines.append(
             f"| {vs.name} | {vs.total_trades} | {vs.micro_confirmed_count} | {vs.micro_skipped_count} "
             f"| {vs.winners} | {vs.losers} | {wr:.1f} | {vs.total_pnl_r:+.2f} | {pf_str} "
@@ -672,35 +755,51 @@ def main() -> None:
         if vs.micro_confirmed_count > 0:
             confirmed_trades = [t for t in vs.trades if t.micro_confirmed]
             unconfirmed_trades = [t for t in vs.trades if not t.micro_confirmed]
-            c_wr = sum(1 for t in confirmed_trades if t.pnl_r > 0) / len(confirmed_trades) * 100 if confirmed_trades else 0
+            c_wr = (
+                sum(1 for t in confirmed_trades if t.pnl_r > 0) / len(confirmed_trades) * 100
+                if confirmed_trades
+                else 0
+            )
             c_r = sum(t.pnl_r for t in confirmed_trades)
-            u_wr = sum(1 for t in unconfirmed_trades if t.pnl_r > 0) / len(unconfirmed_trades) * 100 if unconfirmed_trades else 0
+            u_wr = (
+                sum(1 for t in unconfirmed_trades if t.pnl_r > 0) / len(unconfirmed_trades) * 100
+                if unconfirmed_trades
+                else 0
+            )
             u_r = sum(t.pnl_r for t in unconfirmed_trades)
             lines.append(f"**{vs.name}:**")
-            lines.append(f"  - Confirmed: {len(confirmed_trades)} trades, {c_wr:.0f}% WR, {c_r:+.2f}R")
-            lines.append(f"  - Unconfirmed: {len(unconfirmed_trades)} trades, {u_wr:.0f}% WR, {u_r:+.2f}R")
+            lines.append(
+                f"  - Confirmed: {len(confirmed_trades)} trades, {c_wr:.0f}% WR, {c_r:+.2f}R"
+            )
+            lines.append(
+                f"  - Unconfirmed: {len(unconfirmed_trades)} trades, {u_wr:.0f}% WR, {u_r:+.2f}R"
+            )
             lines.append("")
 
     # Verdict
     lines.extend(["## Verdict", ""])
     baseline_pm30 = next((s for s in all_stats if s.name == "v3_baseline_pm30"), None)
     strict_pm30 = next((s for s in all_stats if s.name == "micro_strict_pm30"), None)
-    fallback_pm30 = next((s for s in all_stats if s.name == "micro_fallback_pm30"), None)
+    next((s for s in all_stats if s.name == "micro_fallback_pm30"), None)
 
     if baseline_pm30 and strict_pm30:
         lift_r = strict_pm30.total_pnl_r - baseline_pm30.total_pnl_r
         if lift_r > 0:
-            lines.append(f"**MICRO REFINEMENT ADDS VALUE** — strict micro at PM30 gives "
-                        f"{lift_r:+.2f}R lift over baseline.")
+            lines.append(
+                f"**MICRO REFINEMENT ADDS VALUE** — strict micro at PM30 gives "
+                f"{lift_r:+.2f}R lift over baseline."
+            )
         else:
-            lines.append(f"**MICRO REFINEMENT NO LIFT** — strict micro at PM30 gives "
-                        f"{lift_r:+.2f}R vs baseline. Micro gating may be too aggressive.")
+            lines.append(
+                f"**MICRO REFINEMENT NO LIFT** — strict micro at PM30 gives "
+                f"{lift_r:+.2f}R vs baseline. Micro gating may be too aggressive."
+            )
 
     lines.append("")
     lines.append(f"*Generated in {time.monotonic() - t0:.1f}s*")
 
     (report_dir / "backtest_real_micro.md").write_text("\n".join(lines))
-    print(f"\nWrote reports/backtest_real_micro.md")
+    print("\nWrote reports/backtest_real_micro.md")
 
     # Trade log CSV
     csv_lines = [

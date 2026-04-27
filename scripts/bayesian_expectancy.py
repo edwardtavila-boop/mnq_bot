@@ -22,6 +22,7 @@ Usage:
     python scripts/bayesian_expectancy.py
     python scripts/bayesian_expectancy.py --prior-alpha 2 --prior-beta 2
 """
+
 from __future__ import annotations
 
 import argparse

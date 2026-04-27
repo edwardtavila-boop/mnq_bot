@@ -18,40 +18,41 @@ Voices V4-V7 are computed purely from price/indicators.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional, Sequence
-import math
+from dataclasses import dataclass
+from datetime import UTC
 
 
 @dataclass
 class Bar:
     """OHLCV bar with optional pre-computed indicators."""
-    time: int          # unix seconds
+
+    time: int  # unix seconds
     open: float
     high: float
     low: float
     close: float
     volume: float
     # Optional pre-computed (filled by IndicatorState if not provided)
-    atr: Optional[float] = None
-    vwap: Optional[float] = None
-    ema9: Optional[float] = None
-    ema21: Optional[float] = None
-    ema50: Optional[float] = None
-    rsi: Optional[float] = None
-    adx: Optional[float] = None
-    htf_close: Optional[float] = None
-    htf_ema50: Optional[float] = None
+    atr: float | None = None
+    vwap: float | None = None
+    ema9: float | None = None
+    ema21: float | None = None
+    ema50: float | None = None
+    rsi: float | None = None
+    adx: float | None = None
+    htf_close: float | None = None
+    htf_ema50: float | None = None
 
 
 @dataclass
 class SetupTriggers:
     """External setup signals fed in from the v1 detector."""
+
     orb_long: bool = False
     orb_short: bool = False
     orb_pending: bool = False
-    or_high: Optional[float] = None
-    or_low: Optional[float] = None
+    or_high: float | None = None
+    or_low: float | None = None
     or_set: bool = False
 
     ema_long: bool = False
@@ -67,14 +68,15 @@ class SetupTriggers:
     bos_bull_active: bool = False
     bos_bear_active: bool = False
 
-    orb_score: int = 0    # 0-5
-    ema_score: int = 0    # 0-6
+    orb_score: int = 0  # 0-5
+    ema_score: int = 0  # 0-6
     sweep_score: int = 0  # 0-5
 
 
 @dataclass
 class FirmDecision:
     """Output of one bar's evaluation."""
+
     fire_long: bool
     fire_short: bool
     setup_name: str
@@ -91,7 +93,9 @@ class FirmDecision:
 
 @dataclass
 class FirmConfig:
-    pm_threshold: float = 40.0  # Calibrated empirically; spec value 75 was unreachable with weighted-avg math
+    pm_threshold: float = (
+        40.0  # Calibrated empirically; spec value 75 was unreachable with weighted-avg math
+    )
     redteam_weight: float = 1.0
     require_setup: bool = True
 
@@ -119,17 +123,17 @@ class FirmConfig:
     w_v11_tick: float = 0.8
 
     # Edge stack voices (V12-V15) — advisory weights, tuned empirically
-    w_v12_delta: float = 0.6    # Cumulative Delta proxy (advisory)
+    w_v12_delta: float = 0.6  # Cumulative Delta proxy (advisory)
     w_v13_killzone: float = 0.7  # ICT Killzone (boost signals, don't kill them)
     w_v14_premdisc: float = 0.4  # Premium/Discount (light advisory)
-    w_v15_fvg: float = 0.5       # Fair Value Gap (rare pattern, low weight)
+    w_v15_fvg: float = 0.5  # Fair Value Gap (rare pattern, low weight)
 
     # Premium/Discount range lookback for V14
     premdisc_lookback: int = 50  # bars to compute dealing range
 
     # Daily P&L circuit breaker
-    daily_loss_half_size: float = -1.0   # After -1R on day, half size
-    daily_loss_pause: float = -2.0       # After -2R on day, no new trades
+    daily_loss_half_size: float = -1.0  # After -1R on day, half size
+    daily_loss_pause: float = -2.0  # After -2R on day, no new trades
     consecutive_losing_days_pause: int = 2  # 2 losing days in a row = pause
 
     # Regime thresholds
@@ -150,8 +154,9 @@ def _sign(x: float) -> int:
 # ─────────────────────────────────────────────────────────────────────────────
 # REGIME DETECTOR
 # ─────────────────────────────────────────────────────────────────────────────
-def detect_regime(adx: float, atr: float, atr_ma20: float, vol_z: float,
-                  cfg: FirmConfig = FirmConfig()) -> str:
+def detect_regime(
+    adx: float, atr: float, atr_ma20: float, vol_z: float, cfg: FirmConfig = FirmConfig()
+) -> str:
     atr_ratio = _safe_div(atr, atr_ma20, 1.0)
     if atr_ratio > cfg.regime_atr_ratio_max or vol_z > cfg.regime_vol_z_crisis:
         return "CRISIS"
@@ -174,13 +179,13 @@ def red_weight_for_regime(regime: str) -> float:
 def compute_voice_weights(regime: str, cfg: FirmConfig) -> dict:
     b = regime_blend(regime)
     return {
-        "v1": cfg.w_orb_riskoff   + (cfg.w_orb_riskon   - cfg.w_orb_riskoff)   * b,
-        "v2": cfg.w_ema_riskoff   + (cfg.w_ema_riskon   - cfg.w_ema_riskoff)   * b,
+        "v1": cfg.w_orb_riskoff + (cfg.w_orb_riskon - cfg.w_orb_riskoff) * b,
+        "v2": cfg.w_ema_riskoff + (cfg.w_ema_riskon - cfg.w_ema_riskoff) * b,
         "v3": cfg.w_sweep_riskoff + (cfg.w_sweep_riskon - cfg.w_sweep_riskoff) * b,
-        "v4": cfg.w_v4_riskoff    + (cfg.w_v4_riskon    - cfg.w_v4_riskoff)    * b,
-        "v5": cfg.w_v5_riskoff    + (cfg.w_v5_riskon    - cfg.w_v5_riskoff)    * b,
+        "v4": cfg.w_v4_riskoff + (cfg.w_v4_riskon - cfg.w_v4_riskoff) * b,
+        "v5": cfg.w_v5_riskoff + (cfg.w_v5_riskon - cfg.w_v5_riskoff) * b,
         "v6": cfg.w_v6_neutral,
-        "v7": cfg.w_v7_riskoff    + (cfg.w_v7_riskon    - cfg.w_v7_riskoff)    * b,
+        "v7": cfg.w_v7_riskoff + (cfg.w_v7_riskon - cfg.w_v7_riskoff) * b,
         "v8": cfg.w_v8_vix,
         "v9": cfg.w_v9_es,
         "v10": cfg.w_v10_dxy,
@@ -289,8 +294,14 @@ def voice_htf(bar: Bar) -> float:
     return 0.0
 
 
-def voice_liqvac(bar: Bar, range_avg_20: float, vol_z_prev_1: float, vol_z_prev_2: float,
-                 highest_5_prev: float, lowest_5_prev: float) -> float:
+def voice_liqvac(
+    bar: Bar,
+    range_avg_20: float,
+    vol_z_prev_1: float,
+    vol_z_prev_2: float,
+    highest_5_prev: float,
+    lowest_5_prev: float,
+) -> float:
     rng = bar.high - bar.low
     range_expand = range_avg_20 > 0 and rng / range_avg_20 > 1.4
     thin_vol_prior = vol_z_prev_1 < -0.5 and vol_z_prev_2 < -0.5
@@ -308,14 +319,14 @@ def voice_liqvac(bar: Bar, range_avg_20: float, vol_z_prev_1: float, vol_z_prev_
 # V8: VIX Spike Voice
 # Risk-off signal when VIX spikes; risk-on when VIX is low and dropping
 # ─────────────────────────────────────────────────────────────────────────────
-def voice_vix(bar: Bar, vix_ma: Optional[float] = None) -> float:
+def voice_vix(bar: Bar, vix_ma: float | None = None) -> float:
     """Score based on VIX level + change.
     - VIX > 25 = risk-off, penalize trend trades (negative for any direction)
     - VIX < 15 = complacency, breakout-friendly
     - VIX rising sharply = panic, strong risk-off
     """
-    vix = getattr(bar, 'vix_close', None)
-    vix_open = getattr(bar, 'vix_open', None)
+    vix = getattr(bar, "vix_close", None)
+    vix_open = getattr(bar, "vix_open", None)
     if vix is None:
         return 0.0
     vix_change_pct = ((vix - vix_open) / vix_open * 100) if vix_open and vix_open > 0 else 0.0
@@ -324,7 +335,7 @@ def voice_vix(bar: Bar, vix_ma: Optional[float] = None) -> float:
     if vix_change_pct > 5:
         return -70.0  # Strong short bias (NQ falls when VIX spikes)
     if vix_change_pct < -5:
-        return 50.0   # VIX collapsing = relief rally signal
+        return 50.0  # VIX collapsing = relief rally signal
 
     # Absolute level scoring
     if vix > 30:
@@ -334,9 +345,9 @@ def voice_vix(bar: Bar, vix_ma: Optional[float] = None) -> float:
     if vix > 20:
         return -15.0  # caution
     if vix < 13:
-        return 25.0   # complacency = continued grind up
+        return 25.0  # complacency = continued grind up
     if vix < 16:
-        return 10.0   # low fear environment
+        return 10.0  # low fear environment
     return 0.0
 
 
@@ -349,8 +360,8 @@ def voice_es_corr(bar: Bar) -> float:
     - Both moving same direction = confluence (boost)
     - NQ against ES = divergence, mean-reversion likely
     """
-    es_close = getattr(bar, 'es_close', None)
-    es_open = getattr(bar, 'es_open', None)
+    es_close = getattr(bar, "es_close", None)
+    es_open = getattr(bar, "es_open", None)
     if es_close is None or es_open is None:
         return 0.0
     nq_change = bar.close - bar.open
@@ -370,7 +381,7 @@ def voice_es_corr(bar: Bar) -> float:
     if nq_pct > 0.1 and es_pct < -0.1:
         return -50.0  # Bearish for NQ (mean revert)
     if nq_pct < -0.1 and es_pct > 0.1:
-        return 50.0   # Bullish for NQ
+        return 50.0  # Bullish for NQ
 
     # Small moves: light confluence/divergence
     if abs(nq_pct) < 0.05 and abs(es_pct) < 0.05:
@@ -386,8 +397,8 @@ def voice_es_corr(bar: Bar) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 def voice_dxy(bar: Bar) -> float:
     """DXY change as inverse risk indicator for NQ."""
-    dxy = getattr(bar, 'dxy_close', None)
-    dxy_open = getattr(bar, 'dxy_open', None)
+    dxy = getattr(bar, "dxy_close", None)
+    dxy_open = getattr(bar, "dxy_open", None)
     if dxy is None or dxy_open is None or dxy_open == 0:
         return 0.0
     dxy_pct = (dxy - dxy_open) / dxy_open * 100
@@ -396,7 +407,7 @@ def voice_dxy(bar: Bar) -> float:
     if dxy_pct > 0.3:
         return -25.0  # Dollar surge = risk-off
     if dxy_pct < -0.3:
-        return 25.0   # Dollar drop = risk-on
+        return 25.0  # Dollar drop = risk-on
     if dxy_pct > 0.1:
         return -10.0
     if dxy_pct < -0.1:
@@ -410,20 +421,20 @@ def voice_dxy(bar: Bar) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 def voice_tick(bar: Bar) -> float:
     """TICK extreme readings as breadth/exhaustion signal."""
-    tick = getattr(bar, 'tick_close', None)
+    tick = getattr(bar, "tick_close", None)
     if tick is None:
         return 0.0
     # TICK > +1000 or < -1000 = extreme; reversal likely
     if tick > 1000:
         return -30.0  # Buy climax = short-term top
     if tick < -1000:
-        return 30.0   # Sell climax = bounce
+        return 30.0  # Sell climax = bounce
     if tick > 600:
         return -10.0  # Strong but not extreme bullish
     if tick < -600:
         return 10.0
     if tick > 200:
-        return 15.0   # Healthy bullish breadth
+        return 15.0  # Healthy bullish breadth
     if tick < -200:
         return -15.0
     return 0.0
@@ -458,43 +469,51 @@ def voice_delta(bar: Bar) -> float:
 # V13: ICT Killzone Filter — boost in NY AM/PM, penalize lunch & overnight
 # ─────────────────────────────────────────────────────────────────────────────
 def voice_killzone(bar: Bar) -> float:
-    from datetime import datetime, timezone
+    from datetime import datetime
     from zoneinfo import ZoneInfo
+
     ET = ZoneInfo("America/New_York")
-    bar_dt = datetime.fromtimestamp(bar.time, tz=timezone.utc)
+    bar_dt = datetime.fromtimestamp(bar.time, tz=UTC)
     et = bar_dt.astimezone(ET)
     if et.weekday() >= 5:
         return 0.0
     m = et.hour * 60 + et.minute
-    if 9*60+30 <= m < 11*60+30:    # NY AM Killzone (incl London close overlap)
+    if 9 * 60 + 30 <= m < 11 * 60 + 30:  # NY AM Killzone (incl London close overlap)
         return 35.0
-    if 13*60+30 <= m < 15*60:       # NY PM Killzone
+    if 13 * 60 + 30 <= m < 15 * 60:  # NY PM Killzone
         return 30.0
-    if 11*60+30 <= m < 13*60+30:   # Lunch chop
+    if 11 * 60 + 30 <= m < 13 * 60 + 30:  # Lunch chop
         return -25.0
-    if 15*60 <= m < 16*60:          # MOC hour
+    if 15 * 60 <= m < 16 * 60:  # MOC hour
         return 15.0
-    return -30.0                    # Overnight / pre-RTH
+    return -30.0  # Overnight / pre-RTH
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # V14: Premium/Discount filter (SMC) — long discount, short premium
 # ─────────────────────────────────────────────────────────────────────────────
-def voice_premdisc(bar: Bar, range_high: Optional[float], range_low: Optional[float],
-                   direction_hint: int = 0) -> float:
+def voice_premdisc(
+    bar: Bar, range_high: float | None, range_low: float | None, direction_hint: int = 0
+) -> float:
     if range_high is None or range_low is None or range_high <= range_low:
         return 0.0
     span = range_high - range_low
     pos = (bar.close - range_low) / span  # 0=discount, 1=premium
     if direction_hint > 0:
-        if pos < 0.3: return 30.0
-        if pos < 0.5: return 15.0
-        if pos < 0.7: return -10.0
+        if pos < 0.3:
+            return 30.0
+        if pos < 0.5:
+            return 15.0
+        if pos < 0.7:
+            return -10.0
         return -25.0
     if direction_hint < 0:
-        if pos > 0.7: return 30.0
-        if pos > 0.5: return 15.0
-        if pos > 0.3: return -10.0
+        if pos > 0.7:
+            return 30.0
+        if pos > 0.5:
+            return 15.0
+        if pos > 0.3:
+            return -10.0
         return -25.0
     return 0.0
 
@@ -502,8 +521,13 @@ def voice_premdisc(bar: Bar, range_high: Optional[float], range_low: Optional[fl
 # ─────────────────────────────────────────────────────────────────────────────
 # V15: Fair Value Gap (SMC) — 3-bar imbalance pattern
 # ─────────────────────────────────────────────────────────────────────────────
-def voice_fvg(bar: Bar, p1_high: Optional[float] = None, p1_low: Optional[float] = None,
-              p2_high: Optional[float] = None, p2_low: Optional[float] = None) -> float:
+def voice_fvg(
+    bar: Bar,
+    p1_high: float | None = None,
+    p1_low: float | None = None,
+    p2_high: float | None = None,
+    p2_low: float | None = None,
+) -> float:
     """Score from 3-bar FVG pattern. Pass current + 2 prior bar highs/lows."""
     if p2_high is None or p2_low is None:
         return 0.0
@@ -525,9 +549,15 @@ def voice_fvg(bar: Bar, p1_high: Optional[float] = None, p1_low: Optional[float]
 # ─────────────────────────────────────────────────────────────────────────────
 # RED TEAM
 # ─────────────────────────────────────────────────────────────────────────────
-def red_team(is_long: bool, bar: Bar, regime: str, recent_losses: int,
-             prev_day_high: Optional[float], prev_day_low: Optional[float],
-             atr_ratio: float) -> float:
+def red_team(
+    is_long: bool,
+    bar: Bar,
+    regime: str,
+    recent_losses: int,
+    prev_day_high: float | None,
+    prev_day_low: float | None,
+    atr_ratio: float,
+) -> float:
     score = 0.0
 
     # 1. Counter-HTF
@@ -565,8 +595,9 @@ def red_team(is_long: bool, bar: Bar, regime: str, recent_losses: int,
 
     # 7. Wrong side of VWAP for momentum
     if bar.vwap is not None and bar.rsi is not None:
-        if (is_long and bar.close < bar.vwap and bar.rsi < 50) or \
-           (not is_long and bar.close > bar.vwap and bar.rsi > 50):
+        if (is_long and bar.close < bar.vwap and bar.rsi < 50) or (
+            not is_long and bar.close > bar.vwap and bar.rsi > 50
+        ):
             score += 10.0
 
     # Cluster penalty (recent losses)
@@ -579,13 +610,23 @@ def red_team(is_long: bool, bar: Bar, regime: str, recent_losses: int,
 # ─────────────────────────────────────────────────────────────────────────────
 # PM WEIGHTED VOTING — Final Decision
 # ─────────────────────────────────────────────────────────────────────────────
-def evaluate(bar: Bar, st: SetupTriggers, regime: str,
-             atr_ma20: float, vol_z: float, prev_adx_3: float,
-             range_avg_20: float, vol_z_prev_1: float, vol_z_prev_2: float,
-             highest_5_prev: float, lowest_5_prev: float,
-             recent_losses: int,
-             prev_day_high: Optional[float], prev_day_low: Optional[float],
-             cfg: FirmConfig = FirmConfig()) -> FirmDecision:
+def evaluate(
+    bar: Bar,
+    st: SetupTriggers,
+    regime: str,
+    atr_ma20: float,
+    vol_z: float,
+    prev_adx_3: float,
+    range_avg_20: float,
+    vol_z_prev_1: float,
+    vol_z_prev_2: float,
+    highest_5_prev: float,
+    lowest_5_prev: float,
+    recent_losses: int,
+    prev_day_high: float | None,
+    prev_day_low: float | None,
+    cfg: FirmConfig = FirmConfig(),
+) -> FirmDecision:
 
     # Compute voices
     v1 = voice_orb(bar, st)
@@ -594,8 +635,7 @@ def evaluate(bar: Bar, st: SetupTriggers, regime: str,
     v4 = voice_vwap_mr(bar)
     v5 = voice_momentum(bar, prev_adx_3, vol_z)
     v6 = voice_htf(bar)
-    v7 = voice_liqvac(bar, range_avg_20, vol_z_prev_1, vol_z_prev_2,
-                      highest_5_prev, lowest_5_prev)
+    v7 = voice_liqvac(bar, range_avg_20, vol_z_prev_1, vol_z_prev_2, highest_5_prev, lowest_5_prev)
     # Intermarket voices (return 0 when sibling data missing)
     v8 = voice_vix(bar)
     v9 = voice_es_corr(bar)
@@ -606,32 +646,50 @@ def evaluate(bar: Bar, st: SetupTriggers, regime: str,
     v12 = voice_delta(bar)
     v13 = voice_killzone(bar)
     # V14 needs range high/low and direction hint
-    range_hi = getattr(bar, 'range_high_50', None)
-    range_lo = getattr(bar, 'range_low_50', None)
+    range_hi = getattr(bar, "range_high_50", None)
+    range_lo = getattr(bar, "range_low_50", None)
     # Direction hint comes from setup voices
-    dir_hint = 1 if (st.orb_long or st.ema_long or st.sweep_long) else \
-               -1 if (st.orb_short or st.ema_short or st.sweep_short) else 0
+    dir_hint = (
+        1
+        if (st.orb_long or st.ema_long or st.sweep_long)
+        else -1
+        if (st.orb_short or st.ema_short or st.sweep_short)
+        else 0
+    )
     v14 = voice_premdisc(bar, range_hi, range_lo, dir_hint)
     # V15 needs prior 2 bars
-    p2_h = getattr(bar, 'p2_high', None)
-    p2_l = getattr(bar, 'p2_low', None)
+    p2_h = getattr(bar, "p2_high", None)
+    p2_l = getattr(bar, "p2_low", None)
     v15 = voice_fvg(bar, p2_high=p2_h, p2_low=p2_l)
 
-    voices = {"v1": v1, "v2": v2, "v3": v3, "v4": v4,
-              "v5": v5, "v6": v6, "v7": v7,
-              "v8": v8, "v9": v9, "v10": v10, "v11": v11,
-              "v12": v12, "v13": v13, "v14": v14, "v15": v15}
+    voices = {
+        "v1": v1,
+        "v2": v2,
+        "v3": v3,
+        "v4": v4,
+        "v5": v5,
+        "v6": v6,
+        "v7": v7,
+        "v8": v8,
+        "v9": v9,
+        "v10": v10,
+        "v11": v11,
+        "v12": v12,
+        "v13": v13,
+        "v14": v14,
+        "v15": v15,
+    }
 
     weights = compute_voice_weights(regime, cfg)
     # Normalize: only count weight from voices with non-zero data
     active_keys = []
-    for k, v in voices.items():
+    for k, _v in voices.items():
         if k in ("v8", "v9", "v10", "v11"):
             data_present = (
-                (k == "v8" and getattr(bar, 'vix_close', None) is not None) or
-                (k == "v9" and getattr(bar, 'es_close', None) is not None) or
-                (k == "v10" and getattr(bar, 'dxy_close', None) is not None) or
-                (k == "v11" and getattr(bar, 'tick_close', None) is not None)
+                (k == "v8" and getattr(bar, "vix_close", None) is not None)
+                or (k == "v9" and getattr(bar, "es_close", None) is not None)
+                or (k == "v10" and getattr(bar, "dxy_close", None) is not None)
+                or (k == "v11" and getattr(bar, "tick_close", None) is not None)
             )
             if data_present:
                 active_keys.append(k)
@@ -659,8 +717,7 @@ def evaluate(bar: Bar, st: SetupTriggers, regime: str,
     # Red Team for both directions, pick by quant direction
     is_long = direction > 0
     atr_ratio = _safe_div(bar.atr or 0, atr_ma20, 1.0)
-    red = red_team(is_long, bar, regime, recent_losses,
-                   prev_day_high, prev_day_low, atr_ratio)
+    red = red_team(is_long, bar, regime, recent_losses, prev_day_high, prev_day_low, atr_ratio)
     red_w = red_weight_for_regime(regime) * cfg.redteam_weight
     red_weighted = red * red_w
 
@@ -719,10 +776,24 @@ def evaluate(bar: Bar, st: SetupTriggers, regime: str,
 
 
 __all__ = [
-    "Bar", "SetupTriggers", "FirmConfig", "FirmDecision",
-    "detect_regime", "evaluate",
-    "voice_orb", "voice_ema", "voice_sweep", "voice_vwap_mr",
-    "voice_momentum", "voice_htf", "voice_liqvac",
-    "voice_vix", "voice_es_corr", "voice_dxy", "voice_tick",
-    "red_team", "compute_voice_weights", "red_weight_for_regime",
+    "Bar",
+    "SetupTriggers",
+    "FirmConfig",
+    "FirmDecision",
+    "detect_regime",
+    "evaluate",
+    "voice_orb",
+    "voice_ema",
+    "voice_sweep",
+    "voice_vwap_mr",
+    "voice_momentum",
+    "voice_htf",
+    "voice_liqvac",
+    "voice_vix",
+    "voice_es_corr",
+    "voice_dxy",
+    "voice_tick",
+    "red_team",
+    "compute_voice_weights",
+    "red_weight_for_regime",
 ]

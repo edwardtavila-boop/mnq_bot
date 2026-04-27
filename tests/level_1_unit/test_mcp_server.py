@@ -1,4 +1,5 @@
 """Level-1 tests for mnq.mcp.*."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -54,7 +55,9 @@ class TestExecutorStateStub:
         now = datetime(2026, 1, 2, 14, 30, tzinfo=UTC)
         s.push_fill({"ts": (now - timedelta(minutes=5)).isoformat(), "spec_hash": "h", "px": "100"})
         s.push_fill({"ts": now.isoformat(), "spec_hash": "h", "px": "101"})
-        s.push_fill({"ts": (now + timedelta(minutes=5)).isoformat(), "spec_hash": "h2", "px": "102"})
+        s.push_fill(
+            {"ts": (now + timedelta(minutes=5)).isoformat(), "spec_hash": "h2", "px": "102"}
+        )
         out = s.get_recent_fills(since_iso=now.isoformat(), spec_hash="h")
         assert len(out) == 1
         assert out[0]["px"] == "101"
@@ -74,9 +77,14 @@ class TestReadOnlyToolsContract:
     def test_all_eight_tools_present(self) -> None:
         _, _, tools = self._tools()
         expected = {
-            "get_strategy", "list_strategy_versions", "get_executor_state",
-            "get_session_pnl", "get_recent_fills", "get_risk_utilization",
-            "get_ws_health", "get_open_orders",
+            "get_strategy",
+            "list_strategy_versions",
+            "get_executor_state",
+            "get_session_pnl",
+            "get_recent_fills",
+            "get_risk_utilization",
+            "get_ws_health",
+            "get_open_orders",
         }
         assert set(tools.keys()) == expected
 

@@ -15,6 +15,7 @@ affect signal generation — it only affects journal timestamps.
 ``pnl_report.synth_day`` produces one day at a time. Days are
 chronologically ordered.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -58,7 +59,11 @@ CSV_5M = _pick(
 # Batch 3G uses this to extend the real-tape sample beyond the 15-day
 # RTH-tagged CSV so the firm_vs_baseline CI can tighten.
 CSV_DATABENTO_1M = _pick(
+    # Canonical Databento tape locations (historical priority order).
     "C:/mnq_data/databento/mnq1_1m.csv",
+    # Current on-disk tape (~22 days, epoch+OHLCV schema matches Databento
+    # loader). Used by backtest_real.py and walk_forward --source databento.
+    "C:/mnq_data/history/MNQ1_1m.csv",
     "/sessions/kind-keen-faraday/mnt/mnq_bot/data/bars/databento/mnq1_1m.csv",
 )
 

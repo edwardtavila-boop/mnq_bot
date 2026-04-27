@@ -1,11 +1,10 @@
 """Tests for mnq.observability.tolerance_harness — Phase 4 auto-divergence."""
+
 from __future__ import annotations
 
 import json
 import tempfile
 from pathlib import Path
-
-import pytest
 
 from mnq.observability.tolerance_harness import (
     AlertSeverity,
@@ -14,8 +13,8 @@ from mnq.observability.tolerance_harness import (
     ToleranceThresholds,
 )
 
-
 # ── HarnessState persistence ──────────────────────────────────────────
+
 
 class TestHarnessState:
     def test_load_missing_file_returns_defaults(self):
@@ -53,6 +52,7 @@ class TestHarnessState:
 
 # ── ToleranceThresholds defaults ───────────────────────────────────────
 
+
 class TestToleranceThresholds:
     def test_defaults_sensible(self):
         th = ToleranceThresholds()
@@ -65,6 +65,7 @@ class TestToleranceThresholds:
 
 
 # ── ToleranceHarness._classify ─────────────────────────────────────────
+
 
 class TestClassify:
     def test_ok_when_zero(self):
@@ -95,6 +96,7 @@ class TestClassify:
 
 # ── ToleranceHarness._emit_halt ────────────────────────────────────────
 
+
 class TestEmitHalt:
     def test_writes_hot_gate(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -109,6 +111,7 @@ class TestEmitHalt:
 
 
 # ── ToleranceHarness.reset_halt ────────────────────────────────────────
+
 
 class TestResetHalt:
     def test_resets_state_and_gate(self):

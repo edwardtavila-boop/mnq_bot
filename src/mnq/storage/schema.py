@@ -42,6 +42,7 @@ DRIFT_OK = "drift.ok"
 # Payload TypedDicts for common events
 class OrderSubmittedPayload(TypedDict, total=False):
     """Order submission event payload."""
+
     order_id: str
     symbol: str
     side: str
@@ -51,12 +52,14 @@ class OrderSubmittedPayload(TypedDict, total=False):
 
 class OrderAckedPayload(TypedDict, total=False):
     """Order acknowledged by exchange event payload."""
+
     order_id: str
     exchange_id: str
 
 
 class OrderWorkingPayload(TypedDict, total=False):
     """Order in market event payload."""
+
     order_id: str
     symbol: str
     quantity_remaining: int
@@ -64,6 +67,7 @@ class OrderWorkingPayload(TypedDict, total=False):
 
 class OrderPartialFillPayload(TypedDict, total=False):
     """Partial fill event payload."""
+
     order_id: str
     filled_quantity: int
     fill_price: float
@@ -72,6 +76,7 @@ class OrderPartialFillPayload(TypedDict, total=False):
 
 class OrderFilledPayload(TypedDict, total=False):
     """Order completely filled event payload."""
+
     order_id: str
     total_quantity: int
     avg_price: float
@@ -79,18 +84,21 @@ class OrderFilledPayload(TypedDict, total=False):
 
 class OrderRejectedPayload(TypedDict, total=False):
     """Order rejected event payload."""
+
     order_id: str
     reason: str
 
 
 class OrderCancelledPayload(TypedDict, total=False):
     """Order cancelled event payload."""
+
     order_id: str
     reason: str
 
 
 class PositionUpdatePayload(TypedDict, total=False):
     """Position update event payload."""
+
     symbol: str
     quantity: int
     avg_entry: float
@@ -98,6 +106,7 @@ class PositionUpdatePayload(TypedDict, total=False):
 
 class PnlUpdatePayload(TypedDict, total=False):
     """P&L update event payload."""
+
     realized_pnl: float
     unrealized_pnl: float
     total_pnl: float
@@ -105,30 +114,35 @@ class PnlUpdatePayload(TypedDict, total=False):
 
 class FeatureStalenessPayload(TypedDict, total=False):
     """Feature staleness detection event payload."""
+
     feature_name: str
     age_seconds: float
 
 
 class SafetyDecisionPayload(TypedDict, total=False):
     """Safety system decision event payload."""
+
     decision: str
     reason: str
 
 
 class WsConnectPayload(TypedDict, total=False):
     """WebSocket connection event payload."""
+
     endpoint: str
     timestamp: str
 
 
 class WsDisconnectPayload(TypedDict, total=False):
     """WebSocket disconnection event payload."""
+
     endpoint: str
     reason: str | None
 
 
 class WsGapDetectedPayload(TypedDict, total=False):
     """WebSocket message gap detection event payload."""
+
     endpoint: str
     expected_seq: int
     actual_seq: int
@@ -136,11 +150,13 @@ class WsGapDetectedPayload(TypedDict, total=False):
 
 class ReconcileStartPayload(TypedDict, total=False):
     """Reconciliation start event payload."""
+
     scope: str
 
 
 class ReconcileDiffPayload(TypedDict, total=False):
     """Reconciliation difference detected event payload."""
+
     scope: str
     field: str
     local_value: Any
@@ -149,6 +165,7 @@ class ReconcileDiffPayload(TypedDict, total=False):
 
 class FillExpectedPayload(TypedDict, total=False):
     """Fill expectation at order submission."""
+
     order_id: str
     symbol: str
     side: str
@@ -165,6 +182,7 @@ class FillExpectedPayload(TypedDict, total=False):
 
 class FillRealizedPayload(TypedDict, total=False):
     """Realized fill record (matched with expectation)."""
+
     order_id: str
     realized_price: str
     fill_qty: int
@@ -174,5 +192,6 @@ class FillRealizedPayload(TypedDict, total=False):
 
 class FillOrphanedPayload(TypedDict, total=False):
     """Fill with no matching expectation or expired expectation."""
+
     order_id: str
     reason: str  # "no_matching_expectation" or "timeout"

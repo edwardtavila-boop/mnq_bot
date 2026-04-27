@@ -8,6 +8,7 @@ Pin the contract:
   * The CLI imports run_eta_live.py via importlib spec
   * Default variant is r5_real_wide_target
 """
+
 from __future__ import annotations
 
 from typer.testing import CliRunner
@@ -70,7 +71,8 @@ def test_inspect_smoke_no_firm_review_no_tape() -> None:
     verify it exits 0 and prints the spec_payload section."""
     runner = CliRunner()
     result = runner.invoke(
-        app, ["inspect", "--no-firm-review", "--no-tape"],
+        app,
+        ["inspect", "--no-firm-review", "--no-tape"],
     )
     assert result.exit_code == 0
     assert "spec_payload" in result.output
@@ -81,9 +83,13 @@ def test_inspect_smoke_runs_for_unknown_variant_falls_back() -> None:
     falls back to a stub-provenance payload)."""
     runner = CliRunner()
     result = runner.invoke(
-        app, [
-            "inspect", "--no-firm-review", "--no-tape",
-            "--variant", "this_variant_definitely_does_not_exist_42",
+        app,
+        [
+            "inspect",
+            "--no-firm-review",
+            "--no-tape",
+            "--variant",
+            "this_variant_definitely_does_not_exist_42",
         ],
     )
     assert result.exit_code == 0

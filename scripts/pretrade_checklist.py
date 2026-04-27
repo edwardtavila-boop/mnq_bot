@@ -11,6 +11,7 @@ print.
 Usage:
     python scripts/pretrade_checklist.py --setup ORB
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,6 +37,7 @@ QUESTIONS = [
 def _speak(text: str) -> None:
     try:
         import pyttsx3  # type: ignore
+
         eng = pyttsx3.init()
         eng.say(text)
         eng.runAndWait()

@@ -8,6 +8,7 @@ verdict that downstream automations can consume.
 Usage:
     python scripts/trade_governor.py --max-trades 8 --loss-streak 3 --cooloff-min 30
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,21 +25,33 @@ from _trade_utils import load_trades  # noqa: E402
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--max-trades", type=int, default=8)
-    p.add_argument("--loss-streak", type=int, default=3,
-                   help="Trigger cool-off after N consecutive losses")
+    p.add_argument(
+        "--loss-streak", type=int, default=3, help="Trigger cool-off after N consecutive losses"
+    )
     p.add_argument("--cooloff-min", type=int, default=30)
-    p.add_argument("--max-daily-loss", type=float, default=-150.0,
-                   help="Hard USD daily loss cap (negative)")
-    p.add_argument("--advisory", action="store_true",
-                   help=("Advisory mode: compute the verdict and write the "
-                         "report as usual, but always return rc=0. Use for "
-                         "dev/replay runs where the journal contains synthetic "
-                         "fills that would trip the live-trading thresholds."))
-    p.add_argument("--strict-today", action="store_true",
-                   help=("Restrict 'today' to the current UTC calendar date "
-                         "only — never fall back to the most recent trade's "
-                         "exit date. Use this in live cron to prevent stale "
-                         "journal entries from tripping governor thresholds."))
+    p.add_argument(
+        "--max-daily-loss", type=float, default=-150.0, help="Hard USD daily loss cap (negative)"
+    )
+    p.add_argument(
+        "--advisory",
+        action="store_true",
+        help=(
+            "Advisory mode: compute the verdict and write the "
+            "report as usual, but always return rc=0. Use for "
+            "dev/replay runs where the journal contains synthetic "
+            "fills that would trip the live-trading thresholds."
+        ),
+    )
+    p.add_argument(
+        "--strict-today",
+        action="store_true",
+        help=(
+            "Restrict 'today' to the current UTC calendar date "
+            "only — never fall back to the most recent trade's "
+            "exit date. Use this in live cron to prevent stale "
+            "journal entries from tripping governor thresholds."
+        ),
+    )
     args = p.parse_args()
 
     trades = load_trades()
@@ -114,10 +127,7 @@ def main() -> int:
 
     REPORT_PATH.write_text("\n".join(lines) + "\n")
     mode = " [advisory]" if args.advisory else ""
-    print(
-        f"trade_governor{mode}: {verdict} · "
-        f"n={n_today} pnl={daily_pnl:+.2f} streak={streak}"
-    )
+    print(f"trade_governor{mode}: {verdict} · n={n_today} pnl={daily_pnl:+.2f} streak={streak}")
     if args.advisory:
         return 0
     return 0 if verdict == "PASS" else 1

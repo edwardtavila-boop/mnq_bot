@@ -8,6 +8,7 @@ is currently building a streak. Emits a state file that
 Usage:
     python scripts/loss_streak_monitor.py --max-streak 3
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,8 +27,9 @@ from _trade_utils import load_trades  # noqa: E402
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--max-streak", type=int, default=3,
-                   help="Trigger warning at this streak length")
+    p.add_argument(
+        "--max-streak", type=int, default=3, help="Trigger warning at this streak length"
+    )
     args = p.parse_args()
 
     trades = load_trades()
@@ -85,6 +87,7 @@ def main() -> int:
         "## Histogram (streak length → count)",
     ]
     from collections import Counter
+
     hist = Counter(s[0] for s in streaks)
     for k in sorted(hist):
         lines.append(f"- {k}: {'█' * hist[k]} ({hist[k]})")

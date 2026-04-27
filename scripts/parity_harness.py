@@ -20,6 +20,7 @@ Tolerances (defaults):
 Exit: 0 if live round-trip count == backtest round-trip count **and**
 every paired trade is within tolerance. 1 otherwise.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,7 +42,7 @@ BACKTEST_REPORT = REPO_ROOT / "reports" / "pnl_report.md"
 OUTPUT = REPO_ROOT / "reports" / "parity.md"
 
 # Tolerances
-PRICE_TOL_PT = 0.25   # 1 MNQ tick
+PRICE_TOL_PT = 0.25  # 1 MNQ tick
 QTY_TOL = 0
 TIME_TOL_SEC = 60
 
@@ -49,6 +50,7 @@ TIME_TOL_SEC = 60
 @dataclass(frozen=True, slots=True)
 class Trade:
     """One round-trip trade — entry paired with its exit."""
+
     seq: int
     side: str
     qty: int
@@ -110,16 +112,18 @@ def _load_live_sim_trades(db: Path) -> list[Trade]:
     for i in range(0, len(fills) - 1, 2):
         entry = fills[i]
         exit_ = fills[i + 1]
-        trades.append(Trade(
-            seq=(i // 2) + 1,
-            side=entry[4],
-            qty=entry[3],
-            entry_ts=entry[1],
-            entry_px=entry[2],
-            exit_ts=exit_[1],
-            exit_px=exit_[2],
-            source="live_sim",
-        ))
+        trades.append(
+            Trade(
+                seq=(i // 2) + 1,
+                side=entry[4],
+                qty=entry[3],
+                entry_ts=entry[1],
+                entry_px=entry[2],
+                exit_ts=exit_[1],
+                exit_px=exit_[2],
+                source="live_sim",
+            )
+        )
     return trades
 
 
@@ -148,12 +152,18 @@ def _load_backtest_trades(path: Path) -> list[Trade]:
             continue
         if entry_ts is None or exit_ts is None:
             continue
-        trades.append(Trade(
-            seq=n, side=side, qty=qty,
-            entry_ts=entry_ts, entry_px=entry_px,
-            exit_ts=exit_ts, exit_px=exit_px,
-            source="backtest",
-        ))
+        trades.append(
+            Trade(
+                seq=n,
+                side=side,
+                qty=qty,
+                entry_ts=entry_ts,
+                entry_px=entry_px,
+                exit_ts=exit_ts,
+                exit_px=exit_px,
+                source="backtest",
+            )
+        )
     return trades
 
 
@@ -161,22 +171,26 @@ def _pair_trades(live: list[Trade], bt: list[Trade]) -> list[tuple[Trade | None,
     n = max(len(live), len(bt))
     out: list[tuple[Trade | None, Trade | None]] = []
     for i in range(n):
-        out.append((live[i] if i < len(live) else None,
-                    bt[i] if i < len(bt) else None))
+        out.append((live[i] if i < len(live) else None, bt[i] if i < len(bt) else None))
     return out
 
 
 def _diff_pair(lv: Trade | None, bv: Trade | None) -> tuple[bool, dict[str, object]]:
     """Return ``(within_tol, diff_dict)`` for a single paired trade."""
     if lv is None or bv is None:
+
         def _asdict(t: Trade | None) -> dict | None:
             if t is None:
                 return None
             return {
-                "entry_ts": t.entry_ts.isoformat(), "entry_px": t.entry_px,
-                "exit_ts": t.exit_ts.isoformat(), "exit_px": t.exit_px,
-                "qty": t.qty, "side": t.side,
+                "entry_ts": t.entry_ts.isoformat(),
+                "entry_px": t.entry_px,
+                "exit_ts": t.exit_ts.isoformat(),
+                "exit_px": t.exit_px,
+                "qty": t.qty,
+                "side": t.side,
             }
+
         return False, {"status": "unmatched", "live": _asdict(lv), "backtest": _asdict(bv)}
 
     dpx_in = abs(lv.entry_px - bv.entry_px)
@@ -200,13 +214,15 @@ def _diff_pair(lv: Trade | None, bv: Trade | None) -> tuple[bool, dict[str, obje
         "dt_out_s": dt_out,
         "live": {
             "entry": f"{lv.entry_px} @ {lv.entry_ts.isoformat()}",
-            "exit":  f"{lv.exit_px} @ {lv.exit_ts.isoformat()}",
-            "qty": lv.qty, "side": lv.side,
+            "exit": f"{lv.exit_px} @ {lv.exit_ts.isoformat()}",
+            "qty": lv.qty,
+            "side": lv.side,
         },
         "backtest": {
             "entry": f"{bv.entry_px} @ {bv.entry_ts.isoformat()}",
-            "exit":  f"{bv.exit_px} @ {bv.exit_ts.isoformat()}",
-            "qty": bv.qty, "side": bv.side,
+            "exit": f"{bv.exit_px} @ {bv.exit_ts.isoformat()}",
+            "qty": bv.qty,
+            "side": bv.side,
         },
     }
 
@@ -243,7 +259,9 @@ def main() -> int:
         lines.append("strategy backtest to populate the baseline, then re-run this.")
         verdict_ok = True
     else:
-        lines.append("| # | status | Δpx in | Δpx out | Δt in (s) | Δt out (s) | live entry→exit | backtest entry→exit |")
+        lines.append(
+            "| # | status | Δpx in | Δpx out | Δt in (s) | Δt out (s) | live entry→exit | backtest entry→exit |"
+        )
         lines.append("|---:|---|---:|---:|---:|---:|---|---|")
         for i, (_ok, d) in enumerate(results, 1):
             if d["status"] == "unmatched":
@@ -251,9 +269,7 @@ def main() -> int:
                 bv = d.get("backtest") or {}
                 lv_str = f"{lv.get('entry', '—')} → {lv.get('exit', '—')}" if lv else "—"
                 bv_str = f"{bv.get('entry', '—')} → {bv.get('exit', '—')}" if bv else "—"
-                lines.append(
-                    f"| {i} | ❌ unmatched | — | — | — | — | {lv_str} | {bv_str} |"
-                )
+                lines.append(f"| {i} | ❌ unmatched | — | — | — | — | {lv_str} | {bv_str} |")
             else:
                 mark = "🟢 ok" if d["status"] == "ok" else "🔴 diverged"
                 lv = d["live"]

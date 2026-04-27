@@ -18,6 +18,7 @@ Strict invariants enforced here (not at the call site):
 The generator is pure / deterministic: same spec in → byte-identical
 source out. This is relied on by the snapshot test in Step 2's DoD.
 """
+
 from __future__ import annotations
 
 import re
@@ -137,7 +138,7 @@ class PineExprVisitor(Visitor):
 
     def __init__(self, *, feature_vars: dict[str, str], side: str) -> None:
         self.feature_vars = feature_vars  # feature_id -> Pine variable name
-        self.side = side                  # "long" or "short"
+        self.side = side  # "long" or "short"
 
     # -- combinators --
 
@@ -183,7 +184,7 @@ class PineExprVisitor(Visitor):
             if node.for_bars is not None:
                 # "true for N bars" == all of the last N bars satisfy it.
                 n = int(node.for_bars)
-                expr = f"_for_bars_ok({left}, {right}, \"{op}\", {n})"
+                expr = f'_for_bars_ok({left}, {right}, "{op}", {n})'
             elif node.on_bar is not None:
                 n = int(node.on_bar)
                 expr = f"(({left})[{n}] {op} ({right})[{n}])"
@@ -463,34 +464,40 @@ def render_pine(spec: StrategySpec) -> str:
     out(
         "strategy("
         f"title = {title}, "
-        'overlay = true, '
-        'pyramiding = 0, '
-        'calc_on_every_tick = false, '
-        'process_orders_on_close = false, '
-        'use_bar_magnifier = true, '
-        'default_qty_type = strategy.fixed, '
-        'default_qty_value = 1'
+        "overlay = true, "
+        "pyramiding = 0, "
+        "calc_on_every_tick = false, "
+        "process_orders_on_close = false, "
+        "use_bar_magnifier = true, "
+        "default_qty_type = strategy.fixed, "
+        "default_qty_value = 1"
         ")"
     )
     out("")
 
     # -- helpers --
     out("// --- helpers ---")
-    out("_json_str(x) => \"\\\"\" + str.tostring(x) + \"\\\"\"")
-    out("_json_bool(x) => x ? \"true\" : \"false\"")
+    out('_json_str(x) => "\\"" + str.tostring(x) + "\\""')
+    out('_json_bool(x) => x ? "true" : "false"')
     out("_json_num(x) => str.tostring(x)")
-    out("_bars_since_session_open = ta.barssince(ta.change(time(\"D\")) != 0)")
-    out("_session_end_bar_index = ta.valuewhen(session.isfirstbar_regular, bar_index, 0) "
-        "+ (timeframe.in_seconds(\"1D\") / timeframe.in_seconds(timeframe.period))")
-    out("_bars_since_entry = strategy.position_size != 0 ? "
+    out('_bars_since_session_open = ta.barssince(ta.change(time("D")) != 0)')
+    out(
+        "_session_end_bar_index = ta.valuewhen(session.isfirstbar_regular, bar_index, 0) "
+        '+ (timeframe.in_seconds("1D") / timeframe.in_seconds(timeframe.period))'
+    )
+    out(
+        "_bars_since_entry = strategy.position_size != 0 ? "
         "bar_index - ta.valuewhen(strategy.position_size[1] == 0 and strategy.position_size != 0, "
-        "bar_index, 0) : 0")
+        "bar_index, 0) : 0"
+    )
     out("_for_bars_ok(a, b, op, n) =>")
     out("    ok = true")
     out("    for i = 0 to n - 1")
-    out("        cur = op == \">\" ? a[i] > b[i] : op == \"<\" ? a[i] < b[i] : "
-        "op == \">=\" ? a[i] >= b[i] : op == \"<=\" ? a[i] <= b[i] : "
-        "op == \"==\" ? a[i] == b[i] : op == \"!=\" ? a[i] != b[i] : false")
+    out(
+        '        cur = op == ">" ? a[i] > b[i] : op == "<" ? a[i] < b[i] : '
+        'op == ">=" ? a[i] >= b[i] : op == "<=" ? a[i] <= b[i] : '
+        'op == "==" ? a[i] == b[i] : op == "!=" ? a[i] != b[i] : false'
+    )
     out("        ok := ok and cur")
     out("    ok")
     out("_crossed_within(fn, a, b, n) =>")
@@ -553,7 +560,9 @@ def render_pine(spec: StrategySpec) -> str:
             raise PineGenerationError("atr_multiple stop requires feature + multiplier")
         atr_var = feat_vars.get(stop.feature)
         if atr_var is None:
-            raise PineGenerationError(f"atr_multiple stop references unknown feature {stop.feature!r}")
+            raise PineGenerationError(
+                f"atr_multiple stop references unknown feature {stop.feature!r}"
+            )
         tick = _pine_num(spec.instrument.tick_size)
         mult = _pine_num(stop.multiplier)
         mn = int(stop.min_ticks)
@@ -583,7 +592,9 @@ def render_pine(spec: StrategySpec) -> str:
             raise PineGenerationError("atr_multiple target requires feature + multiplier")
         atr_var = feat_vars.get(tp.feature)
         if atr_var is None:
-            raise PineGenerationError(f"atr_multiple target references unknown feature {tp.feature!r}")
+            raise PineGenerationError(
+                f"atr_multiple target references unknown feature {tp.feature!r}"
+            )
         tick = _pine_num(spec.instrument.tick_size)
         mult = _pine_num(tp.multiplier)
         out(f"_tp_ticks = math.round(({atr_var} * {mult}) / {tick})")
@@ -599,11 +610,11 @@ def render_pine(spec: StrategySpec) -> str:
     # -- orders + alerts (single entry long/short, with bracket shown as comment) --
     out("// --- entries ---")
     out("if _long_entry")
-    out("    alert(_entry_json(\"long\"),  alert.freq_once_per_bar_close)")
-    out("    strategy.entry(\"long\",  strategy.long)")
+    out('    alert(_entry_json("long"),  alert.freq_once_per_bar_close)')
+    out('    strategy.entry("long",  strategy.long)')
     out("if _short_entry")
-    out("    alert(_entry_json(\"short\"), alert.freq_once_per_bar_close)")
-    out("    strategy.entry(\"short\", strategy.short)")
+    out('    alert(_entry_json("short"), alert.freq_once_per_bar_close)')
+    out('    strategy.entry("short", strategy.short)')
     out("")
 
     out("// --- exits (local; executor has its own OCO at venue) ---")
@@ -611,12 +622,18 @@ def render_pine(spec: StrategySpec) -> str:
     out("    _px = strategy.position_avg_price")
     out("    _sz = strategy.position_size")
     out("    _long = _sz > 0")
-    out("    _stop_px = _long ? _px - _stop_ticks * syminfo.mintick "
-        ": _px + _stop_ticks * syminfo.mintick")
-    out("    _tp_px   = _long ? _px + _tp_ticks   * syminfo.mintick "
-        ": _px - _tp_ticks   * syminfo.mintick")
-    out("    strategy.exit(\"bracket\", from_entry = _long ? \"long\" : \"short\", "
-        "stop = _stop_px, limit = _tp_px)")
+    out(
+        "    _stop_px = _long ? _px - _stop_ticks * syminfo.mintick "
+        ": _px + _stop_ticks * syminfo.mintick"
+    )
+    out(
+        "    _tp_px   = _long ? _px + _tp_ticks   * syminfo.mintick "
+        ": _px - _tp_ticks   * syminfo.mintick"
+    )
+    out(
+        '    strategy.exit("bracket", from_entry = _long ? "long" : "short", '
+        "stop = _stop_px, limit = _tp_px)"
+    )
     out("")
 
     src = "\n".join(lines) + "\n"
@@ -631,21 +648,21 @@ def _emit_alert_helpers(spec: StrategySpec) -> str:
     # crypto — this matches ALERT_CONTRACT "16 hex chars derived from time+bar_index".
     helpers = [
         "_bar_iso = str.format_time(time_close, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"UTC\")",
-        "_nonce() => str.format(\"{0}{1}\", time_close, bar_index)",
+        '_nonce() => str.format("{0}{1}", time_close, bar_index)',
         "_entry_json(_side) =>",
-        "    \"{\" + ",
-        "      \"\\\"schema_version\\\":1,\" + ",
-        "      \"\\\"event\\\":\\\"entry\\\",\" + ",
-        f"      \"\\\"spec_id\\\":\" + {_pine_str(spec.strategy.id)} + \",\" + ",
-        f"      \"\\\"spec_hash\\\":\" + {_pine_str(spec.strategy.content_hash or '')} + \",\" + ",
-        "      \"\\\"bar_time_iso\\\":\\\"\" + _bar_iso + \"\\\",\" + ",
-        "      \"\\\"bar_index\\\":\" + str.tostring(bar_index) + \",\" + ",
-        "      \"\\\"symbol\\\":\\\"\" + syminfo.tickerid + \"\\\",\" + ",
-        "      \"\\\"nonce\\\":\\\"\" + _nonce() + \"\\\",\" + ",
-        "      \"\\\"side\\\":\\\"\" + _side + \"\\\",\" + ",
-        "      \"\\\"stop_distance_ticks\\\":\" + str.tostring(_stop_ticks) + \",\" + ",
-        "      \"\\\"take_profit_distance_ticks\\\":\" + str.tostring(_tp_ticks) + ",
-        "    \"}\"",
+        '    "{" + ',
+        '      "\\"schema_version\\":1," + ',
+        '      "\\"event\\":\\"entry\\"," + ',
+        f'      "\\"spec_id\\":" + {_pine_str(spec.strategy.id)} + "," + ',
+        f'      "\\"spec_hash\\":" + {_pine_str(spec.strategy.content_hash or "")} + "," + ',
+        '      "\\"bar_time_iso\\":\\"" + _bar_iso + "\\"," + ',
+        '      "\\"bar_index\\":" + str.tostring(bar_index) + "," + ',
+        '      "\\"symbol\\":\\"" + syminfo.tickerid + "\\"," + ',
+        '      "\\"nonce\\":\\"" + _nonce() + "\\"," + ',
+        '      "\\"side\\":\\"" + _side + "\\"," + ',
+        '      "\\"stop_distance_ticks\\":" + str.tostring(_stop_ticks) + "," + ',
+        '      "\\"take_profit_distance_ticks\\":" + str.tostring(_tp_ticks) + ',
+        '    "}"',
     ]
     # The above is deliberately built as Python-string Pine code — deterministic.
     _ = spec_id, spec_hash

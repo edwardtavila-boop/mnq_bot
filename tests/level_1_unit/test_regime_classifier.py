@@ -15,6 +15,7 @@ synthetic bar windows to make precedence rules deterministic; they
 do NOT pin specific real-tape outputs (which would couple the test
 to historical data).
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -27,7 +28,11 @@ from mnq.risk.heat_budget import CanonicalRegime
 
 
 def _bar(
-    ts: datetime, c: float, *, h_off: float = 2.0, l_off: float = 2.0,
+    ts: datetime,
+    c: float,
+    *,
+    h_off: float = 2.0,
+    l_off: float = 2.0,
     o_off: float = 0.0,
 ) -> Bar:
     return Bar(
@@ -42,7 +47,10 @@ def _bar(
 
 
 def _series(
-    start: datetime, prices: list[float], *, h_off: float = 2.0,
+    start: datetime,
+    prices: list[float],
+    *,
+    h_off: float = 2.0,
     l_off: float = 2.0,
 ) -> list[Bar]:
     return [
@@ -74,9 +82,12 @@ def test_dead_zone_when_atr_collapses() -> None:
     bars = [
         Bar(
             ts=_START + timedelta(minutes=5 * i),
-            open=Decimal("21000"), high=Decimal("21000"),
-            low=Decimal("21000"), close=Decimal("21000"),
-            volume=100, timeframe_sec=300,
+            open=Decimal("21000"),
+            high=Decimal("21000"),
+            low=Decimal("21000"),
+            close=Decimal("21000"),
+            volume=100,
+            timeframe_sec=300,
         )
         for i in range(15)
     ]
@@ -119,7 +130,7 @@ def test_pure_range_classifies_as_range() -> None:
 def test_v_reversal_classifies_as_reversal() -> None:
     """Down then up by similar magnitudes -> reversal."""
     prices = (
-        [21000.0 - i * 8 for i in range(8)]   # down leg
+        [21000.0 - i * 8 for i in range(8)]  # down leg
         + [21000.0 - 56 + i * 8 for i in range(8)]  # up leg back near start
     )
     bars = _series(_START, prices)
@@ -129,10 +140,7 @@ def test_v_reversal_classifies_as_reversal() -> None:
 
 def test_inverted_v_reversal_classifies_as_reversal() -> None:
     """Up then down."""
-    prices = (
-        [21000.0 + i * 8 for i in range(8)]
-        + [21000.0 + 56 - i * 8 for i in range(8)]
-    )
+    prices = [21000.0 + i * 8 for i in range(8)] + [21000.0 + 56 - i * 8 for i in range(8)]
     bars = _series(_START, prices)
     result = classify_bars(bars)
     assert "reversal" in regime_label(result)
@@ -148,18 +156,24 @@ def test_high_vol_trend_classifies_correctly() -> None:
     bars = []
     # First 12 bars: tight range
     for i in range(12):
-        bars.append(_bar(
-            _START + timedelta(minutes=5 * i),
-            21000.0 + i * 5,
-            h_off=1.0, l_off=1.0,
-        ))
+        bars.append(
+            _bar(
+                _START + timedelta(minutes=5 * i),
+                21000.0 + i * 5,
+                h_off=1.0,
+                l_off=1.0,
+            )
+        )
     # Last 3 bars: very wide ranges (vol spike) AND continuing the trend
     for i in range(12, 15):
-        bars.append(_bar(
-            _START + timedelta(minutes=5 * i),
-            21000.0 + i * 5,
-            h_off=20.0, l_off=20.0,
-        ))
+        bars.append(
+            _bar(
+                _START + timedelta(minutes=5 * i),
+                21000.0 + i * 5,
+                h_off=20.0,
+                l_off=20.0,
+            )
+        )
     result = classify_bars(bars)
     # Should classify as some kind of trend (high or low vol acceptable
     # depending on calibration tightness)
@@ -179,18 +193,24 @@ def test_crash_classification_on_extreme_drop() -> None:
     bars = []
     # First 12 bars: stable
     for i in range(12):
-        bars.append(_bar(
-            _START + timedelta(minutes=5 * i),
-            21000.0,
-            h_off=1.0, l_off=1.0,
-        ))
+        bars.append(
+            _bar(
+                _START + timedelta(minutes=5 * i),
+                21000.0,
+                h_off=1.0,
+                l_off=1.0,
+            )
+        )
     # Last 3 bars: crash with massive vol
     for i, drop in enumerate([-30, -60, -100]):
-        bars.append(_bar(
-            _START + timedelta(minutes=5 * (12 + i)),
-            21000.0 + drop,
-            h_off=30.0, l_off=30.0,
-        ))
+        bars.append(
+            _bar(
+                _START + timedelta(minutes=5 * (12 + i)),
+                21000.0 + drop,
+                h_off=30.0,
+                l_off=30.0,
+            )
+        )
     result = classify_bars(bars)
     # Either CRASH (if vol_ratio crosses _VOL_EXTREME) or HIGH_VOL_TREND
     # (depending on rolling baseline). Both indicate "not safe to trade".

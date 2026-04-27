@@ -1,6 +1,6 @@
 # Firm Review — `r5_real_wide_target`
 
-_Auto-generated 2026-04-16 from `scripts/firm_review.py` · data: real_mnq_1m_rth (15 days)_
+_Auto-generated 2026-04-26 from `scripts/firm_review.py` · data: real_mnq_1m_rth (1 days)_
 
 ## Configuration
 
@@ -20,41 +20,35 @@ loss_cooldown_bars = 3
 
 ## Stage 1 — Quant (Spec)
 
-- **Sample size:** 8 trades over 15 days
-- **Net PnL:** $+11.50
-- **Expectancy / trade:** $+1.44 (= +0.072 R)
-- **Win rate:** 37.5%
-- **95% bootstrap CI on total PnL:** $-108.00 / $+136.50
+- **Sample size:** 1 trades over 1 days
+- **Net PnL:** $-21.00
+- **Expectancy / trade:** $-21.00 (= -1.050 R)
+- **Win rate:** 0.0%
+- **95% bootstrap CI on total PnL:** $-21.00 / $-21.00
 - **Risk per trade (spec):** 40 ticks = $20.00
 
 ### Per-regime breakdown
 
 | Regime | n | wins | win% | net PnL |
 |---|---:|---:|---:|---:|
-| `real_chop` | 0 | 0 | 0.0% | $+0.00 |
-| `real_high_vol` | 3 | 1 | 33.3% | $-4.00 |
-| `real_trend_down` | 3 | 1 | 33.3% | $-4.00 |
-| `real_trend_up` | 2 | 1 | 50.0% | $+19.50 |
+| `real_trend_down` | 1 | 0 | 0.0% | $-21.00 |
 
 ### Per exit reason
 
 | Reason | n | net PnL |
 |---|---:|---:|
-| `stop` | 5 | $-108.00 |
-| `take_profit` | 3 | $+119.50 |
+| `stop` | 1 | $-21.00 |
 
 ## Stage 2 — Red Team (Attack)
 
-- **Sample size.** n=8 trades over 15 days is well below the 30-trade threshold for estimating expectancy. The bootstrap CI straddles zero — we cannot reject a null of zero edge.
-- **CI includes zero.** 95% bootstrap on total PnL is [$-108.00, $+136.50]. The lower bound shows a plausible net loss of this magnitude over the same 15-day window.
-- **Win rate is low (37.5%).** Expectancy depends on 1-2 fat-tail winners. If the target-fill distribution changes (e.g. more choppy days), the strategy goes negative fast.
-- **Regime bleed.** `real_trend_down` contributes $-4.00 across 3 trades. If this regime dominates the next month, net PnL turns negative.
+- **Sample size.** n=1 trades over 1 days is well below the 30-trade threshold for estimating expectancy. The bootstrap CI straddles zero — we cannot reject a null of zero edge.
+- **Regime bleed.** `real_trend_down` contributes $-21.00 across 1 trades. If this regime dominates the next month, net PnL turns negative.
 - **Slippage drag.** Live-sim journal shows +1.11 ticks mean slippage (p95 +2.0). At 40-tick stops this is a material cost drag.
 
 ## Stage 3 — Risk Manager (Sizing)
 
-- **Full Kelly estimate:** 0.062 (uses observed WR and spec rr)
-- **Fractional Kelly (1/4, capped 2%):** 1.56% of equity per trade
+- **Full Kelly estimate:** 0.000 (uses observed WR and spec rr)
+- **Fractional Kelly (1/4, capped 2%):** 0.00% of equity per trade
 - **Risk per trade in dollars:** $20.00 per contract, 1 contract
 - **Daily stop:** -3R (hard breaker at -$60 on a 40-tick risk)
 - **Weekly stop:** -8R
@@ -78,7 +72,7 @@ loss_cooldown_bars = 3
 
 ## Stage 6 — PM (Decide)
 
-- **Verdict:** **SHIP TO INTERNAL-SIM** with mandatory 30-day observation. Do not escalate to paper or live until falsification window completes clean.
+- **Verdict:** **HOLD.** Sample or expectancy does not clear the ship threshold (n≥8, E[trade]>0, CI upper>0).
 - **Monitoring:** every 10 new trades, rerun this review and diff against prior memo
 
 ## One-page Decision Memo
@@ -86,19 +80,19 @@ loss_cooldown_bars = 3
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STRATEGY DECISION MEMO
-ID: r5_real_wide_target   Date: 2026-04-16   Author: edward avila
+ID: r5_real_wide_target   Date: 2026-04-26   Author: edward avila
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 THESIS (one sentence)
   EMA9/EMA21 cross on MNQ 1m RTH with vol + flow gates, rr=2.0, risk=40t, captures afternoon drift more than morning noise.
 
 EVIDENCE (3 bullets, numeric)
-  • 8 trades / 15 days, net $+11.50, WR 37.5%, E[trade] $+1.44
-  • 95% boot CI on total PnL: $-108.00 / $+136.50
-  • Best regime bucket: `real_trend_up` (2 trades, $+19.50)
+  • 1 trades / 1 days, net $-21.00, WR 0.0%, E[trade] $-21.00
+  • 95% boot CI on total PnL: $-21.00 / $-21.00
+  • Best regime bucket: `real_trend_down` (1 trades, $-21.00)
 
 RED TEAM'S PRIMARY DISSENT (verbatim)
-  **Sample size.** n=8 trades over 15 days is well below the 30-trade threshold for estimating expectancy. The bootstrap CI straddles zero — we cannot reject a null of zero edge.
+  **Sample size.** n=1 trades over 1 days is well below the 30-trade threshold for estimating expectancy. The bootstrap CI straddles zero — we cannot reject a null of zero edge.
 
 RESOLUTION
   [ ] Fixed — how: _______
@@ -106,14 +100,14 @@ RESOLUTION
   [ ] Overridden — rationale: _______
 
 SIZING
-  Risk per trade: 1.56%   Kelly fraction: 0.016 (1/4 capped)
+  Risk per trade: 0.00%   Kelly fraction: 0.000 (1/4 capped)
   Daily stop: -3R   Weekly: -8R   DD kill: -15R
 
 FALSIFICATION
-  I abandon this by 2026-05-16 if ANY of:
+  I abandon this by 2026-05-26 if ANY of:
   • Live expectancy < +0.05R across first 30 new trades
   • Slippage p95 exceeds +3.0 ticks over any 10-trade window
-  • Net PnL < lower-CI bound ($-108.00) for trailing 15 days
+  • Net PnL < lower-CI bound ($-21.00) for trailing 15 days
   • Any single loss exceeds 120 ticks (= 3x intended risk)
 
 MONITORING

@@ -143,19 +143,13 @@ def summarize_env(
     winning_trades = sum(1 for t in trades if t.pnl_dollars > 0)
     losing_trades = sum(1 for t in trades if t.pnl_dollars < 0)
     decisive_trades = winning_trades + losing_trades
-    win_rate = (
-        float(winning_trades) / float(decisive_trades) if decisive_trades > 0 else 0.0
-    )
+    win_rate = float(winning_trades) / float(decisive_trades) if decisive_trades > 0 else 0.0
 
     # Expectancy: avg PnL per trade
-    expectancy_dollars: Decimal = (
-        total_pnl / Decimal(n_trades) if n_trades > 0 else Decimal("0")
-    )
+    expectancy_dollars: Decimal = total_pnl / Decimal(n_trades) if n_trades > 0 else Decimal("0")
 
     # Avg slippage
-    avg_slippage_ticks = (
-        float(np.mean(slippage_values)) if slippage_values else 0.0
-    )
+    avg_slippage_ticks = float(np.mean(slippage_values)) if slippage_values else 0.0
 
     return EnvSummary(
         env=env_label,
@@ -228,9 +222,9 @@ def compare_envs(
         )
 
         # Alert if CI excludes zero and diff is large
-        if (
-            trade_pnl_diff_ci.lo > 0 or trade_pnl_diff_ci.hi < 0
-        ) and abs(trade_pnl_diff_ci.point) > divergence_threshold_dollars:
+        if (trade_pnl_diff_ci.lo > 0 or trade_pnl_diff_ci.hi < 0) and abs(
+            trade_pnl_diff_ci.point
+        ) > divergence_threshold_dollars:
             direction = "better" if trade_pnl_diff_ci.point > 0 else "worse"
             alerts.append(
                 f"PnL divergence: live is ${abs(trade_pnl_diff_ci.point):.2f}/trade "
@@ -319,8 +313,7 @@ def render_report(report: ParityReport) -> str:
     lines.append("\nPAIRED PnL BOOTSTRAP (live - paper):")
     lines.append(f"  Point Est:     ${report.trade_pnl_diff_ci.point:+.2f}/trade")
     lines.append(
-        f"  95% CI:        [${report.trade_pnl_diff_ci.lo:.2f}, "
-        f"${report.trade_pnl_diff_ci.hi:.2f}]"
+        f"  95% CI:        [${report.trade_pnl_diff_ci.lo:.2f}, ${report.trade_pnl_diff_ci.hi:.2f}]"
     )
     lines.append(f"  CI Width:      ${report.trade_pnl_diff_ci.width:.2f}")
     lines.append(f"  N Trades:      {report.trade_pnl_diff_ci.n}")

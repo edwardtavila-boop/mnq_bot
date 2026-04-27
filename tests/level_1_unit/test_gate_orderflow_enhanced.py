@@ -1,4 +1,5 @@
 """Tests for enhanced gate_orderflow and gate_correlation — Batch 7A/7B."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -19,6 +20,7 @@ def _ctx(**kw) -> GauntletContext:
 
 
 # ── gate_orderflow: Tier 1 (full order flow) ──────────────────────────
+
 
 class TestOrderflowTier1:
     def test_cvd_positive_long_passes(self) -> None:
@@ -49,10 +51,15 @@ class TestOrderflowTier1:
         assert bonus.score > base.score
 
     def test_max_score_all_aligned(self) -> None:
-        v = gate_orderflow(_ctx(
-            cvd=200.0, imbalance=0.5, absorption_score=0.9,
-            buy_aggressor_pct=0.9, side="long",
-        ))
+        v = gate_orderflow(
+            _ctx(
+                cvd=200.0,
+                imbalance=0.5,
+                absorption_score=0.9,
+                buy_aggressor_pct=0.9,
+                side="long",
+            )
+        )
         assert v.score == 1.0
 
     def test_imbalance_threshold(self) -> None:
@@ -63,6 +70,7 @@ class TestOrderflowTier1:
 
 
 # ── gate_orderflow: Tier 2 (CVD only) ─────────────────────────────────
+
 
 class TestOrderflowTier2:
     def test_cvd_only_positive_long(self) -> None:
@@ -78,6 +86,7 @@ class TestOrderflowTier2:
 
 # ── gate_orderflow: Tier 3 (proxy fallback) ───────────────────────────
 
+
 class TestOrderflowTier3:
     def test_proxy_with_sufficient_bars(self) -> None:
         closes = [20000 + i for i in range(10)]
@@ -92,6 +101,7 @@ class TestOrderflowTier3:
 
 
 # ── gate_correlation: Mode 2 (computed) ────────────────────────────────
+
 
 class TestCorrelationComputed:
     def test_perfectly_correlated(self) -> None:
@@ -131,6 +141,7 @@ class TestCorrelationComputed:
 
 
 # ── bridge populates orderflow fields ──────────────────────────────────
+
 
 class TestBridgeOrderflowIntegration:
     def test_context_from_bars_has_cvd(self) -> None:

@@ -9,6 +9,7 @@ Verifies:
 - When no known-good source is available, it raises (or returns
   based on ``raise_on_failure``).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -74,6 +75,7 @@ def fake_shim(tmp_path: Path) -> Path:
 
 # ---- health checks -----------------------------------------------------------
 
+
 class TestCheckShimHealth:
     def test_missing_file(self, fake_shim: Path):
         h = check_shim_health(fake_shim)
@@ -114,6 +116,7 @@ class TestCheckShimHealth:
 
 
 # ---- self-heal behavior ------------------------------------------------------
+
 
 class TestEnsureFirmRuntimeHealthy:
     def test_noop_when_healthy(self, fake_shim: Path, tmp_path: Path):
@@ -157,13 +160,17 @@ class TestEnsureFirmRuntimeHealthy:
         missing = fake_shim.parent / "does_not_exist.py"
 
         h = ensure_firm_runtime_healthy(
-            fake_shim, known_good=missing, raise_on_failure=False,
+            fake_shim,
+            known_good=missing,
+            raise_on_failure=False,
         )
         assert h.ok is False
         assert h.reason == "truncated_no_return"
 
     def test_raises_when_known_good_is_itself_corrupt(
-        self, fake_shim: Path, tmp_path: Path,
+        self,
+        fake_shim: Path,
+        tmp_path: Path,
     ):
         fake_shim.write_text(_TRUNCATED_SHIM_CONTENT)
         corrupt = tmp_path / "corrupt.py"
@@ -248,11 +255,7 @@ class TestCheckFileHealth:
 
     def test_detects_class_and_function_defs(self, tmp_path: Path):
         p = tmp_path / "mod.py"
-        p.write_text(
-            "class Foo: ...\n"
-            "def bar(): return 1\n"
-            "BAZ: int = 3\n"
-        )
+        p.write_text("class Foo: ...\ndef bar(): return 1\nBAZ: int = 3\n")
         h = check_file_health(p, required_symbols=("Foo", "bar", "BAZ"))
         assert h.ok is True
 
@@ -320,26 +323,28 @@ class TestMidFunctionTruncation:
     passes; only the ``last-stmt-is-Return`` check catches it.
     """
 
-    _FULL = '''
+    _FULL = """
 def process(x):
     if x is None:
         return None
     y = x + 1
     return y
-'''
+"""
 
-    _TRUNCATED_MID_BODY = '''
+    _TRUNCATED_MID_BODY = """
 def process(x):
     if x is None:
         return None
     y = x + 1
-'''
+"""
 
     def test_full_function_is_healthy(self, tmp_path: Path):
         p = tmp_path / "mod.py"
         p.write_text(self._FULL)
         h = check_file_health(
-            p, required_symbols=("process",), required_fn_returns=("process",),
+            p,
+            required_symbols=("process",),
+            required_fn_returns=("process",),
         )
         assert h.ok is True
 
@@ -347,22 +352,26 @@ def process(x):
         p = tmp_path / "mod.py"
         p.write_text(self._TRUNCATED_MID_BODY)
         h = check_file_health(
-            p, required_symbols=("process",), required_fn_returns=("process",),
+            p,
+            required_symbols=("process",),
+            required_fn_returns=("process",),
         )
         assert h.ok is False
         assert "truncated_body_missing_final_return" in h.reason
 
     def test_if_else_both_returning_passes(self, tmp_path: Path):
         p = tmp_path / "mod.py"
-        p.write_text('''
+        p.write_text("""
 def process(x):
     if x:
         return 1
     else:
         return 2
-''')
+""")
         h = check_file_health(
-            p, required_symbols=("process",), required_fn_returns=("process",),
+            p,
+            required_symbols=("process",),
+            required_fn_returns=("process",),
         )
         assert h.ok is True
 

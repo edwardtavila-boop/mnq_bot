@@ -1,4 +1,5 @@
 """Tests for rolling calibration — Batch 7C."""
+
 from __future__ import annotations
 
 import math
@@ -101,8 +102,8 @@ class TestDriftDetection:
 
     def test_drift_detected_on_shift(self) -> None:
         # First 4 epochs: well-calibrated. Last epoch: terrible.
-        good = [(0.6, 1), (0.4, 0)] * 90   # 180 trades, stable
-        bad = [(0.0, 1), (1.0, 0)] * 30     # 60 trades, inverted
+        good = [(0.6, 1), (0.4, 0)] * 90  # 180 trades, stable
+        bad = [(0.0, 1), (1.0, 0)] * 30  # 60 trades, inverted
         outcomes = good + bad
         cal = RollingCalibration(window=60, step=30, drift_z=2.0, min_epochs_for_z=3)
         epochs = cal.evaluate(outcomes)

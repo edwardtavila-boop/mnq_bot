@@ -10,6 +10,7 @@ Pin the contract B4 (per-bar Firm review) depends on:
 
 Uses a tiny synthetic CSV so the test is fast and deterministic.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -106,6 +107,7 @@ def test_default_tape_path_points_at_databento_dir() -> None:
     BARS_DATABENTO_DIR (mnq.core.paths). This pin catches drift if the
     paths registry is renamed and the tape forgets to follow."""
     from mnq.core.paths import BARS_DATABENTO_DIR
+
     assert DEFAULT_DATABENTO_5M.parent == BARS_DATABENTO_DIR
     assert DEFAULT_DATABENTO_5M.name == "mnq1_5m.csv"
 

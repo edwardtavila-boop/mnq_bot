@@ -177,9 +177,7 @@ class TestMetrics:
         orders_rejected_total.labels(reason="insufficient_funds").inc()
         orders_rejected_total.labels(reason="circuit_breaker").inc(2)
 
-        assert (
-            orders_rejected_total.labels(reason="insufficient_funds")._value.get() == 1
-        )
+        assert orders_rejected_total.labels(reason="insufficient_funds")._value.get() == 1
         assert orders_rejected_total.labels(reason="circuit_breaker")._value.get() == 2
 
     def test_fill_slippage_histogram(self) -> None:
@@ -226,13 +224,10 @@ class TestMetrics:
         safety_decisions_total.labels(allowed=False, reason="daily_loss_limit").inc(2)
 
         assert (
-            safety_decisions_total.labels(allowed=True, reason="position_limit")
-            ._value.get()
-            == 1
+            safety_decisions_total.labels(allowed=True, reason="position_limit")._value.get() == 1
         )
         assert (
-            safety_decisions_total.labels(allowed=False, reason="daily_loss_limit")
-            ._value.get()
+            safety_decisions_total.labels(allowed=False, reason="daily_loss_limit")._value.get()
             == 2
         )
 
@@ -271,6 +266,7 @@ class TestMetricsServer:
 
             # Give the server a moment to start
             import time
+
             time.sleep(0.1)
 
             # Try to fetch metrics
@@ -279,8 +275,8 @@ class TestMetricsServer:
 
             # Verify metrics content contains our counter
             assert "orders_submitted_total" in response.text
-            assert "side=\"buy\"" in response.text
-            assert "order_type=\"limit\"" in response.text
+            assert 'side="buy"' in response.text
+            assert 'order_type="limit"' in response.text
         except Exception as e:
             # If server fails (port in use, etc), skip test
             pytest.skip(f"Could not start metrics server: {e}")
@@ -292,7 +288,4 @@ class TestMetricsServer:
 
         # After reset, metrics should still be usable
         orders_submitted_total.labels(side="sell", order_type="market").inc(1)
-        assert (
-            orders_submitted_total.labels(side="sell", order_type="market")._value.get()
-            >= 1
-        )
+        assert orders_submitted_total.labels(side="sell", order_type="market")._value.get() >= 1

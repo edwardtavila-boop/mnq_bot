@@ -13,6 +13,7 @@ Pin the contract:
   * --json output omits the rows list (large) and includes summary
     counts
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -29,7 +30,8 @@ SCRIPT = REPO_ROOT / "scripts" / "morning_report.py"
 @pytest.fixture(scope="module")
 def morning_mod():
     spec = importlib.util.spec_from_file_location(
-        "morning_report_for_test", SCRIPT,
+        "morning_report_for_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -54,10 +56,12 @@ def test_drift_excludes_variants_with_no_recency(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "v1", "expected_expectancy_r": 0.5,
-             "recency_weighted_expectancy_r": None},
-            {"variant": "v2", "expected_expectancy_r": 0.5,
-             "recency_weighted_expectancy_r": 0.0},  # delta -0.5R
+            {"variant": "v1", "expected_expectancy_r": 0.5, "recency_weighted_expectancy_r": None},
+            {
+                "variant": "v2",
+                "expected_expectancy_r": 0.5,
+                "recency_weighted_expectancy_r": 0.0,
+            },  # delta -0.5R
         ],
     }
     drift = morning_mod._gather_drift(variants)
@@ -71,9 +75,12 @@ def test_drift_threshold_below_skipped(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "v_steady", "expected_expectancy_r": 0.10,
-             "recency_weighted_expectancy_r": 0.13,  # delta +0.03R
-             "bucket": "WATCH"},
+            {
+                "variant": "v_steady",
+                "expected_expectancy_r": 0.10,
+                "recency_weighted_expectancy_r": 0.13,  # delta +0.03R
+                "bucket": "WATCH",
+            },
         ],
     }
     assert morning_mod._gather_drift(variants) == []
@@ -83,9 +90,12 @@ def test_drift_fading_tag(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "v_fade", "expected_expectancy_r": 0.50,
-             "recency_weighted_expectancy_r": 0.10,  # delta -0.4R
-             "bucket": "WATCH"},
+            {
+                "variant": "v_fade",
+                "expected_expectancy_r": 0.50,
+                "recency_weighted_expectancy_r": 0.10,  # delta -0.4R
+                "bucket": "WATCH",
+            },
         ],
     }
     drift = morning_mod._gather_drift(variants)
@@ -98,9 +108,12 @@ def test_drift_growing_tag(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "v_grow", "expected_expectancy_r": 0.10,
-             "recency_weighted_expectancy_r": 0.50,  # delta +0.4R
-             "bucket": "WATCH"},
+            {
+                "variant": "v_grow",
+                "expected_expectancy_r": 0.10,
+                "recency_weighted_expectancy_r": 0.50,  # delta +0.4R
+                "bucket": "WATCH",
+            },
         ],
     }
     drift = morning_mod._gather_drift(variants)
@@ -113,15 +126,24 @@ def test_drift_sorted_by_abs_delta_desc(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "small", "expected_expectancy_r": 0.10,
-             "recency_weighted_expectancy_r": 0.16,  # +0.06R
-             "bucket": "WATCH"},
-            {"variant": "huge", "expected_expectancy_r": 0.50,
-             "recency_weighted_expectancy_r": -0.10,  # -0.6R
-             "bucket": "WATCH"},
-            {"variant": "medium", "expected_expectancy_r": 0.10,
-             "recency_weighted_expectancy_r": 0.30,  # +0.20R
-             "bucket": "WATCH"},
+            {
+                "variant": "small",
+                "expected_expectancy_r": 0.10,
+                "recency_weighted_expectancy_r": 0.16,  # +0.06R
+                "bucket": "WATCH",
+            },
+            {
+                "variant": "huge",
+                "expected_expectancy_r": 0.50,
+                "recency_weighted_expectancy_r": -0.10,  # -0.6R
+                "bucket": "WATCH",
+            },
+            {
+                "variant": "medium",
+                "expected_expectancy_r": 0.10,
+                "recency_weighted_expectancy_r": 0.30,  # +0.20R
+                "bucket": "WATCH",
+            },
         ],
     }
     drift = morning_mod._gather_drift(variants)
@@ -137,11 +159,13 @@ def test_top_variants_excludes_none_recency(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "v1", "expected_expectancy_r": 0.5,
-             "recency_weighted_expectancy_r": None},
-            {"variant": "v2", "expected_expectancy_r": 0.1,
-             "recency_weighted_expectancy_r": 0.2,
-             "bucket": "WATCH"},
+            {"variant": "v1", "expected_expectancy_r": 0.5, "recency_weighted_expectancy_r": None},
+            {
+                "variant": "v2",
+                "expected_expectancy_r": 0.1,
+                "recency_weighted_expectancy_r": 0.2,
+                "bucket": "WATCH",
+            },
         ],
     }
     top = morning_mod._gather_top_variants(variants)
@@ -154,15 +178,24 @@ def test_top_variants_sorted_by_e_recency_desc(morning_mod) -> None:
     variants = {
         "available": True,
         "rows": [
-            {"variant": "low", "expected_expectancy_r": 0.0,
-             "recency_weighted_expectancy_r": 0.05,
-             "bucket": "WATCH"},
-            {"variant": "high", "expected_expectancy_r": 0.0,
-             "recency_weighted_expectancy_r": 0.50,
-             "bucket": "KEEP"},
-            {"variant": "mid", "expected_expectancy_r": 0.0,
-             "recency_weighted_expectancy_r": 0.20,
-             "bucket": "WATCH"},
+            {
+                "variant": "low",
+                "expected_expectancy_r": 0.0,
+                "recency_weighted_expectancy_r": 0.05,
+                "bucket": "WATCH",
+            },
+            {
+                "variant": "high",
+                "expected_expectancy_r": 0.0,
+                "recency_weighted_expectancy_r": 0.50,
+                "bucket": "KEEP",
+            },
+            {
+                "variant": "mid",
+                "expected_expectancy_r": 0.0,
+                "recency_weighted_expectancy_r": 0.20,
+                "bucket": "WATCH",
+            },
         ],
     }
     top = morning_mod._gather_top_variants(variants, top_n=10)
@@ -171,9 +204,12 @@ def test_top_variants_sorted_by_e_recency_desc(morning_mod) -> None:
 
 def test_top_variants_caps_at_top_n(morning_mod) -> None:
     rows = [
-        {"variant": f"v{i}", "expected_expectancy_r": 0.0,
-         "recency_weighted_expectancy_r": float(10 - i),
-         "bucket": "WATCH"}
+        {
+            "variant": f"v{i}",
+            "expected_expectancy_r": 0.0,
+            "recency_weighted_expectancy_r": float(10 - i),
+            "bucket": "WATCH",
+        }
         for i in range(10)
     ]
     variants = {"available": True, "rows": rows}
@@ -189,23 +225,31 @@ def test_top_variants_caps_at_top_n(morning_mod) -> None:
 
 
 def test_render_doctor_section_handles_unavailable(morning_mod) -> None:
-    lines = morning_mod._render_doctor_section({
-        "available": False, "error": "test error",
-    })
+    lines = morning_mod._render_doctor_section(
+        {
+            "available": False,
+            "error": "test error",
+        }
+    )
     md = "\n".join(lines)
     assert "Doctor" in md
     assert "test error" in md
 
 
 def test_render_doctor_section_renders_check_table(morning_mod) -> None:
-    lines = morning_mod._render_doctor_section({
-        "available": True,
-        "checks": [
-            {"name": "python_version", "status": "ok", "detail": "Python 3.13"},
-            {"name": "regime_evidence", "status": "warn", "detail": "no edge"},
-        ],
-        "n_total": 2, "n_ok": 1, "n_warn": 1, "n_fail": 0,
-    })
+    lines = morning_mod._render_doctor_section(
+        {
+            "available": True,
+            "checks": [
+                {"name": "python_version", "status": "ok", "detail": "Python 3.13"},
+                {"name": "regime_evidence", "status": "warn", "detail": "no edge"},
+            ],
+            "n_total": 2,
+            "n_ok": 1,
+            "n_warn": 1,
+            "n_fail": 0,
+        }
+    )
     md = "\n".join(lines)
     assert "python_version" in md
     assert "OK" in md
@@ -217,13 +261,18 @@ def test_render_doctor_truncates_long_detail(morning_mod) -> None:
     """Detail strings > 80 chars are truncated with '...' so the
     table stays readable."""
     long_detail = "x" * 200
-    lines = morning_mod._render_doctor_section({
-        "available": True,
-        "checks": [
-            {"name": "test", "status": "warn", "detail": long_detail},
-        ],
-        "n_total": 1, "n_ok": 0, "n_warn": 1, "n_fail": 0,
-    })
+    lines = morning_mod._render_doctor_section(
+        {
+            "available": True,
+            "checks": [
+                {"name": "test", "status": "warn", "detail": long_detail},
+            ],
+            "n_total": 1,
+            "n_ok": 0,
+            "n_warn": 1,
+            "n_fail": 0,
+        }
+    )
     md = "\n".join(lines)
     # The full 200-char string should NOT appear
     assert long_detail not in md
@@ -233,14 +282,18 @@ def test_render_doctor_truncates_long_detail(morning_mod) -> None:
 def test_render_doctor_escapes_pipe_in_detail(morning_mod) -> None:
     """Pipe characters in detail break markdown tables -- they must
     be escaped or stripped."""
-    lines = morning_mod._render_doctor_section({
-        "available": True,
-        "checks": [
-            {"name": "x", "status": "warn",
-             "detail": "a | b | c"},  # pipe characters
-        ],
-        "n_total": 1, "n_ok": 0, "n_warn": 1, "n_fail": 0,
-    })
+    lines = morning_mod._render_doctor_section(
+        {
+            "available": True,
+            "checks": [
+                {"name": "x", "status": "warn", "detail": "a | b | c"},  # pipe characters
+            ],
+            "n_total": 1,
+            "n_ok": 0,
+            "n_warn": 1,
+            "n_fail": 0,
+        }
+    )
     md = "\n".join(lines)
     # The escaped form `\|` should appear instead of bare pipes mid-detail
     assert "a \\| b" in md
@@ -250,7 +303,9 @@ def test_render_variants_section_lists_keep_and_watch(morning_mod) -> None:
     variants = {
         "available": True,
         "n_total": 3,
-        "n_keep": 1, "n_watch": 1, "n_prune": 1,
+        "n_keep": 1,
+        "n_watch": 1,
+        "n_prune": 1,
         "keep": ["v_keep"],
         "watch": ["v_watch"],
         "prune_sample": ["v_prune"],
@@ -271,14 +326,16 @@ def test_render_drift_empty_says_no_drift(morning_mod) -> None:
 
 
 def test_render_drift_table_has_required_columns(morning_mod) -> None:
-    drift = [{
-        "variant": "v_fade",
-        "tag": "FADING",
-        "expected_expectancy_r": 0.5,
-        "recency_weighted_expectancy_r": 0.1,
-        "delta_r": -0.4,
-        "bucket": "WATCH",
-    }]
+    drift = [
+        {
+            "variant": "v_fade",
+            "tag": "FADING",
+            "expected_expectancy_r": 0.5,
+            "recency_weighted_expectancy_r": 0.1,
+            "delta_r": -0.4,
+            "bucket": "WATCH",
+        }
+    ]
     lines = morning_mod._render_drift_section(drift)
     md = "\n".join(lines)
     assert "v_fade" in md
@@ -295,10 +352,18 @@ def test_render_top_section_handles_empty(morning_mod) -> None:
 
 def test_render_top_section_includes_rank(morning_mod) -> None:
     top = [
-        {"variant": "v1", "expected_expectancy_r": 0.10,
-         "recency_weighted_expectancy_r": 0.50, "bucket": "WATCH"},
-        {"variant": "v2", "expected_expectancy_r": 0.20,
-         "recency_weighted_expectancy_r": 0.30, "bucket": "WATCH"},
+        {
+            "variant": "v1",
+            "expected_expectancy_r": 0.10,
+            "recency_weighted_expectancy_r": 0.50,
+            "bucket": "WATCH",
+        },
+        {
+            "variant": "v2",
+            "expected_expectancy_r": 0.20,
+            "recency_weighted_expectancy_r": 0.30,
+            "bucket": "WATCH",
+        },
     ]
     lines = morning_mod._render_top_section(top)
     md = "\n".join(lines)
@@ -335,7 +400,8 @@ def test_render_markdown_has_header_and_all_sections(morning_mod) -> None:
 
 
 def test_main_writes_markdown_by_default(
-    morning_mod, tmp_path: Path,
+    morning_mod,
+    tmp_path: Path,
 ) -> None:
     output = tmp_path / "report.md"
     rc = morning_mod.main(["--output", str(output)])
@@ -346,14 +412,15 @@ def test_main_writes_markdown_by_default(
 
 
 def test_main_json_emits_structured_output(
-    morning_mod, capsys, tmp_path: Path,
+    morning_mod,
+    capsys,
+    tmp_path: Path,
 ) -> None:
     rc = morning_mod.main(["--json"])
     assert rc == 0
     parsed = json.loads(capsys.readouterr().out)
     # Top-level keys
-    for key in ("generated_at_utc", "doctor", "variants",
-                "drift_watch", "top_variants"):
+    for key in ("generated_at_utc", "doctor", "variants", "drift_watch", "top_variants"):
         assert key in parsed
 
 

@@ -24,6 +24,7 @@ literal from source (no import-level coupling) and asserts the two
 sets match. A divergence is the operator's signal that they updated
 one repo's mandate but forgot the other.
 """
+
 from __future__ import annotations
 
 import re
@@ -80,11 +81,7 @@ def _parse_dormant_brokers(router_py: Path) -> frozenset[str]:
     if inner.startswith("{") and inner.endswith("}"):
         inner = inner[1:-1]
     # Split + dedupe + strip quotes
-    items = {
-        s.strip().strip('"').strip("'")
-        for s in inner.split(",")
-        if s.strip()
-    }
+    items = {s.strip().strip('"').strip("'") for s in inner.split(",") if s.strip()}
     return frozenset(items)
 
 
@@ -137,20 +134,21 @@ class TestDormantBrokersParser:
                 frozenset({"tradovate", "ibkr"}),
             ),
             (
-                'DORMANT_BROKERS = frozenset()',
+                "DORMANT_BROKERS = frozenset()",
                 frozenset(),
             ),
             (
                 # Multi-line literal (eta_engine-style)
-                "DORMANT_BROKERS: frozenset[str] = frozenset({\n"
-                '    "tradovate",\n'
-                "})",
+                'DORMANT_BROKERS: frozenset[str] = frozenset({\n    "tradovate",\n})',
                 frozenset({"tradovate"}),
             ),
         ],
     )
     def test_parser_handles_known_shapes(
-        self, tmp_path: Path, source: str, expected: frozenset[str],
+        self,
+        tmp_path: Path,
+        source: str,
+        expected: frozenset[str],
     ) -> None:
         f = tmp_path / "router.py"
         f.write_text(f"# header\n{source}\n# trailer\n", encoding="utf-8")

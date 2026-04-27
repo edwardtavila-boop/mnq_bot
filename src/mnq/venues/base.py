@@ -15,20 +15,23 @@ Lifecycle:
     # ... submit orders, stream quotes ...
     await venue.disconnect()
 """
+
 from __future__ import annotations
 
 import abc
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, AsyncIterator, Callable
+from typing import Any
 
 from mnq.core.types import Side
 
 
 class ConnectionState(str, Enum):
     """Venue connection lifecycle state."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -38,6 +41,7 @@ class ConnectionState(str, Enum):
 
 class VenueType(str, Enum):
     """Broker classification."""
+
     SIM = "sim"
     PAPER = "paper"
     LIVE = "live"
@@ -46,6 +50,7 @@ class VenueType(str, Enum):
 @dataclass(frozen=True)
 class QuoteTick:
     """One quote update from the venue."""
+
     symbol: str
     bid: Decimal
     ask: Decimal
@@ -57,6 +62,7 @@ class QuoteTick:
 @dataclass(frozen=True)
 class BarUpdate:
     """One completed bar from the venue."""
+
     symbol: str
     timeframe: str  # "1m", "5m", "1h", etc.
     open: Decimal
@@ -70,6 +76,7 @@ class BarUpdate:
 @dataclass(frozen=True)
 class OrderRequest:
     """Outbound order request to the venue."""
+
     client_order_id: str
     symbol: str
     side: Side
@@ -85,6 +92,7 @@ class OrderRequest:
 @dataclass(frozen=True)
 class OrderAck:
     """Venue acknowledgment of an order."""
+
     client_order_id: str
     venue_order_id: str
     status: str  # "working", "rejected"
@@ -95,6 +103,7 @@ class OrderAck:
 @dataclass(frozen=True)
 class VenueFill:
     """Fill notification from the venue."""
+
     client_order_id: str
     venue_order_id: str
     venue_fill_id: str
@@ -109,6 +118,7 @@ class VenueFill:
 @dataclass(frozen=True)
 class CancelAck:
     """Venue acknowledgment of a cancel request."""
+
     client_order_id: str
     venue_order_id: str
     success: bool
@@ -118,6 +128,7 @@ class CancelAck:
 @dataclass(frozen=True)
 class AccountSnapshot:
     """Account state from the venue."""
+
     account_id: str
     equity: Decimal
     cash: Decimal
@@ -131,6 +142,7 @@ class AccountSnapshot:
 @dataclass(frozen=True)
 class PositionSnapshot:
     """One open position from the venue."""
+
     symbol: str
     qty: int  # positive = long, negative = short
     avg_entry_price: Decimal
@@ -173,9 +185,7 @@ class VenueAdapter(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def cancel_order(
-        self, client_order_id: str, venue_order_id: str
-    ) -> CancelAck:
+    async def cancel_order(self, client_order_id: str, venue_order_id: str) -> CancelAck:
         """Request cancellation of a working order."""
         ...
 
@@ -195,16 +205,12 @@ class VenueAdapter(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def stream_quotes(
-        self, symbols: list[str]
-    ) -> AsyncIterator[QuoteTick]:
+    async def stream_quotes(self, symbols: list[str]) -> AsyncIterator[QuoteTick]:
         """Stream live quotes. Yields QuoteTick objects."""
         ...
 
     @abc.abstractmethod
-    async def stream_bars(
-        self, symbol: str, timeframe: str = "1m"
-    ) -> AsyncIterator[BarUpdate]:
+    async def stream_bars(self, symbol: str, timeframe: str = "1m") -> AsyncIterator[BarUpdate]:
         """Stream completed bars. Yields BarUpdate objects."""
         ...
 

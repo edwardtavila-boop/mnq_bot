@@ -25,6 +25,7 @@ voice_agree/15 + corroboration/dissent bonus). That preserves the gate
 contract (-0.10 skip / -0.05 reduced / +0.02 corroborate) so the only
 thing that changes is the *signal source* — from hash → real engine.
 """
+
 from __future__ import annotations
 
 import sys
@@ -195,7 +196,7 @@ def day_pm_output_from_real_apex(
     # direction, so we proxy conflict off a per-decision split.
     long_fires = sum(1 for d in decisions if d.fire_long)
     short_fires = sum(1 for d in decisions if d.fire_short)
-    direction_conflict = (long_fires > 0 and short_fires > 0)
+    direction_conflict = long_fires > 0 and short_fires > 0
 
     blended = 0.80 * base_probability + 0.20 * (voice_agree / 15.0)
     bonus = 0.05 if (strong and engine_live) else 0.0

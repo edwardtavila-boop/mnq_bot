@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "variants": {
+    "orb_confidence_pm30": {
+      "config": {
+        "demotion_drawdown_pct": "0.20",
+        "halt_consecutive_losses": 5,
+        "max_losing_days": 3,
+        "max_tier": 3,
+        "min_trades_at_tier": 20,
+        "min_winning_days": 3
+      },
+      "counters": {
+        "consecutive_losing_days": 0,
+        "consecutive_losses": 0,
+        "consecutive_winning_days": 0,
+        "pnl_at_tier": "0",
+        "tier_equity": "0",
+        "tier_peak_equity": "0",
+        "trades_at_tier": 0
+      },
+      "event_log": [],
+      "schema_version": 1,
+      "state": "active",
+      "tier": 0,
+      "variant": "orb_confidence_pm30"
+    },
+    "orb_only_pm30": {
+      "config": {
+        "demotion_drawdown_pct": "0.20",
+        "halt_consecutive_losses": 5,
+        "max_losing_days": 3,
+        "max_tier": 3,
+        "min_trades_at_tier": 20,
+        "min_winning_days": 3
+      },
+      "counters": {
+        "consecutive_losing_days": 0,
+        "consecutive_losses": 0,
+        "consecutive_winning_days": 0,
+        "pnl_at_tier": "0",
+        "tier_equity": "0",
+        "tier_peak_equity": "0",
+        "trades_at_tier": 0
+      },
+      "event_log": [],
+      "schema_version": 1,
+      "state": "active",
+      "tier": 0,
+      "variant": "orb_only_pm30"
+    },
+    "orb_regime_conf_pm25": {
+      "config": {
+        "demotion_drawdown_pct": "0.20",
+        "halt_consecutive_losses": 5,
+        "max_losing_days": 3,
+        "max_tier": 3,
+        "min_trades_at_tier": 20,
+        "min_winning_days": 3
+      },
+      "counters": {
+        "consecutive_losing_days": 0,
+        "consecutive_losses": 0,
+        "consecutive_winning_days": 0,
+        "pnl_at_tier": "0",
+        "tier_equity": "0",
+        "tier_peak_equity": "0",
+        "trades_at_tier": 0
+      },
+      "event_log": [],
+      "schema_version": 1,
+      "state": "active",
+      "tier": 0,
+      "variant": "orb_regime_conf_pm25"
+    },
+    "orb_regime_conf_pm30": {
+      "config": {
+        "demotion_drawdown_pct": "0.20",
+        "halt_consecutive_losses": 5,
+        "max_losing_days": 3,
+        "max_tier": 3,
+        "min_trades_at_tier": 20,
+        "min_winning_days": 3
+      },
+      "counters": {
+        "consecutive_losing_days": 0,
+        "consecutive_losses": 0,
+        "consecutive_winning_days": 0,
+        "pnl_at_tier": "0",
+        "tier_equity": "0",
+        "tier_peak_equity": "0",
+        "trades_at_tier": 0
+      },
+      "event_log": [],
+      "schema_version": 1,
+      "state": "active",
+      "tier": 0,
+      "variant": "orb_regime_conf_pm30"
+    },
+    "orb_regime_pm30": {
+      "config": {
+        "demotion_drawdown_pct": "0.20",
+        "halt_consecutive_losses": 5,
+        "max_losing_days": 3,
+        "max_tier": 3,
+        "min_trades_at_tier": 20,
+        "min_winning_days": 3
+      },
+      "counters": {
+        "consecutive_losing_days": 0,
+        "consecutive_losses": 0,
+        "consecutive_winning_days": 0,
+        "pnl_at_tier": "0",
+        "tier_equity": "0",
+        "tier_peak_equity": "0",
+        "trades_at_tier": 0
+      },
+      "event_log": [],
+      "schema_version": 1,
+      "state": "active",
+      "tier": 0,
+      "variant": "orb_regime_pm30"
+    },
+    "orb_sweep_pm30": {
+      "config": {
+        "demotion_drawdown_pct": "0.20",
+        "halt_consecutive_losses": 5,
+        "max_losing_days": 3,
+        "max_tier": 3,
+        "min_trades_at_tier": 20,
+        "min_winning_days": 3
+      },
+      "counters": {
+        "consecutive_losing_days": 0,
+        "consecutive_losses": 0,
+        "consecutive_winning_days": 0,
+        "pnl_at_tier": "0",
+        "tier_equity": "0",
+        "tier_peak_equity": "0",
+        "trades_at_tier": 0
+      },
+      "event_log": [],
+      "schema_version": 1,
+      "state": "active",
+      "tier": 0,
+      "variant": "orb_sweep_pm30"
+    }
+  }
+}

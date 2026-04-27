@@ -1,4 +1,5 @@
 """Level-1 tests for mnq.generators.pine.generator."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -52,7 +53,9 @@ class TestLowLevelHelpers:
         assert _mirror_condition_str("feature:a crosses_above feature:b") == (
             "feature:a crosses_below feature:b"
         )
-        assert _mirror_condition_str("rising feature:x for_bars 2") == "falling feature:x for_bars 2"
+        assert (
+            _mirror_condition_str("rising feature:x for_bars 2") == "falling feature:x for_bars 2"
+        )
 
 
 class TestVisitor:
@@ -136,9 +139,10 @@ class TestRenderBaseline:
         src = render_pine(baseline_spec)
         # All security() references must be request.security()
         import re as _re
+
         for m in _re.finditer(r"security\s*\(", src):
             start = max(0, m.start() - len("request."))
-            assert src[start:m.start()] == "request."
+            assert src[start : m.start()] == "request."
 
     def test_no_strategy_risk_calls(self, baseline_spec) -> None:
         src = render_pine(baseline_spec)
@@ -155,7 +159,7 @@ class TestRenderBaseline:
 
     def test_entry_alert_json_shape(self, baseline_spec) -> None:
         src = render_pine(baseline_spec)
-        assert 'schema_version' in src
+        assert "schema_version" in src
         assert '\\"event\\":\\"entry\\"' in src
         assert "alert(_entry_json" in src
 
@@ -184,8 +188,8 @@ class TestStaticCheck:
     def test_rejects_lookahead_on(self) -> None:
         bad = (
             "//@version=6\n"
-            "strategy(title=\"x\", use_bar_magnifier = true, process_orders_on_close = false)\n"
-            "v = request.security(syminfo.tickerid, \"5\", close, "
+            'strategy(title="x", use_bar_magnifier = true, process_orders_on_close = false)\n'
+            'v = request.security(syminfo.tickerid, "5", close, '
             "lookahead = barmerge.lookahead_on)\n"
         )
         with pytest.raises(PineStaticCheckError):
@@ -194,8 +198,8 @@ class TestStaticCheck:
     def test_rejects_raw_security(self) -> None:
         bad = (
             "//@version=6\n"
-            "strategy(title=\"x\", use_bar_magnifier = true, process_orders_on_close = false)\n"
-            "v = security(syminfo.tickerid, \"5\", close)\n"
+            'strategy(title="x", use_bar_magnifier = true, process_orders_on_close = false)\n'
+            'v = security(syminfo.tickerid, "5", close)\n'
         )
         with pytest.raises(PineStaticCheckError):
             static_check_pine(bad)
@@ -203,17 +207,14 @@ class TestStaticCheck:
     def test_rejects_strategy_risk_call(self) -> None:
         bad = (
             "//@version=6\n"
-            "strategy(title=\"x\", use_bar_magnifier = true, process_orders_on_close = false)\n"
+            'strategy(title="x", use_bar_magnifier = true, process_orders_on_close = false)\n'
             "strategy.risk.max_drawdown(1000, strategy.cash)\n"
         )
         with pytest.raises(PineStaticCheckError):
             static_check_pine(bad)
 
     def test_rejects_missing_bar_magnifier(self) -> None:
-        bad = (
-            "//@version=6\n"
-            "strategy(title=\"x\", process_orders_on_close = false)\n"
-        )
+        bad = '//@version=6\nstrategy(title="x", process_orders_on_close = false)\n'
         with pytest.raises(PineStaticCheckError):
             static_check_pine(bad)
 

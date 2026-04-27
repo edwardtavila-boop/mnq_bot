@@ -6,6 +6,7 @@ Exits 0 always — this is a status report, not an enforcer. The
 executor itself vetoes orders via the chain. Scripts remain
 reporters so orchestrator stays green on HOT states.
 """
+
 from __future__ import annotations
 
 import sys

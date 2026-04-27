@@ -1,4 +1,5 @@
 """Level-5 integration tests — real I/O. Skipped if credentials are missing."""
+
 from __future__ import annotations
 
 import pytest

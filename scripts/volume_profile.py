@@ -8,6 +8,7 @@ Usage:
     python scripts/volume_profile.py
     python scripts/volume_profile.py --bins 40
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,6 +30,7 @@ BARS_DIR = BARS_DATABENTO_DIR
 def _read_parquet(path: Path):
     try:
         import pyarrow.parquet as pq  # type: ignore
+
         return pq.read_table(str(path)).to_pylist()
     except Exception:  # noqa: BLE001
         return []

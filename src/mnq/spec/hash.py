@@ -9,6 +9,7 @@ The hash is over the YAML-equivalent dump of the spec model with:
 This means two semantically identical specs hash identically regardless
 of file formatting, key order, or trailing whitespace.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -29,7 +30,9 @@ def _normalize(obj: Any) -> Any:
         return [_normalize(v) for v in obj]
     if isinstance(obj, Decimal):
         # canonical decimal: strip exponent, no trailing zeros that change meaning
-        return str(obj.normalize()) if obj == obj.to_integral_value() and abs(obj) >= 1 else str(obj)
+        return (
+            str(obj.normalize()) if obj == obj.to_integral_value() and abs(obj) >= 1 else str(obj)
+        )
     if isinstance(obj, datetime):
         return obj.isoformat()
     return obj

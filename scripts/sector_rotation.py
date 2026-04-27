@@ -11,6 +11,7 @@ sector feed isn't wired.
 Usage:
     python scripts/sector_rotation.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,8 +48,10 @@ def main() -> int:
     defensive_rs = sum(r[3] for r in rows if r[2] == "defensive")
 
     signal = (
-        "🟢 TECH-LED (favor NQ longs)" if growth_rs - defensive_rs > 1.0
-        else "🔴 DEFENSIVE-LED (chop risk)" if defensive_rs - growth_rs > 1.0
+        "🟢 TECH-LED (favor NQ longs)"
+        if growth_rs - defensive_rs > 1.0
+        else "🔴 DEFENSIVE-LED (chop risk)"
+        if defensive_rs - growth_rs > 1.0
         else "🟡 MIXED / NO SIGNAL"
     )
     lines = [

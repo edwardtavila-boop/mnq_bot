@@ -12,6 +12,7 @@ Pin the contract:
   * Zero risk_ticks -> None (no division by zero)
   * The build_spec_payload payload includes the field
 """
+
 from __future__ import annotations
 
 import pytest
@@ -64,9 +65,13 @@ def test_malformed_dates_skipped(monkeypatch) -> None:
         lambda: 1.0,
     )
     # All malformed -> None
-    assert _recency_weighted_expectancy_r(
-        _cfg(), {"not-a-date": 100.0, "also-bad": 50.0},
-    ) is None
+    assert (
+        _recency_weighted_expectancy_r(
+            _cfg(),
+            {"not-a-date": 100.0, "also-bad": 50.0},
+        )
+        is None
+    )
 
 
 def test_one_malformed_one_valid(monkeypatch) -> None:
@@ -112,11 +117,13 @@ def test_two_same_day_pnls_use_simple_mean(monkeypatch) -> None:
     )
     daily = {
         "2026-01-15": 100.0,  # age 0, weight 1.0
-        "2026-01-01": 50.0,   # age 14 days, weight 0.5
+        "2026-01-01": 50.0,  # age 14 days, weight 0.5
     }
     cfg = _cfg(risk_ticks=40)  # risk_dollars = $20
     result = _recency_weighted_expectancy_r(
-        cfg, daily, half_life_days=14.0,
+        cfg,
+        daily,
+        half_life_days=14.0,
     )
     # weighted_pnl = 100*1 + 50*0.5 = 125
     # total_weight = 1.5
@@ -133,12 +140,14 @@ def test_recent_day_dominates_old_day(monkeypatch) -> None:
         lambda: 1.0,
     )
     daily = {
-        "2026-01-15": 100.0,   # recent winner, weight 1.0
+        "2026-01-15": 100.0,  # recent winner, weight 1.0
         "2024-01-15": -100.0,  # 730 days back, weight ~0
     }
     cfg = _cfg(risk_ticks=40)
     result = _recency_weighted_expectancy_r(
-        cfg, daily, half_life_days=14.0,
+        cfg,
+        daily,
+        half_life_days=14.0,
     )
     # Recent day weight ~1, old day weight 0.5^(730/14) ~= 0
     # So weighted ~= 100 / 1 / 20 = 5.0, NOT 0.0 (which would be
@@ -165,7 +174,9 @@ def test_unweighted_returns_zero_when_recency_pulls_to_zero(
     }
     cfg = _cfg(risk_ticks=40)
     result = _recency_weighted_expectancy_r(
-        cfg, daily, half_life_days=14.0,
+        cfg,
+        daily,
+        half_life_days=14.0,
     )
     # weighted_pnl = 100*1 + (-100)*0.5 = 50
     # total_weight = 1.5
@@ -188,10 +199,14 @@ def test_half_life_changes_result(monkeypatch) -> None:
     }
     cfg = _cfg(risk_ticks=40)
     short = _recency_weighted_expectancy_r(
-        cfg, daily, half_life_days=3.0,  # very recent-biased
+        cfg,
+        daily,
+        half_life_days=3.0,  # very recent-biased
     )
     long = _recency_weighted_expectancy_r(
-        cfg, daily, half_life_days=60.0,  # broader window
+        cfg,
+        daily,
+        half_life_days=60.0,  # broader window
     )
     # Short half-life should pull harder toward the recent +100
     assert short > long

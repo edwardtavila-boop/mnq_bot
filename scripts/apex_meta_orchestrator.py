@@ -20,6 +20,7 @@ This script:
 Output: ``reports/eta_meta_orchestrator.md``
         ``data/meta_config.json``
 """
+
 from __future__ import annotations
 
 import json
@@ -189,31 +190,33 @@ def main() -> int:
         changed = "**YES**" if k in diffs else ""
         lines.append(f"| {k} | {default_v} | {override_v} | {changed} |")
 
-    lines.extend([
-        "",
-        "## Meta-voice outputs",
-        "",
-        "```json",
-        json.dumps(snapshot.voices or {}, indent=2, sort_keys=True),
-        "```",
-        "",
-        "## Integration status",
-        "",
-        f"- Config written to: `{CONFIG_OUT.relative_to(REPO_ROOT)}`",
-        "- The orchestrator reads `data/meta_config.json` at startup",
-        "  and applies the overridden parameters to the current run.",
-        "- When `trade_allowed=false`, the orchestrator should skip",
-        "  all live trade execution stages (shadow mode only).",
-        "",
-        "## How to use",
-        "",
-        "```python",
-        'config = json.loads(Path("data/meta_config.json").read_text())',
-        'if not config["trade_allowed"]:',
-        '    print("META-FIRM: trading paused today")',
-        '    # Skip execution, run shadow only',
-        "```",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Meta-voice outputs",
+            "",
+            "```json",
+            json.dumps(snapshot.voices or {}, indent=2, sort_keys=True),
+            "```",
+            "",
+            "## Integration status",
+            "",
+            f"- Config written to: `{CONFIG_OUT.relative_to(REPO_ROOT)}`",
+            "- The orchestrator reads `data/meta_config.json` at startup",
+            "  and applies the overridden parameters to the current run.",
+            "- When `trade_allowed=false`, the orchestrator should skip",
+            "  all live trade execution stages (shadow mode only).",
+            "",
+            "## How to use",
+            "",
+            "```python",
+            'config = json.loads(Path("data/meta_config.json").read_text())',
+            'if not config["trade_allowed"]:',
+            '    print("META-FIRM: trading paused today")',
+            "    # Skip execution, run shadow only",
+            "```",
+        ]
+    )
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n")

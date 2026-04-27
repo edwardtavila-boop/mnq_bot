@@ -9,6 +9,7 @@ Pin the contract:
   * --output PATH overrides the default file location
   * Exits non-zero when the underlying script can't be loaded
 """
+
 from __future__ import annotations
 
 import json
@@ -53,7 +54,8 @@ def test_morning_help_describes_subcommand(runner: CliRunner) -> None:
 
 
 def test_morning_default_writes_markdown(
-    runner: CliRunner, tmp_path: Path,
+    runner: CliRunner,
+    tmp_path: Path,
 ) -> None:
     """Without --json, writes a markdown file at the given --output."""
     output = tmp_path / "report.md"
@@ -72,14 +74,18 @@ def test_morning_json_emits_to_stdout(runner: CliRunner) -> None:
     parsed = json.loads(result.output)
     # Top-level keys (same as gather_report)
     for key in (
-        "generated_at_utc", "doctor", "variants",
-        "drift_watch", "top_variants",
+        "generated_at_utc",
+        "doctor",
+        "variants",
+        "drift_watch",
+        "top_variants",
     ):
         assert key in parsed
 
 
 def test_morning_short_flag_for_output(
-    runner: CliRunner, tmp_path: Path,
+    runner: CliRunner,
+    tmp_path: Path,
 ) -> None:
     """-o is a short alias for --output."""
     output = tmp_path / "short.md"

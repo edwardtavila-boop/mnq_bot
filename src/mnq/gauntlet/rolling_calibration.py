@@ -24,6 +24,7 @@ Usage:
     epochs = cal.evaluate(outcomes)
     drift_epochs = [e for e in epochs if e.drift_alert]
 """
+
 from __future__ import annotations
 
 import math
@@ -35,16 +36,16 @@ class EpochMetrics:
     """Calibration metrics for a single rolling epoch."""
 
     epoch_idx: int
-    start: int       # index into outcomes list
-    end: int         # exclusive
+    start: int  # index into outcomes list
+    end: int  # exclusive
     n: int
     brier: float
     log_loss: float
     base_rate: float
     mean_pred: float
-    z_brier: float | None    # z-score vs running mean (None for first epoch)
+    z_brier: float | None  # z-score vs running mean (None for first epoch)
     z_log_loss: float | None
-    drift_alert: bool         # True if |z| > threshold for either metric
+    drift_alert: bool  # True if |z| > threshold for either metric
 
 
 def _brier(preds: list[float], labels: list[int]) -> float:
@@ -78,7 +79,7 @@ def _running_z(
     if n < 2:
         return None
     var = sum((x - mean) ** 2 for x in prior) / (n - 1)
-    std = var ** 0.5
+    std = var**0.5
     if std < 1e-12:
         return None
     return (values[current_idx] - mean) / std
@@ -161,16 +162,8 @@ class RollingCalibration:
             brier_history.append(b)
             ll_history.append(ll)
 
-            z_b = (
-                _running_z(brier_history, idx)
-                if idx >= self.min_epochs_for_z
-                else None
-            )
-            z_ll = (
-                _running_z(ll_history, idx)
-                if idx >= self.min_epochs_for_z
-                else None
-            )
+            z_b = _running_z(brier_history, idx) if idx >= self.min_epochs_for_z else None
+            z_ll = _running_z(ll_history, idx) if idx >= self.min_epochs_for_z else None
 
             drift = False
             if z_b is not None and abs(z_b) > self.drift_z:
@@ -222,7 +215,9 @@ def rolling_calibration_report(
 
     lines.append("## Epoch detail")
     lines.append("")
-    lines.append("| epoch | n | brier | log_loss | base_rate | mean_pred | z_brier | z_ll | drift |")
+    lines.append(
+        "| epoch | n | brier | log_loss | base_rate | mean_pred | z_brier | z_ll | drift |"
+    )
     lines.append("|---:|---:|---:|---:|---:|---:|---:|---:|:---|")
     for e in epochs:
         zb = f"{e.z_brier:+.2f}" if e.z_brier is not None else "—"
@@ -241,7 +236,8 @@ def rolling_calibration_report(
             if e.drift_alert:
                 lines.append(
                     f"- **Epoch {e.epoch_idx}** (trades {e.start}–{e.end}): "
-                    f"Brier z={e.z_brier:+.2f}, LogLoss z={e.z_log_loss:+.2f}" if e.z_brier is not None and e.z_log_loss is not None
+                    f"Brier z={e.z_brier:+.2f}, LogLoss z={e.z_log_loss:+.2f}"
+                    if e.z_brier is not None and e.z_log_loss is not None
                     else f"- **Epoch {e.epoch_idx}** (trades {e.start}–{e.end}): drift detected"
                 )
         lines.append("")

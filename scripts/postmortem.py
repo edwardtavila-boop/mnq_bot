@@ -16,6 +16,7 @@ Usage:
     python scripts/postmortem.py --mode worst --n 3 # three worst trades
     python scripts/postmortem.py --mode all         # every trade
 """
+
 from __future__ import annotations
 
 import argparse

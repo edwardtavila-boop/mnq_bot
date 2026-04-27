@@ -7,6 +7,7 @@ trade governor, correlation cap, and deadman switch in order.
 Also exports the per-regime :class:`HeatBudget` (Phase 5) for
 concurrency caps and heat-based position limiting.
 """
+
 from .gate_chain import (
     Gate,
     GateChain,
@@ -21,6 +22,18 @@ from .heat_budget import (
     RegimeHeatConfig,
     heat_budget_gate,
 )
+from .rollout_store import RolloutStore
+from .tiered_rollout import (
+    DEFAULT_DEMOTION_DRAWDOWN_PCT,
+    DEFAULT_HALT_CONSECUTIVE_LOSSES,
+    DEFAULT_MAX_LOSING_DAYS,
+    DEFAULT_MAX_TIER,
+    DEFAULT_MIN_TRADES_AT_TIER,
+    DEFAULT_MIN_WINNING_DAYS,
+    RolloutState,
+    TieredRollout,
+    TierEvent,
+)
 
 __all__ = [
     "Gate",
@@ -33,4 +46,14 @@ __all__ = [
     "Position",
     "RegimeHeatConfig",
     "heat_budget_gate",
+    "DEFAULT_DEMOTION_DRAWDOWN_PCT",
+    "DEFAULT_HALT_CONSECUTIVE_LOSSES",
+    "DEFAULT_MAX_LOSING_DAYS",
+    "DEFAULT_MAX_TIER",
+    "DEFAULT_MIN_TRADES_AT_TIER",
+    "DEFAULT_MIN_WINNING_DAYS",
+    "RolloutState",
+    "TierEvent",
+    "TieredRollout",
+    "RolloutStore",
 ]

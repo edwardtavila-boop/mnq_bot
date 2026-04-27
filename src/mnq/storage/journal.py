@@ -25,6 +25,7 @@ from uuid import uuid4
 @dataclass(frozen=True)
 class JournalEntry:
     """A single immutable entry in the event journal."""
+
     seq: int
     ts: datetime
     event_type: str

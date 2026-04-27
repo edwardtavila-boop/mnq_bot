@@ -7,6 +7,7 @@ for human review.
 Usage:
     python scripts/anomaly_detect.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -63,7 +64,9 @@ def main() -> int:
     ]
     for t, zp, zd, zq in anomalies[:30]:
         when = t.exit_ts.strftime("%Y-%m-%d %H:%M:%S") if t.exit_ts else "—"
-        lines.append(f"| {t.seq} | {when} | ${t.net_pnl:+.2f} | {zp:+.2f} | {zd:+.2f} | {zq:+.2f} |")
+        lines.append(
+            f"| {t.seq} | {when} | ${t.net_pnl:+.2f} | {zp:+.2f} | {zd:+.2f} | {zq:+.2f} |"
+        )
     if not anomalies:
         lines.append("| (none) | — | — | — | — | — |")
 

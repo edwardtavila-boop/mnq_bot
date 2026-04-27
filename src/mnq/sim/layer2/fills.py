@@ -9,6 +9,7 @@ tape we don't know intrabar order from OHLCV alone.
 Returns a SimulatedFill describing the exit, or None if neither the
 stop nor the target was touched within the bar.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,10 +22,10 @@ from mnq.core.types import Bar, Side
 @dataclass(frozen=True, slots=True)
 class SimulatedFill:
     ts: datetime
-    side: Side                      # side of the fill (close direction)
+    side: Side  # side of the fill (close direction)
     price: Decimal
-    qty: int                        # positive
-    reason: str                     # 'entry' | 'stop' | 'take_profit' | 'time_stop' | 'session_end'
+    qty: int  # positive
+    reason: str  # 'entry' | 'stop' | 'take_profit' | 'time_stop' | 'session_end'
 
 
 def simulate_entry_at_open(
@@ -39,7 +40,11 @@ def simulate_entry_at_open(
     px = bar.open + slip if side is Side.LONG else bar.open - slip
     fill_side = Side.LONG if side is Side.LONG else Side.SHORT
     return SimulatedFill(
-        ts=bar.ts, side=fill_side, price=px, qty=qty, reason="entry",
+        ts=bar.ts,
+        side=fill_side,
+        price=px,
+        qty=qty,
+        reason="entry",
     )
 
 
@@ -71,12 +76,20 @@ def simulate_exit_within_bar(
         if stop_hit:
             px = stop_px - slip_stop
             return SimulatedFill(
-                ts=bar.ts, side=Side.SHORT, price=px, qty=qty, reason="stop",
+                ts=bar.ts,
+                side=Side.SHORT,
+                price=px,
+                qty=qty,
+                reason="stop",
             )
         if tp_hit:
             px = tp_px - slip_limit
             return SimulatedFill(
-                ts=bar.ts, side=Side.SHORT, price=px, qty=qty, reason="take_profit",
+                ts=bar.ts,
+                side=Side.SHORT,
+                price=px,
+                qty=qty,
+                reason="take_profit",
             )
         return None
 
@@ -86,11 +99,19 @@ def simulate_exit_within_bar(
     if stop_hit:
         px = stop_px + slip_stop
         return SimulatedFill(
-            ts=bar.ts, side=Side.LONG, price=px, qty=qty, reason="stop",
+            ts=bar.ts,
+            side=Side.LONG,
+            price=px,
+            qty=qty,
+            reason="stop",
         )
     if tp_hit:
         px = tp_px + slip_limit
         return SimulatedFill(
-            ts=bar.ts, side=Side.LONG, price=px, qty=qty, reason="take_profit",
+            ts=bar.ts,
+            side=Side.LONG,
+            price=px,
+            qty=qty,
+            reason="take_profit",
         )
     return None

@@ -14,6 +14,7 @@ Usage:
     python scripts/gauntlet_stats.py
     python scripts/gauntlet_stats.py --filtered r5_real_wide_target
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,8 +49,7 @@ def _run_ab(*, filtered_name: str, seed: int) -> dict:
         seed=seed,
         use_gauntlet=False,
     )
-    print(f"   PnL: ${ungated['total_shadow_pnl']:+,.2f}  "
-          f"fills: {ungated['total_shadow_fills']}")
+    print(f"   PnL: ${ungated['total_shadow_pnl']:+,.2f}  fills: {ungated['total_shadow_fills']}")
 
     print("=== Gated run (gauntlet ON) ===")
     gated = run_shadow(
@@ -59,8 +59,7 @@ def _run_ab(*, filtered_name: str, seed: int) -> dict:
         seed=seed,
         use_gauntlet=True,
     )
-    print(f"   PnL: ${gated['total_shadow_pnl']:+,.2f}  "
-          f"fills: {gated['total_shadow_fills']}")
+    print(f"   PnL: ${gated['total_shadow_pnl']:+,.2f}  fills: {gated['total_shadow_fills']}")
 
     return {"ungated": ungated, "gated": gated}
 
@@ -95,7 +94,9 @@ def _render_comparison(ab: dict) -> str:
     if ug_trades > 0:
         ug_avg = ug_pnl / ug_trades
         g_avg = g_pnl / g_trades if g_trades > 0 else 0.0
-        lines.append(f"| Avg PnL/trade | ${ug_avg:+,.2f} | ${g_avg:+,.2f} | ${g_avg - ug_avg:+,.2f} |")
+        lines.append(
+            f"| Avg PnL/trade | ${ug_avg:+,.2f} | ${g_avg:+,.2f} | ${g_avg - ug_avg:+,.2f} |"
+        )
 
     block_rate = blocked / ug_trades * 100 if ug_trades else 0.0
     lines.append(f"| Block rate | — | {block_rate:.1f}% | — |")

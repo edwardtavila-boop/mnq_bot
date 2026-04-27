@@ -9,6 +9,7 @@ Pin the contract:
   * Edge in a regime with n_days >= 5 -> KEEP
   * Reasoning string is human-readable and identifies the driving regime
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -25,7 +26,8 @@ SCRIPT = REPO_ROOT / "scripts" / "variant_pruner.py"
 @pytest.fixture(scope="module")
 def pruner_mod():
     spec = importlib.util.spec_from_file_location(
-        "variant_pruner_for_test", SCRIPT,
+        "variant_pruner_for_test",
+        SCRIPT,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -160,14 +162,30 @@ def test_missing_regime_expectancy_field_is_prune(pruner_mod) -> None:
 
 def test_render_markdown_has_three_sections(pruner_mod) -> None:
     rows = [
-        {"variant": "v1", "bucket": pruner_mod.PRUNE, "reason": "no edge",
-         "provenance": ["stub"], "n_total": 0, "expected_expectancy_r": 0.0},
-        {"variant": "v2", "bucket": pruner_mod.WATCH, "reason": "thin",
-         "provenance": ["cached_backtest"], "n_total": 30,
-         "expected_expectancy_r": 0.5},
-        {"variant": "v3", "bucket": pruner_mod.KEEP, "reason": "edge",
-         "provenance": ["cached_backtest"], "n_total": 30,
-         "expected_expectancy_r": 0.5},
+        {
+            "variant": "v1",
+            "bucket": pruner_mod.PRUNE,
+            "reason": "no edge",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
+        {
+            "variant": "v2",
+            "bucket": pruner_mod.WATCH,
+            "reason": "thin",
+            "provenance": ["cached_backtest"],
+            "n_total": 30,
+            "expected_expectancy_r": 0.5,
+        },
+        {
+            "variant": "v3",
+            "bucket": pruner_mod.KEEP,
+            "reason": "edge",
+            "provenance": ["cached_backtest"],
+            "n_total": 30,
+            "expected_expectancy_r": 0.5,
+        },
     ]
     md = pruner_mod._render_markdown(rows)
     assert "## PRUNE" in md
@@ -177,8 +195,14 @@ def test_render_markdown_has_three_sections(pruner_mod) -> None:
 
 def test_render_markdown_empty_bucket_says_none(pruner_mod) -> None:
     rows = [
-        {"variant": "v1", "bucket": pruner_mod.PRUNE, "reason": "no edge",
-         "provenance": ["stub"], "n_total": 0, "expected_expectancy_r": 0.0},
+        {
+            "variant": "v1",
+            "bucket": pruner_mod.PRUNE,
+            "reason": "no edge",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
     ]
     md = pruner_mod._render_markdown(rows)
     # WATCH and KEEP are empty; render "_(none)_" placeholder
@@ -187,13 +211,30 @@ def test_render_markdown_empty_bucket_says_none(pruner_mod) -> None:
 
 def test_render_markdown_summary_counts_buckets(pruner_mod) -> None:
     rows = [
-        {"variant": "a", "bucket": pruner_mod.PRUNE, "reason": "x",
-         "provenance": ["stub"], "n_total": 0, "expected_expectancy_r": 0.0},
-        {"variant": "b", "bucket": pruner_mod.PRUNE, "reason": "x",
-         "provenance": ["stub"], "n_total": 0, "expected_expectancy_r": 0.0},
-        {"variant": "c", "bucket": pruner_mod.KEEP, "reason": "x",
-         "provenance": ["cached_backtest"], "n_total": 30,
-         "expected_expectancy_r": 0.5},
+        {
+            "variant": "a",
+            "bucket": pruner_mod.PRUNE,
+            "reason": "x",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
+        {
+            "variant": "b",
+            "bucket": pruner_mod.PRUNE,
+            "reason": "x",
+            "provenance": ["stub"],
+            "n_total": 0,
+            "expected_expectancy_r": 0.0,
+        },
+        {
+            "variant": "c",
+            "bucket": pruner_mod.KEEP,
+            "reason": "x",
+            "provenance": ["cached_backtest"],
+            "n_total": 30,
+            "expected_expectancy_r": 0.5,
+        },
     ]
     md = pruner_mod._render_markdown(rows)
     assert "PRUNE: **2**" in md
@@ -207,7 +248,9 @@ def test_render_markdown_summary_counts_buckets(pruner_mod) -> None:
 
 
 def test_main_writes_markdown_by_default(
-    pruner_mod, tmp_path: Path, monkeypatch,
+    pruner_mod,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     """Default CLI run produces a markdown file at --output."""
     output = tmp_path / "prune.md"

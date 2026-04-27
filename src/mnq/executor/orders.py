@@ -49,16 +49,18 @@ from mnq.venues.repo_scope import (
 
 class OrderState(str, Enum):
     """State machine for order lifecycle."""
-    PENDING = "pending"         # submitted to broker, no ack yet
-    WORKING = "working"         # broker acked, resting on book
-    PARTIAL = "partial"         # partially filled
-    FILLED = "filled"           # terminal: fully filled
-    REJECTED = "rejected"       # terminal: broker rejected
-    CANCELLED = "cancelled"     # terminal: cancelled by us or broker
+
+    PENDING = "pending"  # submitted to broker, no ack yet
+    WORKING = "working"  # broker acked, resting on book
+    PARTIAL = "partial"  # partially filled
+    FILLED = "filled"  # terminal: fully filled
+    REJECTED = "rejected"  # terminal: broker rejected
+    CANCELLED = "cancelled"  # terminal: cancelled by us or broker
 
 
 class OrderType(str, Enum):
     """Order type enumeration."""
+
     MARKET = "market"
     LIMIT = "limit"
     STOP = "stop"
@@ -69,6 +71,7 @@ _TERMINAL = {OrderState.FILLED, OrderState.REJECTED, OrderState.CANCELLED}
 
 class OrderError(Exception):
     """Base exception for order state machine violations."""
+
     pass
 
 
@@ -105,6 +108,7 @@ class Order:
         last_update_at: Timestamp of last state change.
         trace_id: Optional trace ID for correlation.
     """
+
     client_order_id: str
     venue_order_id: str | None
     symbol: str
@@ -143,6 +147,7 @@ class Fill:
         ts: Fill timestamp, UTC.
         trace_id: Optional trace ID.
     """
+
     client_order_id: str
     venue_fill_id: str
     price: Decimal
@@ -420,14 +425,10 @@ class OrderBook:
         trace_id = order.trace_id or str(uuid4())
 
         if order.is_terminal:
-            raise OrderError(
-                f"Cannot ack terminal order {client_order_id} "
-                f"in state {order.state}"
-            )
+            raise OrderError(f"Cannot ack terminal order {client_order_id} in state {order.state}")
         if order.state != OrderState.PENDING:
             raise OrderError(
-                f"Cannot ack order {client_order_id} in state {order.state}; "
-                f"expected PENDING"
+                f"Cannot ack order {client_order_id} in state {order.state}; expected PENDING"
             )
 
         now = datetime.now(UTC)
@@ -526,8 +527,7 @@ class OrderBook:
         # except when transitioning from WORKING/PARTIAL to FILLED
         if order.is_terminal and order.state != OrderState.FILLED:
             raise OrderError(
-                f"Cannot fill terminal order {fill.client_order_id} "
-                f"in state {order.state}"
+                f"Cannot fill terminal order {fill.client_order_id} in state {order.state}"
             )
 
         # Only PENDING, WORKING, and PARTIAL can accept fills
@@ -539,17 +539,14 @@ class OrderBook:
 
         new_filled_qty = order.filled_qty + fill.qty
         if new_filled_qty > order.qty:
-            raise OrderError(
-                f"Fill overfull: {order.filled_qty} + {fill.qty} > {order.qty}"
-            )
+            raise OrderError(f"Fill overfull: {order.filled_qty} + {fill.qty} > {order.qty}")
 
         # Compute VWAP: (prior_avg * filled_qty + new_price * new_qty) / (filled_qty + new_qty)
         if order.avg_fill_price is None:
             avg_fill_price = fill.price
         else:
-            numerator = (
-                order.avg_fill_price * Decimal(order.filled_qty)
-                + fill.price * Decimal(fill.qty)
+            numerator = order.avg_fill_price * Decimal(order.filled_qty) + fill.price * Decimal(
+                fill.qty
             )
             denominator = Decimal(new_filled_qty)
             avg_fill_price = (numerator / denominator).quantize(
@@ -640,8 +637,7 @@ class OrderBook:
 
         if order.is_terminal:
             raise OrderError(
-                f"Cannot reject terminal order {client_order_id} "
-                f"in state {order.state}"
+                f"Cannot reject terminal order {client_order_id} in state {order.state}"
             )
 
         now = datetime.now(UTC)
@@ -710,8 +706,7 @@ class OrderBook:
 
         if order.is_terminal:
             raise OrderError(
-                f"Cannot cancel terminal order {client_order_id} "
-                f"in state {order.state}"
+                f"Cannot cancel terminal order {client_order_id} in state {order.state}"
             )
 
         now = datetime.now(UTC)
@@ -815,14 +810,10 @@ class OrderBook:
                 qty = entry.payload["qty"]
                 order_type = OrderType(entry.payload["order_type"])
                 limit_price = (
-                    Decimal(entry.payload["limit_price"])
-                    if entry.payload["limit_price"]
-                    else None
+                    Decimal(entry.payload["limit_price"]) if entry.payload["limit_price"] else None
                 )
                 stop_price = (
-                    Decimal(entry.payload["stop_price"])
-                    if entry.payload["stop_price"]
-                    else None
+                    Decimal(entry.payload["stop_price"]) if entry.payload["stop_price"] else None
                 )
                 client_order_id = entry.payload["client_order_id"]
 

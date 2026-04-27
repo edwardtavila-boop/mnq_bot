@@ -1,4 +1,5 @@
 """Tests for gauntlet hard-gate — Batch 9A."""
+
 from __future__ import annotations
 
 from mnq.gauntlet.day_aggregate import GauntletDayScore
@@ -179,8 +180,16 @@ class TestOutcomeWeightedHardGate:
         # Day where cross_mag passes but anti-correlated gates fail
         score = _score(
             pass_rate=0.50,  # raw would be "reduced"
-            n_passed=6, n_failed=6,
-            failed_gates=["orderflow", "regime", "trend_align", "vol_band", "session", "time_of_day"],
+            n_passed=6,
+            n_failed=6,
+            failed_gates=[
+                "orderflow",
+                "regime",
+                "trend_align",
+                "vol_band",
+                "session",
+                "time_of_day",
+            ],
         )
         dec = gauntlet_hard_gate(score, config=cfg)
         # cross_mag not in failed_gates → passes, weight 0.5
@@ -200,7 +209,8 @@ class TestOutcomeWeightedHardGate:
         )
         score = _score(
             pass_rate=0.83,  # raw would be "full"
-            n_passed=10, n_failed=2,
+            n_passed=10,
+            n_failed=2,
             failed_gates=["cross_mag", "vol_band"],
         )
         dec = gauntlet_hard_gate(score, config=cfg)
@@ -233,8 +243,16 @@ class TestOutcomeWeightedHardGate:
         )
         score = _score(
             pass_rate=0.50,
-            n_passed=6, n_failed=6,
-            failed_gates=["cross_mag", "orderflow", "regime", "trend_align", "vol_band", "time_of_day"],
+            n_passed=6,
+            n_failed=6,
+            failed_gates=[
+                "cross_mag",
+                "orderflow",
+                "regime",
+                "trend_align",
+                "vol_band",
+                "time_of_day",
+            ],
         )
         dec = gauntlet_hard_gate(score, config=cfg)
         # cross_mag fails (w=0.5), session passes (w=0.5)
@@ -252,7 +270,8 @@ class TestOutcomeWeightedHardGate:
         )
         score = _score(
             pass_rate=0.92,
-            n_passed=11, n_failed=1,
+            n_passed=11,
+            n_failed=1,
             failed_gates=["gate_regime"],
         )
         dec = gauntlet_hard_gate(score, config=cfg)

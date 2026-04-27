@@ -20,6 +20,7 @@ Usage:
     python scripts/watchdog.py --once            # single check
     python scripts/watchdog.py --status          # print current state
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,11 +43,11 @@ WATCHDOG_ALERT_PATH = DATA_ROOT / "watchdog_alert.json"
 REPORT_PATH = REPO_ROOT / "reports" / "watchdog.md"
 
 # Thresholds
-HEARTBEAT_MAX_AGE_S = 300        # 5 min
-JOURNAL_MAX_GAP_S = 600          # 10 min since last event
-RSS_GROWTH_ALARM_PCT = 50.0      # >50% growth = alarm
-CHECK_INTERVAL_S = 30            # daemon loop interval
-MIN_EVENTS_PER_HOUR = 10         # below this = suspicious
+HEARTBEAT_MAX_AGE_S = 300  # 5 min
+JOURNAL_MAX_GAP_S = 600  # 10 min since last event
+RSS_GROWTH_ALARM_PCT = 50.0  # >50% growth = alarm
+CHECK_INTERVAL_S = 30  # daemon loop interval
+MIN_EVENTS_PER_HOUR = 10  # below this = suspicious
 
 
 def _safe_json(p: Path) -> dict | None:
@@ -61,12 +62,16 @@ def _safe_json(p: Path) -> dict | None:
 def _emit_gate_hot(reason: str) -> None:
     """Write pre_trade_gate.json HOT to block trading."""
     GATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    GATE_PATH.write_text(json.dumps({
-        "state": "HOT",
-        "reason": f"watchdog: {reason}",
-        "ts": datetime.now(tz=UTC).isoformat(),
-        "source": "watchdog",
-    }))
+    GATE_PATH.write_text(
+        json.dumps(
+            {
+                "state": "HOT",
+                "reason": f"watchdog: {reason}",
+                "ts": datetime.now(tz=UTC).isoformat(),
+                "source": "watchdog",
+            }
+        )
+    )
 
 
 def check_heartbeat() -> tuple[bool, str, dict]:
@@ -103,9 +108,7 @@ def check_journal() -> tuple[bool, str, dict]:
             return False, f"journal not in WAL mode: {mode}", {"mode": mode}
 
         # Recent event check
-        row = conn.execute(
-            "SELECT ts, seq FROM events ORDER BY seq DESC LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT ts, seq FROM events ORDER BY seq DESC LIMIT 1").fetchone()
         if row is None:
             return True, "journal empty (bootstrap)", {"events": 0}
 
@@ -114,12 +117,11 @@ def check_journal() -> tuple[bool, str, dict]:
 
         # Seq monotonicity (spot check last 100)
         seqs = [
-            r[0] for r in conn.execute(
-                "SELECT seq FROM events ORDER BY seq DESC LIMIT 100"
-            ).fetchall()
+            r[0]
+            for r in conn.execute("SELECT seq FROM events ORDER BY seq DESC LIMIT 100").fetchall()
         ]
         seqs.reverse()
-        gaps = [seqs[i] - seqs[i-1] for i in range(1, len(seqs))]
+        gaps = [seqs[i] - seqs[i - 1] for i in range(1, len(seqs))]
         monotonic = all(g == 1 for g in gaps) if gaps else True
 
         # Event count last hour
@@ -158,6 +160,7 @@ def check_pid() -> tuple[bool, str, dict]:
         pid = int(PID_PATH.read_text().strip())
         # On Windows, check if process exists
         import os
+
         try:
             os.kill(pid, 0)  # signal 0 = existence check
             return True, f"live_sim running (PID {pid})", {"pid": pid, "running": True}
@@ -198,12 +201,17 @@ def run_checks() -> dict:
         failures = [f"{k}: {v['message']}" for k, v in checks.items() if not v["ok"]]
         reason = "; ".join(failures)
         _emit_gate_hot(reason)
-        WATCHDOG_ALERT_PATH.write_text(json.dumps({
-            "ts": now.isoformat(),
-            "severity": "CRITICAL",
-            "failures": failures,
-            "action": "pre_trade_gate set to HOT",
-        }, indent=2))
+        WATCHDOG_ALERT_PATH.write_text(
+            json.dumps(
+                {
+                    "ts": now.isoformat(),
+                    "severity": "CRITICAL",
+                    "failures": failures,
+                    "action": "pre_trade_gate set to HOT",
+                },
+                indent=2,
+            )
+        )
 
     return result
 

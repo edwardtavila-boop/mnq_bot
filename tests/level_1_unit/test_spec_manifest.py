@@ -62,11 +62,7 @@ def sample_spec(tmp_path: Path) -> Path:
         strategy=meta,
         instrument=Instrument(),
         timeframes=Timeframes(),
-        session=Session(
-            windows=[
-                SessionWindow(name="RTH", start="09:30", end="16:00")
-            ]
-        ),
+        session=Session(windows=[SessionWindow(name="RTH", start="09:30", end="16:00")]),
         features=[],
         entry=Entry(
             long=EntrySide(all_of=["test"]),
@@ -94,6 +90,7 @@ def sample_spec(tmp_path: Path) -> Path:
 
     spec_path = tmp_path / "test_spec.yaml"
     from mnq.spec.loader import dump_spec
+
     dump_spec(spec, spec_path)
 
     return spec_path
@@ -293,10 +290,14 @@ def test_cli_approve(sample_spec: Path, test_manifest_path: Path) -> None:
         [
             "approve",
             str(sample_spec),
-            "--manifest", str(test_manifest_path),
-            "--approved-by", "test_user",
-            "--gauntlet-run-id", "GR-2026-04-14-001",
-            "--notes", "Test approval",
+            "--manifest",
+            str(test_manifest_path),
+            "--approved-by",
+            "test_user",
+            "--gauntlet-run-id",
+            "GR-2026-04-14-001",
+            "--notes",
+            "Test approval",
         ],
     )
 
@@ -322,9 +323,12 @@ def test_cli_approve_idempotent(sample_spec: Path, test_manifest_path: Path) -> 
         [
             "approve",
             str(sample_spec),
-            "--manifest", str(test_manifest_path),
-            "--approved-by", "user1",
-            "--gauntlet-run-id", "GR-001",
+            "--manifest",
+            str(test_manifest_path),
+            "--approved-by",
+            "user1",
+            "--gauntlet-run-id",
+            "GR-001",
         ],
     )
     assert result1.exit_code == 0
@@ -335,9 +339,12 @@ def test_cli_approve_idempotent(sample_spec: Path, test_manifest_path: Path) -> 
         [
             "approve",
             str(sample_spec),
-            "--manifest", str(test_manifest_path),
-            "--approved-by", "user2",
-            "--gauntlet-run-id", "GR-002",
+            "--manifest",
+            str(test_manifest_path),
+            "--approved-by",
+            "user2",
+            "--gauntlet-run-id",
+            "GR-002",
         ],
     )
     assert result2.exit_code == 0

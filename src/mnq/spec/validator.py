@@ -10,6 +10,7 @@ cross-field invariants:
 - Feature feeds match the instrument's data_feed.
 - Generators don't reference disabled features.
 """
+
 from __future__ import annotations
 
 import re

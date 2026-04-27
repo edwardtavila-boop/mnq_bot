@@ -15,6 +15,7 @@ on data the weights never saw?
 
 Output: ``reports/ow_validation.md``
 """
+
 from __future__ import annotations
 
 import random
@@ -97,7 +98,9 @@ def _precompute_days(max_days: int = 200) -> list[DayData]:
 
         bar_idx = _peak_volume_bar_idx(bars)
         ctx = context_from_bars(
-            bars, bar_idx, side="long",
+            bars,
+            bar_idx,
+            side="long",
             regime=regime if regime != "unknown" else None,
         )
         verdicts = run_gauntlet(ctx)
@@ -106,18 +109,20 @@ def _precompute_days(max_days: int = 200) -> list[DayData]:
 
         g = gauntlet_day_score(bars, regime=regime if regime != "unknown" else None)
 
-        results.append(DayData(
-            day_idx=i,
-            regime=regime,
-            pnl=round(day_pnl, 2),
-            raw_pass_rate=g.pass_rate,
-            gate_record=GateDayRecord(
+        results.append(
+            DayData(
                 day_idx=i,
-                gate_passed=gate_passed,
-                gate_scores=gate_scores,
+                regime=regime,
                 pnl=round(day_pnl, 2),
-            ),
-        ))
+                raw_pass_rate=g.pass_rate,
+                gate_record=GateDayRecord(
+                    day_idx=i,
+                    gate_passed=gate_passed,
+                    gate_scores=gate_scores,
+                    pnl=round(day_pnl, 2),
+                ),
+            )
+        )
 
     return results
 
@@ -155,9 +160,12 @@ def _evaluate_filtering(
 
     effective = full_pnl + reduced_pnl * reduced_size
     return {
-        "full_n": full_n, "full_pnl": round(full_pnl, 2),
-        "reduced_n": reduced_n, "reduced_pnl": round(reduced_pnl, 2),
-        "skipped_n": skipped_n, "skipped_pnl": round(skipped_pnl, 2),
+        "full_n": full_n,
+        "full_pnl": round(full_pnl, 2),
+        "reduced_n": reduced_n,
+        "reduced_pnl": round(reduced_pnl, 2),
+        "skipped_n": skipped_n,
+        "skipped_pnl": round(skipped_pnl, 2),
         "effective_pnl": round(effective, 2),
         "total_pnl": round(sum(d.pnl for d in days), 2),
     }
@@ -205,16 +213,18 @@ def main() -> int:
     raw_test = _evaluate_filtering(test_days, gate_weights=None)
     ow_test = _evaluate_filtering(test_days, gate_weights=ow_weights.gate_weights)
 
-    lines.extend([
-        "## Test 1: Chronological 60/40 Split",
-        "",
-        f"Train: {len(train_days)} days (first 60%), Test: {len(test_days)} days (last 40%)",
-        "",
-        "### Weights learned from training set",
-        "",
-        "| Gate | Weight | Correlation |",
-        "|---|---:|---:|",
-    ])
+    lines.extend(
+        [
+            "## Test 1: Chronological 60/40 Split",
+            "",
+            f"Train: {len(train_days)} days (first 60%), Test: {len(test_days)} days (last 40%)",
+            "",
+            "### Weights learned from training set",
+            "",
+            "| Gate | Weight | Correlation |",
+            "|---|---:|---:|",
+        ]
+    )
     for r in sorted(ow_weights.gate_results, key=lambda x: -x.weight):
         if r.weight > 0 or r.raw_correlation < -0.01:
             lines.append(f"| {r.name} | {r.weight:.4f} | {r.raw_correlation:+.4f} |")
@@ -224,10 +234,12 @@ def main() -> int:
     lines.extend(_fmt_eval("Outcome-weighted", ow_test))
 
     delta_split = ow_test["effective_pnl"] - raw_test["effective_pnl"]
-    lines.extend([
-        f"**OW vs Raw delta on test set: ${delta_split:+,.2f}**",
-        "",
-    ])
+    lines.extend(
+        [
+            f"**OW vs Raw delta on test set: ${delta_split:+,.2f}**",
+            "",
+        ]
+    )
 
     # ---------------------------------------------------------------
     # Test 2: Walk-forward with rolling windows
@@ -236,14 +248,16 @@ def main() -> int:
     test_window = 30
     step = 30
 
-    lines.extend([
-        "## Test 2: Walk-Forward (rolling retrain)",
-        "",
-        f"Train window: {train_window} days, Test window: {test_window} days, Step: {step} days",
-        "",
-        "| Fold | Train | Test | Raw Eff PnL | OW Eff PnL | Delta | Top OW Gate |",
-        "|---:|---|---|---:|---:|---:|---|",
-    ])
+    lines.extend(
+        [
+            "## Test 2: Walk-Forward (rolling retrain)",
+            "",
+            f"Train window: {train_window} days, Test window: {test_window} days, Step: {step} days",
+            "",
+            "| Fold | Train | Test | Raw Eff PnL | OW Eff PnL | Delta | Top OW Gate |",
+            "|---:|---|---|---:|---:|---:|---|",
+        ]
+    )
 
     fold = 0
     wf_raw_total = 0.0
@@ -252,8 +266,8 @@ def main() -> int:
 
     while start + train_window + test_window <= len(all_days):
         fold += 1
-        train_slice = all_days[start:start + train_window]
-        test_slice = all_days[start + train_window:start + train_window + test_window]
+        train_slice = all_days[start : start + train_window]
+        test_slice = all_days[start + train_window : start + train_window + test_window]
 
         fold_records = [d.gate_record for d in train_slice]
         fold_weights = compute_gate_weights(fold_records, min_samples=3)
@@ -266,8 +280,16 @@ def main() -> int:
         wf_ow_total += fold_ow["effective_pnl"]
 
         # Find top OW gate for this fold
-        top_gate = max(fold_weights.gate_results, key=lambda r: r.weight) if fold_weights.gate_results else None
-        top_name = f"{top_gate.name} ({top_gate.weight:.3f})" if top_gate and top_gate.weight > 0 else "none"
+        top_gate = (
+            max(fold_weights.gate_results, key=lambda r: r.weight)
+            if fold_weights.gate_results
+            else None
+        )
+        top_name = (
+            f"{top_gate.name} ({top_gate.weight:.3f})"
+            if top_gate and top_gate.weight > 0
+            else "none"
+        )
 
         train_range = f"{start}–{start + train_window - 1}"
         test_range = f"{start + train_window}–{start + train_window + test_window - 1}"
@@ -281,21 +303,25 @@ def main() -> int:
         start += step
 
     wf_delta = wf_ow_total - wf_raw_total
-    lines.extend([
-        "",
-        f"**Walk-forward totals:** Raw ${wf_raw_total:+,.2f}, OW ${wf_ow_total:+,.2f}, Delta ${wf_delta:+,.2f}",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            f"**Walk-forward totals:** Raw ${wf_raw_total:+,.2f}, OW ${wf_ow_total:+,.2f}, Delta ${wf_delta:+,.2f}",
+            "",
+        ]
+    )
 
     # ---------------------------------------------------------------
     # Test 3: Leave-one-out sensitivity
     # ---------------------------------------------------------------
-    lines.extend([
-        "## Test 3: Jackknife Sensitivity",
-        "",
-        "Drop each gate from the OW weight set (set to 0) and measure impact.",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Test 3: Jackknife Sensitivity",
+            "",
+            "Drop each gate from the OW weight set (set to 0) and measure impact.",
+            "",
+        ]
+    )
 
     # Full OW weights (all days)
     full_records = [d.gate_record for d in all_days]
@@ -305,10 +331,12 @@ def main() -> int:
 
     active_gates = [r for r in full_weights.gate_results if r.weight > 0]
     if active_gates:
-        lines.extend([
-            "| Dropped Gate | Eff PnL | vs Full OW | Impact |",
-            "|---|---:|---:|---|",
-        ])
+        lines.extend(
+            [
+                "| Dropped Gate | Eff PnL | vs Full OW | Impact |",
+                "|---|---:|---:|---|",
+            ]
+        )
         for gate_r in sorted(active_gates, key=lambda x: -x.weight):
             modified_weights = dict(full_weights.gate_weights)
             modified_weights[gate_r.name] = 0.0
@@ -316,9 +344,7 @@ def main() -> int:
             drop_eff = drop_eval["effective_pnl"]
             impact_val = drop_eff - base_eff
             impact = "HURTS" if impact_val < -1.0 else ("HELPS" if impact_val > 1.0 else "NEUTRAL")
-            lines.append(
-                f"| {gate_r.name} | ${drop_eff:+,.2f} | ${impact_val:+,.2f} | {impact} |"
-            )
+            lines.append(f"| {gate_r.name} | ${drop_eff:+,.2f} | ${impact_val:+,.2f} | {impact} |")
         lines.append("")
     else:
         lines.append("No active gates with weight > 0 to drop.\n")
@@ -326,10 +352,12 @@ def main() -> int:
     # ---------------------------------------------------------------
     # Verdict
     # ---------------------------------------------------------------
-    lines.extend([
-        "## Verdict",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Verdict",
+            "",
+        ]
+    )
 
     if delta_split > 0 and wf_delta > 0:
         lines.append(

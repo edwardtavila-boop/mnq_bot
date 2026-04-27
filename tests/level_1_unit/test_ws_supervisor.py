@@ -10,6 +10,7 @@ Tests cover:
   7. stop() is graceful
   8. Journal writes (if provided)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -28,6 +29,7 @@ from mnq.venues.tradovate.supervisor import (
 # ---------------------------------------------------------------------------
 # Fake WS Client
 # ---------------------------------------------------------------------------
+
 
 class FakeWSFrame:
     """Mock WsFrame for testing."""
@@ -117,6 +119,7 @@ class FakeWSClient:
 # Mock EventJournal
 # ---------------------------------------------------------------------------
 
+
 class FakeEventJournal:
     """Mock journal for testing."""
 
@@ -132,6 +135,7 @@ class FakeEventJournal:
 # ---------------------------------------------------------------------------
 # Test: StaleFlag
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_stale_flag_initial_fresh() -> None:
@@ -172,6 +176,7 @@ async def test_stale_flag_grace_period() -> None:
 # Test: WebSocketSupervisor — connect and fresh
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_supervisor_successful_connect() -> None:
     """Successful connect → stale_flag fresh after grace period."""
@@ -199,6 +204,7 @@ async def test_supervisor_initial_stale() -> None:
 # Test: Exponential backoff
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_supervisor_exponential_backoff() -> None:
     """Reconnect failures follow exponential backoff."""
@@ -224,6 +230,7 @@ async def test_supervisor_exponential_backoff() -> None:
 # Test: Stale detection
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_supervisor_stale_detection() -> None:
     """No messages for > stale_threshold triggers reconnect."""
@@ -242,6 +249,7 @@ async def test_supervisor_stale_detection() -> None:
 # ---------------------------------------------------------------------------
 # Test: Sequence gap detection
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_supervisor_gap_detection() -> None:
@@ -272,6 +280,7 @@ async def test_supervisor_gap_detection() -> None:
 # Test: Subscriptions
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_supervisor_subscribe_unsubscribe() -> None:
     """subscribe() and unsubscribe() work."""
@@ -288,6 +297,7 @@ async def test_supervisor_subscribe_unsubscribe() -> None:
 # ---------------------------------------------------------------------------
 # Test: Stats
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_supervisor_stats() -> None:
@@ -313,6 +323,7 @@ async def test_supervisor_stats() -> None:
 # ---------------------------------------------------------------------------
 # Test: Journal integration
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_supervisor_journal_events() -> None:
@@ -353,6 +364,7 @@ async def test_supervisor_journal_gap_event() -> None:
 # Test: Graceful stop
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_supervisor_graceful_stop() -> None:
     """stop() gracefully closes the client."""
@@ -364,5 +376,3 @@ async def test_supervisor_graceful_stop() -> None:
     await supervisor.stop()
 
     assert client.close_called
-
-

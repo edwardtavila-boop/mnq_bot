@@ -1,4 +1,5 @@
 """Tests for VolumeAwareSlippage — Batch 6C volume-dependent slippage model."""
+
 from __future__ import annotations
 
 import random
@@ -82,4 +83,6 @@ class TestVolumeAwareSlippage:
         """VolumeAwareSlippage returns ticks, not direction. Side doesn't matter."""
         model_l = VolumeAwareSlippage(_rng=random.Random(42))
         model_s = VolumeAwareSlippage(_rng=random.Random(42))
-        assert model_l.ticks(Side.LONG, Decimal("20000"), 5) == model_s.ticks(Side.SHORT, Decimal("20000"), 5)
+        assert model_l.ticks(Side.LONG, Decimal("20000"), 5) == model_s.ticks(
+            Side.SHORT, Decimal("20000"), 5
+        )

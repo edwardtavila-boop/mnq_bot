@@ -26,6 +26,7 @@ Fail-open: every step has a sensible default if its source is missing.
 A runtime should boot even if no backtest has been run yet (it just
 gets a payload labelled ``provenance=stub``).
 """
+
 from __future__ import annotations
 
 import json
@@ -113,6 +114,7 @@ def _load_variant_config(variant_name: str) -> Any | None:
     variant doesn't exist.
     """
     import sys
+
     scripts_dir = REPO_ROOT / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
@@ -189,19 +191,15 @@ def _derive_sample_stats(
     # Risk dollars per trade = risk_ticks * tick_value
     risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
     risk_dollars = (
-        risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)
-    ) if risk_ticks > 0 else 0.0
-    expectancy_r = (
-        (total_pnl / sample_size) / risk_dollars if risk_dollars > 0 else 0.0
+        (risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)) if risk_ticks > 0 else 0.0
     )
+    expectancy_r = (total_pnl / sample_size) / risk_dollars if risk_dollars > 0 else 0.0
     # OOS degradation proxy: best-day vs worst-day spread
     pnls = list(daily_pnl.values())
     if pnls:
         best = max(pnls)
         worst = min(pnls)
-        oos_deg = (
-            max(0.0, (best - worst) / best) * 100.0 if best > 0 else 100.0
-        )
+        oos_deg = max(0.0, (best - worst) / best) * 100.0 if best > 0 else 100.0
     else:
         oos_deg = 100.0
     return sample_size, float(expectancy_r), float(oos_deg)
@@ -353,11 +351,7 @@ def _approved_regimes_from_tape(
     per_day = _per_day_regime_map()
     if per_day is None:
         return None
-    regimes = {
-        per_day[day]
-        for day in pos_days
-        if day in per_day
-    }
+    regimes = {per_day[day] for day in pos_days if day in per_day}
     if not regimes:
         return None
     return sorted(regimes)
@@ -413,6 +407,7 @@ def _recency_weighted_expectancy_r(
     if not daily_pnl:
         return None
     from datetime import date as _date
+
     # Filter out malformed date keys BEFORE finding "latest" -- a
     # garbage key could otherwise sort to the end and short-circuit
     # the whole computation.
@@ -427,8 +422,8 @@ def _recency_weighted_expectancy_r(
     latest = max(d for d, _ in valid_dates)
     risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
     risk_dollars = (
-        risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)
-    ) if risk_ticks > 0 else 0.0
+        (risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)) if risk_ticks > 0 else 0.0
+    )
     if risk_dollars <= 0:
         return None
     rate = _journal_trades_per_day() or float(TRADES_PER_DAY_PROXY)
@@ -495,8 +490,8 @@ def _regime_expectancy_stats(
     # Compute stats
     risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
     risk_dollars = (
-        risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)
-    ) if risk_ticks > 0 else 0.0
+        (risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)) if risk_ticks > 0 else 0.0
+    )
     rate = _journal_trades_per_day() or float(TRADES_PER_DAY_PROXY)
     out: dict[str, dict[str, float]] = {}
     for regime, pnls in by_regime.items():
@@ -504,10 +499,7 @@ def _regime_expectancy_stats(
         total = sum(pnls)
         pnl_per_day = total / n if n else 0.0
         # expectancy_r per trade: pnl_per_day / (rate * risk_dollars)
-        expectancy_r = (
-            pnl_per_day / (rate * risk_dollars)
-            if risk_dollars > 0 and rate > 0 else 0.0
-        )
+        expectancy_r = pnl_per_day / (rate * risk_dollars) if risk_dollars > 0 and rate > 0 else 0.0
         out[regime] = {
             "n_days": float(n),
             "total_pnl": float(total),
@@ -597,8 +589,8 @@ def _dd_kill_switch_r(cfg: Any, spec: Any) -> float:
         return 12.0
     risk_ticks = float(getattr(cfg, "risk_ticks", 0)) if cfg is not None else 0.0
     risk_dollars = (
-        risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)
-    ) if risk_ticks > 0 else 0.0
+        (risk_ticks * float(MNQ_TICK_SIZE) * float(MNQ_POINT_VALUE)) if risk_ticks > 0 else 0.0
+    )
     if risk_dollars > 0:
         return float(max_loss) / risk_dollars
     return 12.0
@@ -652,9 +644,7 @@ def build_spec_payload(variant_name: str) -> dict[str, Any]:
         "regime_expectancy": _regime_expectancy_stats(cfg, daily),
         # v0.2.18: recency-weighted expectancy_r (None when unavailable).
         "recency_weighted_expectancy_r": recency_r,
-        "recency_half_life_days": (
-            DEFAULT_HALF_LIFE_DAYS if recency_r is not None else None
-        ),
+        "recency_half_life_days": (DEFAULT_HALF_LIFE_DAYS if recency_r is not None else None),
         "approved_sessions": _approved_sessions(spec),
         "provenance": provenance,
     }

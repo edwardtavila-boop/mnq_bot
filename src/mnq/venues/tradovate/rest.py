@@ -19,6 +19,7 @@ The OCO bracket encoding is fiddly — see `BracketParams.to_params_json`.
 `params` is a JSON *string*, not a nested JSON object, per the forum
 example and confirmed in practice by Tradovate staff.
 """
+
 from __future__ import annotations
 
 import json
@@ -37,9 +38,13 @@ from mnq.venues.tradovate.config import Hosts
 # Exceptions
 # ---------------------------------------------------------------------------
 
+
 class OrderRejectedError(Exception):
     """Tradovate returned non-2xx or an errorText on an order submission."""
-    def __init__(self, message: str, *, body: dict[str, Any] | None = None, status: int | None = None):
+
+    def __init__(
+        self, message: str, *, body: dict[str, Any] | None = None, status: int | None = None
+    ):
         super().__init__(message)
         self.body = body
         self.status = status
@@ -49,12 +54,14 @@ class OrderRejectedError(Exception):
 # Value types
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True, slots=True)
 class AccountInfo:
     """One row from `/account/list`, filtered to the fields we use."""
+
     id: int
     name: str
-    account_type: str           # 'Customer', 'Hedger', etc.
+    account_type: str  # 'Customer', 'Hedger', etc.
     active: bool
     archived: bool
 
@@ -77,6 +84,7 @@ class BracketParams:
     relative to entry; by Tradovate convention profit is positive
     (favorable for the entry direction) and stop is negative.
     """
+
     account_id: int
     account_spec: str
     symbol: str

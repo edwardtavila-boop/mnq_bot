@@ -9,6 +9,7 @@ This is the second-line-of-defense companion to heartbeat.py.
 Usage:
     python scripts/deadman_switch.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,12 +38,17 @@ def main() -> int:
     tripped = age_s > args.cutoff_min * 60
     if tripped:
         GATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        GATE_PATH.write_text(json.dumps({
-            "state": "HOT",
-            "reason": f"dead-man's switch tripped (hb age {age_s:.0f}s)",
-            "until": None,
-            "since": now.isoformat(),
-        }, indent=2))
+        GATE_PATH.write_text(
+            json.dumps(
+                {
+                    "state": "HOT",
+                    "reason": f"dead-man's switch tripped (hb age {age_s:.0f}s)",
+                    "until": None,
+                    "since": now.isoformat(),
+                },
+                indent=2,
+            )
+        )
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     status_icon = "🔴 TRIPPED — gate HOT" if tripped else "🟢 nominal"

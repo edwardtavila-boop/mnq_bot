@@ -328,7 +328,7 @@ class TestGate15WithBootstrap:
         )
         # Highly variable trades per path
         paths = [
-            self._path_with_trades(n_trades=5, n_days=2),   # 2.5/day
+            self._path_with_trades(n_trades=5, n_days=2),  # 2.5/day
             self._path_with_trades(n_trades=30, n_days=2),  # 15/day
             self._path_with_trades(n_trades=10, n_days=2),  # 5/day
         ]
@@ -337,7 +337,10 @@ class TestGate15WithBootstrap:
         # The CI should span from low to high and cross the bounds
         assert not result.passed
         assert result.failure_reason is not None
-        assert "crosses bounds" in result.failure_reason.lower() or "uncertainty" in result.failure_reason.lower()
+        assert (
+            "crosses bounds" in result.failure_reason.lower()
+            or "uncertainty" in result.failure_reason.lower()
+        )
 
     def test_gate_15_without_bootstrap_ci_uses_point(self) -> None:
         """Gate 15 with use_bootstrap_ci=False should use point estimate only."""
@@ -365,7 +368,7 @@ class TestGate15WithBootstrap:
         )
         # Trades per day: 3, 7 -> median 5 (in band), but with uncertainty might go below 5
         paths = [
-            self._path_with_trades(n_trades=6, n_days=2),   # 3/day
+            self._path_with_trades(n_trades=6, n_days=2),  # 3/day
             self._path_with_trades(n_trades=28, n_days=2),  # 14/day
         ]
         result = run_gate_15(paths, config=cfg)

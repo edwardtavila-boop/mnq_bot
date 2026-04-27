@@ -13,6 +13,7 @@ Covers:
   * NO_DATA counts as HOLD in the aggregate
   * No --override flag exists
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -29,7 +30,8 @@ GATE_PATH = REPO_ROOT / "scripts" / "_promotion_gate.py"
 @pytest.fixture(scope="module")
 def gate_mod():
     spec = importlib.util.spec_from_file_location(
-        "promotion_gate_for_test", GATE_PATH,
+        "promotion_gate_for_test",
+        GATE_PATH,
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -88,7 +90,9 @@ def test_aggregate_verdict_ordering(gate_mod) -> None:
 
 
 def test_main_all_returns_aggregate(
-    gate_mod, monkeypatch: pytest.MonkeyPatch, capsys,
+    gate_mod,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys,
 ) -> None:
     """--all returns the aggregate exit code."""
     PASS, FAIL = gate_mod.PASS, gate_mod.FAIL
@@ -96,7 +100,8 @@ def test_main_all_returns_aggregate(
 
     # Stub evaluate_all to return mixed results
     monkeypatch.setattr(
-        gate_mod, "_GATES",
+        gate_mod,
+        "_GATES",
         [
             ("g1", lambda: G("g1", PASS, "ok", {})),
             ("g2", lambda: G("g2", FAIL, "broken", {})),
@@ -111,12 +116,14 @@ def test_main_all_returns_aggregate(
 
 
 def test_main_single_gate_returns_individual_verdict(
-    gate_mod, monkeypatch: pytest.MonkeyPatch,
+    gate_mod,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     PASS = gate_mod.PASS
     G = gate_mod.GateResult
     monkeypatch.setattr(
-        gate_mod, "_GATES",
+        gate_mod,
+        "_GATES",
         [("g1", lambda: G("g1", PASS, "ok", {}))],
     )
     monkeypatch.setattr(gate_mod, "_GATE_NAMES", ["g1"])
@@ -141,12 +148,15 @@ def test_main_requires_gate_or_all(gate_mod) -> None:
 
 
 def test_main_json_output_shape(
-    gate_mod, monkeypatch: pytest.MonkeyPatch, capsys,
+    gate_mod,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys,
 ) -> None:
     PASS = gate_mod.PASS
     G = gate_mod.GateResult
     monkeypatch.setattr(
-        gate_mod, "_GATES",
+        gate_mod,
+        "_GATES",
         [("g1", lambda: G("g1", PASS, "ok", {"foo": 1}))],
     )
     monkeypatch.setattr(gate_mod, "_GATE_NAMES", ["g1"])
@@ -174,6 +184,7 @@ def test_no_override_flag_exists(gate_mod) -> None:
     # appears in the help text. argparse exits with 0 on --help.
     import contextlib as ctx
     import io
+
     buf = io.StringIO()
     with ctx.redirect_stdout(buf), pytest.raises(SystemExit) as exc:
         gate_mod.main(["--help"])

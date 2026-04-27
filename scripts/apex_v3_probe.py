@@ -10,6 +10,7 @@ Lightweight companion to ``eta_v3_bridge.py``. Only asks:
 Writes ``reports/eta_v3_probe.md`` and prints a one-line console
 summary. Always exits 0 — observation only, never enforcement.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,34 +39,40 @@ def main() -> int:
         "",
     ]
     if result.get("available"):
-        lines.extend([
-            f"- Voices found: **{result.get('voices_found', 0)}**",
-            f"- `evaluate` callable: **{result.get('has_evaluate')}**",
-            f"- `detect_regime` callable: **{result.get('has_detect_regime')}**",
-            "",
-            "## Voice names",
-            "",
-            "```",
-            "\n".join(result.get("voice_names", []) or ["<none>"]),
-            "```",
-        ])
+        lines.extend(
+            [
+                f"- Voices found: **{result.get('voices_found', 0)}**",
+                f"- `evaluate` callable: **{result.get('has_evaluate')}**",
+                f"- `detect_regime` callable: **{result.get('has_detect_regime')}**",
+                "",
+                "## Voice names",
+                "",
+                "```",
+                "\n".join(result.get("voice_names", []) or ["<none>"]),
+                "```",
+            ]
+        )
     else:
-        lines.extend([
-            f"- Reason: `{result.get('reason', 'unknown')}`",
-            "",
-            "The adapter's contract is fail-open: with the engine unavailable,",
-            "``apex_to_firm_payload(base, None)`` returns the base payload",
-            "unchanged. No trading path is affected.",
-        ])
+        lines.extend(
+            [
+                f"- Reason: `{result.get('reason', 'unknown')}`",
+                "",
+                "The adapter's contract is fail-open: with the engine unavailable,",
+                "``apex_to_firm_payload(base, None)`` returns the base payload",
+                "unchanged. No trading path is affected.",
+            ]
+        )
 
-    lines.extend([
-        "",
-        "## Raw probe",
-        "",
-        "```json",
-        json.dumps(result, indent=2, sort_keys=True, default=str),
-        "```",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Raw probe",
+            "",
+            "```json",
+            json.dumps(result, indent=2, sort_keys=True, default=str),
+            "```",
+        ]
+    )
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n")

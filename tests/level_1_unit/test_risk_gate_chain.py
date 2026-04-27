@@ -1,11 +1,10 @@
 """Unit tests for the pre-trade gate chain."""
+
 from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-import pytest
 
 from mnq.risk import GateChain, GateResult, build_default_chain
 from mnq.risk.gate_chain import (
@@ -20,6 +19,7 @@ from mnq.risk.gate_chain import (
 def _mk_gate(name: str, allow: bool, reason: str = "test"):
     def _g() -> GateResult:
         return GateResult(allow, name, reason)
+
     _g.name = name  # type: ignore[attr-defined]
     return _g
 

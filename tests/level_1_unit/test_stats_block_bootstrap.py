@@ -10,6 +10,7 @@ Pin the contract:
     in synthetic samples)
   * paper_gate_r threshold flows through to p_above_paper_gate
 """
+
 from __future__ import annotations
 
 import math
@@ -60,9 +61,14 @@ def test_output_has_all_required_keys() -> None:
     every other documented key so a future refactor doesn't drop one."""
     result = block_bootstrap_ci([0.1] * 20, k=100, seed=1)
     required = {
-        "n_trades", "k", "block_size", "mean",
-        "ci95_low", "ci95_high",
-        "p_above_paper_gate", "paper_gate_r",
+        "n_trades",
+        "k",
+        "block_size",
+        "mean",
+        "ci95_low",
+        "ci95_high",
+        "p_above_paper_gate",
+        "paper_gate_r",
     }
     missing = required - set(result.keys())
     assert not missing, f"missing: {missing}"
@@ -105,22 +111,37 @@ def test_different_seed_different_result() -> None:
     resampling actually has variation.
     """
     rs = [
-        0.10, -0.20, 0.30, -0.05, 0.15,
-        0.40, -0.10, 0.25, -0.30, 0.50,
-        -0.15, 0.05, -0.25, 0.35, 0.20,
-        -0.40, 0.45, -0.35, 0.60, -0.05,
+        0.10,
+        -0.20,
+        0.30,
+        -0.05,
+        0.15,
+        0.40,
+        -0.10,
+        0.25,
+        -0.30,
+        0.50,
+        -0.15,
+        0.05,
+        -0.25,
+        0.35,
+        0.20,
+        -0.40,
+        0.45,
+        -0.35,
+        0.60,
+        -0.05,
     ]
     a = block_bootstrap_ci(rs, k=500, seed=1)
     b = block_bootstrap_ci(rs, k=500, seed=2)
-    assert (a["ci95_low"] != b["ci95_low"]) or (
-        a["ci95_high"] != b["ci95_high"]
-    )
+    assert (a["ci95_low"] != b["ci95_low"]) or (a["ci95_high"] != b["ci95_high"])
 
 
 def test_ci_brackets_mean_for_random_walk() -> None:
     """For mean-zero normal-like returns, ci95 should bracket 0
     (most of the time -- with k=2000 this is reliable)."""
     import random
+
     rng = random.Random(7)
     rs = [rng.gauss(0.0, 1.0) for _ in range(60)]
     result = block_bootstrap_ci(rs, k=2000, seed=11)
@@ -133,6 +154,7 @@ def test_strong_positive_signal_ci_excludes_zero() -> None:
     """A strong consistent positive signal (mean +1R, low variance)
     over 60 trades should yield a CI that EXCLUDES 0R."""
     import random
+
     rng = random.Random(7)
     rs = [rng.gauss(1.0, 0.1) for _ in range(60)]  # tight cluster around +1R
     result = block_bootstrap_ci(rs, k=2000, seed=11)
@@ -144,6 +166,7 @@ def test_strong_positive_signal_ci_excludes_zero() -> None:
 def test_strong_negative_signal_ci_excludes_zero() -> None:
     """Strong negative signal -> CI95 high < 0R."""
     import random
+
     rng = random.Random(7)
     rs = [rng.gauss(-1.0, 0.1) for _ in range(60)]
     result = block_bootstrap_ci(rs, k=2000, seed=11)
@@ -157,7 +180,10 @@ def test_strong_negative_signal_ci_excludes_zero() -> None:
 
 def test_paper_gate_r_passes_through_to_output() -> None:
     result = block_bootstrap_ci(
-        [0.0] * 10, k=100, seed=1, paper_gate_r=0.123,
+        [0.0] * 10,
+        k=100,
+        seed=1,
+        paper_gate_r=0.123,
     )
     assert result["paper_gate_r"] == 0.123
 
@@ -166,6 +192,7 @@ def test_p_above_threshold_changes_with_threshold() -> None:
     """A strong +1R signal: p_above 0.05R should be ~1.0; p_above
     2.0R should be much smaller (since the signal isn't that strong)."""
     import random
+
     rng = random.Random(11)
     rs = [rng.gauss(1.0, 0.2) for _ in range(40)]
     low = block_bootstrap_ci(rs, k=2000, seed=11, paper_gate_r=0.05)
@@ -199,6 +226,7 @@ def test_quantile_single_value() -> None:
 def test_block_resample_returns_correct_length() -> None:
     """Resampling preserves length."""
     import random
+
     rng = random.Random(1)
     out = _block_resample([1.0, 2.0, 3.0, 4.0, 5.0], block_size=2, rng=rng)
     assert len(out) == 5
@@ -207,6 +235,7 @@ def test_block_resample_returns_correct_length() -> None:
 def test_block_resample_values_from_input() -> None:
     """Every value in the resample comes from the input."""
     import random
+
     rng = random.Random(1)
     inputs = {1.0, 2.0, 3.0, 4.0, 5.0}
     out = _block_resample(list(inputs), block_size=3, rng=rng)

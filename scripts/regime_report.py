@@ -21,6 +21,7 @@ Usage
 
 Exit codes: 0 always (this is a reporter, not a gate).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,9 +43,16 @@ DEFAULT_OUTPUT = REPO_ROOT / "reports" / "regime_expectancy.md"
 
 # Canonical order for regime columns. Matches CanonicalRegime.value.
 REGIME_COLUMNS = [
-    "low-vol-trend", "low-vol-range", "low-vol-reversal",
-    "high-vol-trend", "high-vol-range", "high-vol-reversal",
-    "crash", "euphoria", "dead-zone", "transition",
+    "low-vol-trend",
+    "low-vol-range",
+    "low-vol-reversal",
+    "high-vol-trend",
+    "high-vol-range",
+    "high-vol-reversal",
+    "crash",
+    "euphoria",
+    "dead-zone",
+    "transition",
 ]
 
 
@@ -87,8 +95,7 @@ def _render_markdown(rows: list[dict[str, Any]]) -> str:
     # Header
     # v0.2.19: include E_recency column (v0.2.18 recency-weighted) so
     # the operator can spot drift at a glance.
-    cols = ["variant", "n_total", "E_total", "E_recency", "drift",
-            "provenance", *REGIME_COLUMNS]
+    cols = ["variant", "n_total", "E_total", "E_recency", "drift", "provenance", *REGIME_COLUMNS]
     lines.append("| " + " | ".join(cols) + " |")
     lines.append("|" + "|".join(["---"] * len(cols)) + "|")
     for row in rows:
@@ -120,11 +127,10 @@ def _render_markdown(rows: list[dict[str, Any]]) -> str:
         lines.append("| " + " | ".join(cells) + " |")
     lines.append("")
     # Summary stats
-    n_calibrated = sum(
-        1 for r in rows if "cached_backtest" in r.get("provenance", [])
-    )
+    n_calibrated = sum(1 for r in rows if "cached_backtest" in r.get("provenance", []))
     n_real_regimes = sum(
-        1 for r in rows
+        1
+        for r in rows
         if any(
             (s.get("expectancy_r", 0.0) > 0.05 and s.get("n_days", 0) >= 5)
             for s in r.get("regime_expectancy", {}).values()
@@ -154,32 +160,37 @@ def _build_rows(variant_filter: list[str] | None) -> list[dict[str, Any]]:
         if variant_filter and cfg.name not in variant_filter:
             continue
         payload = build_spec_payload(cfg.name)
-        rows.append({
-            "variant": cfg.name,
-            "sample_size": payload.get("sample_size", 0),
-            "expected_expectancy_r": payload.get("expected_expectancy_r", 0.0),
-            "recency_weighted_expectancy_r": (
-                payload.get("recency_weighted_expectancy_r")
-            ),
-            "regimes_approved": payload.get("regimes_approved", []),
-            "regime_expectancy": payload.get("regime_expectancy", {}),
-            "provenance": payload.get("provenance", ["stub"]),
-        })
+        rows.append(
+            {
+                "variant": cfg.name,
+                "sample_size": payload.get("sample_size", 0),
+                "expected_expectancy_r": payload.get("expected_expectancy_r", 0.0),
+                "recency_weighted_expectancy_r": (payload.get("recency_weighted_expectancy_r")),
+                "regimes_approved": payload.get("regimes_approved", []),
+                "regime_expectancy": payload.get("regime_expectancy", {}),
+                "provenance": payload.get("provenance", ["stub"]),
+            }
+        )
     return rows
 
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     p.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT,
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
         help=f"output markdown file (default: {DEFAULT_OUTPUT})",
     )
     p.add_argument(
-        "--variants", type=str, default=None,
+        "--variants",
+        type=str,
+        default=None,
         help="comma-separated list of variant names; default is all",
     )
     p.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="emit JSON instead of markdown (machine-readable)",
     )
     args = p.parse_args(argv)
@@ -203,7 +214,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"wrote {args.output} ({len(rows)} variants)")
     # Echo a one-line summary to stdout
     n_with_evidence = sum(
-        1 for r in rows
+        1
+        for r in rows
         if any(
             (s.get("expectancy_r", 0.0) > 0.05 and s.get("n_days", 0) >= 5)
             for s in r.get("regime_expectancy", {}).values()

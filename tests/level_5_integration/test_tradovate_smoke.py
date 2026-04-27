@@ -17,6 +17,7 @@ correctness test of the executor. Per handoff DoD:
     "places a 1-contract market order on paper, sees the fill via WS,
      and closes the position. SKIPPED if no credentials in env."
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -32,8 +33,16 @@ except ImportError:  # pragma: no cover
     httpx = None  # type: ignore[assignment]
 
 
-REQUIRED = ("TV_USERNAME", "TV_PASSWORD", "TV_APP_ID", "TV_APP_VERSION",
-            "TV_DEVICE_ID", "TV_CID", "TV_SEC", "TV_ACCOUNT_ID")
+REQUIRED = (
+    "TV_USERNAME",
+    "TV_PASSWORD",
+    "TV_APP_ID",
+    "TV_APP_VERSION",
+    "TV_DEVICE_ID",
+    "TV_CID",
+    "TV_SEC",
+    "TV_ACCOUNT_ID",
+)
 
 
 def _have_creds() -> bool:
@@ -105,8 +114,11 @@ async def _smoke() -> dict[str, Any]:
 
             # Entry order
             entry = await rest.place_order(
-                account_id=match.id, account_spec=match.name,
-                symbol=symbol, side=Side.LONG, qty=1,
+                account_id=match.id,
+                account_spec=match.name,
+                symbol=symbol,
+                side=Side.LONG,
+                qty=1,
             )
             summary["entry_order_id"] = entry.get("orderId")
             # Give the exchange a moment.
@@ -114,8 +126,11 @@ async def _smoke() -> dict[str, Any]:
 
             # Flatten
             flat = await rest.place_order(
-                account_id=match.id, account_spec=match.name,
-                symbol=symbol, side=Side.SHORT, qty=1,
+                account_id=match.id,
+                account_spec=match.name,
+                symbol=symbol,
+                side=Side.SHORT,
+                qty=1,
             )
             summary["flatten_order_id"] = flat.get("orderId")
         finally:

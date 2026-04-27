@@ -8,6 +8,7 @@ feed is wired.
 Usage:
     python scripts/gex_monitor.py
 """
+
 from __future__ import annotations
 
 import argparse
