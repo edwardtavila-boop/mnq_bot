@@ -1,76 +1,38 @@
 {
-  "firm_path": "C:\\EvolutionaryTradingAlgo\\firm",
+  "firm_path": "C:\\EvolutionaryTradingAlgo\\firm\\the_firm_complete\\desktop_app\\firm",
   "path_exists": true,
   "modules": {
     "firm.types": {
-      "importable": false,
-      "file": null,
-      "resolved": [],
-      "error": "ModuleNotFoundError: No module named 'firm.types'"
+      "importable": true,
+      "file": "C:\\EvolutionaryTradingAlgo\\firm\\the_firm_complete\\desktop_app\\firm\\types.py",
+      "resolved": [
+        "Verdict",
+        "Quadrant"
+      ]
     },
     "firm.agents.base": {
-      "importable": false,
-      "file": null,
-      "resolved": [],
-      "error": "ModuleNotFoundError: No module named 'firm.agents'"
+      "importable": true,
+      "file": "C:\\EvolutionaryTradingAlgo\\firm\\the_firm_complete\\desktop_app\\firm\\agents\\base.py",
+      "resolved": [
+        "Agent",
+        "AgentInput",
+        "AgentOutput"
+      ]
     },
     "firm.agents.core": {
-      "importable": false,
-      "file": null,
-      "resolved": [],
-      "error": "ModuleNotFoundError: No module named 'firm.agents'"
+      "importable": true,
+      "file": "C:\\EvolutionaryTradingAlgo\\firm\\the_firm_complete\\desktop_app\\firm\\agents\\core.py",
+      "resolved": [
+        "QuantAgent",
+        "RedTeamAgent",
+        "RiskManagerAgent",
+        "MacroAgent",
+        "MicrostructureAgent",
+        "PMAgent"
+      ]
     }
   },
-  "missing": [
-    {
-      "module": "firm.types",
-      "name": "Verdict"
-    },
-    {
-      "module": "firm.types",
-      "name": "Quadrant"
-    },
-    {
-      "module": "firm.agents.base",
-      "name": "Agent"
-    },
-    {
-      "module": "firm.agents.base",
-      "name": "AgentInput"
-    },
-    {
-      "module": "firm.agents.base",
-      "name": "AgentOutput"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "QuantAgent"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "RedTeamAgent"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "RiskManagerAgent"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "MacroAgent"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "MicrostructureAgent"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "PMAgent"
-    },
-    {
-      "module": "firm.agents.core",
-      "name": "signature: firm.agents.core import failed: No module named 'firm.agents'"
-    }
-  ],
-  "ready": false,
+  "missing": [],
+  "ready": true,
   "error": null
 }

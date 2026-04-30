@@ -1,32 +1,21 @@
 # Firm Integration — Readiness Probe
 
-- Firm code path: `C:\EvolutionaryTradingAlgo\firm`
+- Firm code path: `C:\EvolutionaryTradingAlgo\firm\the_firm_complete\desktop_app\firm`
 - Path exists: **True**
-- Ready for integration: **False**
+- Ready for integration: **True**
 
 ## Module probe
 
 | Module | Importable | Required names resolved |
 |---|---|---|
-| `firm.types` | no | 0/2 |
-| `firm.agents.base` | no | 0/3 |
-| `firm.agents.core` | no | 0/6 |
+| `firm.types` | yes | 2/2 |
+| `firm.agents.base` | yes | 3/3 |
+| `firm.agents.core` | yes | 6/6 |
 
 ## Gaps blocking integration
 
-- `firm.types.Verdict`
-- `firm.types.Quadrant`
-- `firm.agents.base.Agent`
-- `firm.agents.base.AgentInput`
-- `firm.agents.base.AgentOutput`
-- `firm.agents.core.QuantAgent`
-- `firm.agents.core.RedTeamAgent`
-- `firm.agents.core.RiskManagerAgent`
-- `firm.agents.core.MacroAgent`
-- `firm.agents.core.MicrostructureAgent`
-- `firm.agents.core.PMAgent`
-- `firm.agents.core.signature: firm.agents.core import failed: No module named 'firm.agents'`
+_none — contract satisfied._
 
 ## Next step
 
-Continue running the markdown-only Firm review path (`scripts/firm_review.py`). Rerun this probe after each Firm-code fine-tune cycle; integration will auto-enable when the contract is met.
+Run `python scripts/firm_bridge.py --integrate` to emit the runtime shim at `src/mnq/firm_runtime.py`. Live_sim will then delegate the six-stage review to the real Firm agents.
