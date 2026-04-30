@@ -23,8 +23,8 @@ from real_eta_driver import (  # noqa: E402
     run_day_through_apex,
 )
 
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
 from mnq.core.types import Bar as MnqBar  # noqa: E402
+from mnq.eta_v3.gate import apex_gate  # noqa: E402
 
 
 def _make_bars(n: int, *, start_px: float = 18000.0, slope: float = 0.5) -> list[MnqBar]:

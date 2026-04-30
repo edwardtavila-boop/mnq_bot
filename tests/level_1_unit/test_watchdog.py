@@ -66,17 +66,17 @@ class TestCheckPid:
 
 class TestRunChecks:
     def test_all_bootstrap_is_ok(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            with (
-                patch("watchdog.HEARTBEAT_PATH", Path("/nonexistent")),
-                patch("watchdog.JOURNAL_PATH", Path("/nonexistent")),
-                patch("watchdog.PID_PATH", Path("/nonexistent")),
-                patch("watchdog.WATCHDOG_STATE_PATH", Path(tmp) / "state.json"),
-                patch("watchdog.WATCHDOG_ALERT_PATH", Path(tmp) / "alert.json"),
-                patch("watchdog.GATE_PATH", Path(tmp) / "gate.json"),
-            ):
-                result = run_checks()
-                assert result["all_ok"]
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch("watchdog.HEARTBEAT_PATH", Path("/nonexistent")),
+            patch("watchdog.JOURNAL_PATH", Path("/nonexistent")),
+            patch("watchdog.PID_PATH", Path("/nonexistent")),
+            patch("watchdog.WATCHDOG_STATE_PATH", Path(tmp) / "state.json"),
+            patch("watchdog.WATCHDOG_ALERT_PATH", Path(tmp) / "alert.json"),
+            patch("watchdog.GATE_PATH", Path(tmp) / "gate.json"),
+        ):
+            result = run_checks()
+            assert result["all_ok"]
 
 
 class TestRenderReport:

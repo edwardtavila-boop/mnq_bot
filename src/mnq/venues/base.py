@@ -232,11 +232,11 @@ class VenueAdapter(abc.ABC):
 
         Default: no-op (venue must override to support push fills).
         """
-        pass
+        _ = callback
 
     def on_disconnect(self, callback: Callable[[], None]) -> None:
         """Register a disconnect callback for reconnection logic.
 
         Default: no-op.
         """
-        pass
+        _ = callback

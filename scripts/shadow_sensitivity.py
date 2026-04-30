@@ -35,8 +35,8 @@ from real_eta_driver import day_pm_output_from_real_apex  # noqa: E402
 from strategy_ab import _load_real_days  # noqa: E402
 from strategy_v2 import VARIANTS as _VARIANT_LIST  # noqa: E402
 
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
 from mnq.core.types import OrderType, Side, Signal  # noqa: E402
+from mnq.eta_v3.gate import apex_gate  # noqa: E402
 from mnq.sim.layer2 import Layer2Engine  # noqa: E402
 from mnq.spec.loader import load_spec  # noqa: E402
 from mnq.venues.shadow import (  # noqa: E402

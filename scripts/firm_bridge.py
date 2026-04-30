@@ -3,7 +3,7 @@
 Responsibilities:
 
 1. **Discover** the in-progress Firm Python package (default location:
-   `~/OneDrive/the_firm_complete/desktop_app/firm`). Other locations are
+   `C:/EvolutionaryTradingAlgo/firm/the_firm_complete/desktop_app/firm`). Other locations are
    supported via the ``FIRM_CODE_PATH`` environment variable or ``--path``.
 2. **Probe** the public surface the mnq_bot needs without fully importing —
    we only sniff module structure, class names, and signature shapes. That
@@ -64,7 +64,7 @@ DEFAULT_FIRM_PATH_ENV = "FIRM_CODE_PATH"
 # layouts are kept as fallbacks for fresh machines mid-migration.
 # Operator override via FIRM_CODE_PATH env var.
 _DEFAULT_FIRM_CANDIDATES = (
-    Path("C:/EvolutionaryTradingAlgo/firm"),
+    Path("C:/EvolutionaryTradingAlgo/firm/the_firm_complete/desktop_app/firm"),
     Path("C:/Users/edwar/projects/firm"),
     Path("C:/Users/edwar/OneDrive/The_Firm/the_firm_complete/desktop_app/firm"),
 )

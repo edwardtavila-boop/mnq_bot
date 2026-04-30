@@ -43,8 +43,8 @@ for p in (SRC, SCRIPTS):
 from strategy_ab import _load_real_days, _run_variant  # noqa: E402
 from strategy_v2 import VARIANTS as _VARIANT_LIST  # noqa: E402
 
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
 from mnq.core.types import Bar as _MnqBar  # noqa: E402
+from mnq.eta_v3.gate import apex_gate  # noqa: E402
 from mnq.spec.loader import load_spec  # noqa: E402
 
 BASELINE = REPO_ROOT / "specs" / "strategies" / "v0_1_baseline.yaml"

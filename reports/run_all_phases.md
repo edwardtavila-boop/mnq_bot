@@ -1,41 +1,54 @@
-# Run-All-Phases — 2026-04-26 19:22:38 UTC
+# Run-All-Phases — 2026-04-27 19:22:28 UTC
 
 - Stages: **2**
-- Passed: **1/2**
+- Passed: **0/2**
 
 ## Per-phase summary
 
 | Phase | Passed | Total |
 |---|---:|---:|
-| Phase 0 | 1 | 2 |
+| Phase 0 | 0 | 2 |
 
 ## Stage ledger
 
 | # | Phase | Stage | Status | Duration (s) |
 |---:|---|---|---|---:|
-| 1 | Phase 0 | `firm_bridge` | OK | 0.2 |
-| 2 | Phase 0 | `live_sim` | FAIL (rc=1) | 2.7 |
+| 1 | Phase 0 | `firm_bridge` | FAIL (rc=2) | 0.1 |
+| 2 | Phase 0 | `live_sim` | FAIL (rc=1) | 2.6 |
 
 ## Failures
+
+### `firm_bridge` (Phase 0)
+
+```
+# stdout (last 10 lines)
+## Gaps blocking integration
+
+_none — contract satisfied._
+
+## Next step
+
+Continue running the markdown-only Firm review path (`scripts/firm_review.py`). Rerun this probe after each Firm-code fine-tune cycle; integration will auto-enable when the contract is met.
+
+wrote C:\EvolutionaryTradingAlgo\mnq_bot\reports\firm_integration.md
+wrote C:\EvolutionaryTradingAlgo\mnq_bot\reports\firm_integration.json
+# stderr (last 10 lines)
+NOT INTEGRATING: readiness probe failed.
+```
 
 ### `live_sim` (Phase 0)
 
 ```
 # stdout (last 10 lines)
-[live_sim] firm-bridge contract OK (checksum=bf88d73c1a4a4e2f)
-[live_sim] running 20 days @ 390 bars/day ...
-2026-04-26 15:22:37 [warning  ] order_blocked_by_gate          [mnq.executor.orders] gate=heartbeat qty=1 reason='stale (17793s > 300s)' side=short symbol=MNQ trace_id=89546aa1-951f-42d3-92b0-a79b19adc655
+<empty>
 # stderr (last 10 lines)
-    stats = run_live_sim(cfg=cfg, journal=journal)
-  File "C:\Users\edwar\projects\mnq_bot\scripts\live_sim.py", line 517, in run_live_sim
-    order = book.submit(
-        symbol="MNQ",
-    ...<2 lines>...
-        order_type=OrderType.MARKET,
-    )
-  File "C:\Users\edwar\projects\mnq_bot\src\mnq\executor\orders.py", line 347, in submit
-    raise OrderBlocked(denying.gate, denying.reason)
-mnq.executor.orders.OrderBlocked: order blocked by gate=heartbeat: stale (17793s > 300s)
+Traceback (most recent call last):
+  File "C:\EvolutionaryTradingAlgo\mnq_bot\scripts\live_sim.py", line 986, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\EvolutionaryTradingAlgo\mnq_bot\scripts\live_sim.py", line 910, in main
+    raise ShimContractDriftError(probe_result.detail)
+mnq._shim_probe.ShimContractDriftError: contract drift: locked=bf88d73c1a4a4e2f live=28c2a0f436fca531. Rerun `python scripts/firm_bridge.py --probe` to inspect, then `--integrate` to regenerate the shim.
 ```
 
 ## Output index

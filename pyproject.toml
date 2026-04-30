@@ -76,6 +76,21 @@ ignore = [
 # Test methods frequently embed HTTP verbs or Tradovate field names
 # (`errorText`, `failureReason`, `GET`) that read clearer in mixed case.
 "tests/**/*.py" = ["N802", "N803", "N806"]
+# The legacy ETA V3 research/backtest framework intentionally preserves
+# mixed-case R-metric names and notebook-style helper variables.
+"eta_v3_framework/python/*.py" = ["B007", "B008", "E741", "N803", "N806", "N815", "SIM108", "SIM113"]
+"eta_v3_framework/v1_locked/*.py" = ["B008", "N806", "N815"]
+# Legacy research/replay entrypoints mirror the same parameter names and
+# import structure; keeping them stable is safer than piecemeal renaming.
+"scripts/backtest_real_ensemble.py" = ["E402", "N803"]
+"scripts/backtest_real_micro.py" = ["E402", "N803"]
+"scripts/backtest_real_v3.py" = ["E402", "N803"]
+"scripts/backtest_real_validate.py" = ["N803"]
+"scripts/eta_v3_enrich.py" = ["N806"]
+"scripts/gbm_filter.py" = ["N803", "N806"]
+"scripts/news_feed.py" = ["E741"]
+"scripts/pnl_report.py" = ["N806"]
+"scripts/shap_rank.py" = ["N803", "N806"]
 
 [tool.mypy]
 python_version = "3.12"

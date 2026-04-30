@@ -57,7 +57,8 @@ $RUFF check <files>
 ## Architecture Quick Reference
 
 - Python 3.14.3 via uv, venv at `.venv/`
-- Strategy spec: `specs/strategies/v0_1_baseline.yaml` (EMA9/21 cross + filter gauntlet)
+- Strategy registry: `eta_engine/strategies/per_bot_registry.py` — canonical per-bot strategy assignments (ORB, sage-gated ORB, DRB, crypto_orb, sage_daily_gated, ensemble_voting, compression_breakout, crypto_macro_confluence, crypto_regime_trend). Each bot has 2-3 independent strategies tuned per instrument. No single base strategy exists; the `specs/strategies/v0_1_baseline.yaml` was retired in the strategy graveyard (mnq_bot/reports/strategy_graveyard.md: "Unfiltered EMA cross on 1m is noisy"). The `strategy_v2.VARIANTS` 49-cell EMA-cross sweep was pruner-recommended for deletion (all 49 fail `expectancy_r > +0.050R`). The `eta_v3_framework/` below is the legacy Apex V3 lane, kept as a seed/audit anchor but not the live decision authority.
+- Walk-forward gate config: `eta_engine/backtest/walk_forward.py` — WalkForwardConfig (strict_fold_dsr, long_haul, grid, agg_degradation modes). Gate modes are per-bot via `walk_forward_overrides` in registry extras.
 - Reports: `reports/` (run_all_phases.md, daily/, firm_reviews/, post_mortems/)
 - Shim: `src/mnq/firm_runtime.py` (auto-generated — do NOT hand-edit)
 - Journal: SQLite WAL at `data/journal.db`
@@ -77,13 +78,13 @@ $RUFF check <files>
 | 0 Verify Integration | 95% | Watchdog/heartbeat |
 | 1 Harden Foundation | 70% | 72h burn-in |
 | 2 Event Log & Replay | 100% | — |
-| 3 Fill Gaps | 90% | Gauntlet gates (12) |
+| 3 Fill Gaps | 90% | SUPERSEDED — per-bot 2-3 strategies via per_bot_registry.py. The gauntlet 12-gate approach was diagnosed as over-restrictive (100% block rate on 90-day real test, no directional edge vs PnL). Replaced by per-bot walk_forward_overrides (strict_fold_dsr, agg_degradation, long_haul, grid modes) in WalkForwardConfig. |
 | 4 Backtest/Live Parity | 60% | Tolerance harness |
-| 5 Advanced Risk | 75% | Risk mgr integration |
-| 6 API/VPS | blocked | External infra |
-| 7 Real Broker | blocked | Live routing |
-| 8 Shadow Trading | blocked | Quote feed |
-| 9 Tiered Live | blocked | Human gate |
+| 5 Advanced Risk | 75% | Risk mgr integration, FleetRiskGate (spec'd by risk-sage), fleet_corr_partner correlation penalty |
+| 6 API/VPS | triggered | External infra — strategy_supercharge manifest + dashboard API now live on command center |
+| 7 Real Broker | triggered | Live routing — eth_perp v4, btc_hybrid v3, btc_sage_daily_etf, btc_ensemble_2of3, eth_compression are production_candidate. Paper-soak validation next gate. |
+| 8 Shadow Trading | triggered | Quote feed — shadow_trading.md at Day 0/30. Needs live bar feed into src/mnq/features before shadow produces real verdicts. |
+| 9 Tiered Live | triggered | Human gate — live simulation analysis and voice memo review exist; tiered rollout depends on phase 7+8 clearing. |
 
 ## Apex V3 Framework (`eta_v3_framework/`)
 
