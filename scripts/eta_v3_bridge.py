@@ -23,8 +23,8 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from mnq.eta_v3 import (  # noqa: E402
-    eta_to_firm_payload,
     build_enrichment_payload,
+    eta_to_firm_payload,
     probe_eta_v3_engine,
     run_apex_evaluation,
     summarize_voices,

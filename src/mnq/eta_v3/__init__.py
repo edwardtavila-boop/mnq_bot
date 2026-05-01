@@ -35,9 +35,9 @@ from __future__ import annotations
 
 from .adapter import (
     ApexVoiceSnapshot,
-    eta_to_firm_payload,
     build_enrichment_payload,
     enrich_agent_input,
+    eta_to_firm_payload,
     probe_eta_v3_engine,
     run_apex_evaluation,
     summarize_voices,

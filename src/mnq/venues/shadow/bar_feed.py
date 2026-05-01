@@ -15,16 +15,15 @@ Phase 8 — Shadow Trading (30-day mandatory pre-live run).
 from __future__ import annotations
 
 import json
-import os
 import threading
 import time
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
-from decimal import Decimal
+from mnq.workspace_paths import workspace_mnq_data_root
 
 from mnq.core.types import Bar
-from mnq.workspace_paths import workspace_mnq_data_root
 
 _SHADOW_JOURNAL: Path = Path("data/shadow/shadow_journal.jsonl")
 _SHADOW_STATE: Path = Path("data/shadow/shadow_state.json")

@@ -14,7 +14,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -49,7 +48,7 @@ def _heuristic_review(t) -> list[str]:
 def _llm_review(t) -> str:
     """Optional LLM-powered review. Uses DeepSeek native provider via llm_provider."""
     try:
-        from eta_engine.brain.llm_provider import chat_completion, ModelTier
+        from eta_engine.brain.llm_provider import ModelTier, chat_completion
     except ImportError:
         return "[LLM disabled — eta_engine not accessible]"
     prompt = (

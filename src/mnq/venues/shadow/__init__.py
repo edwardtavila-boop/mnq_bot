@@ -54,7 +54,6 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from mnq.core.types import Fill, Side, Signal
-
 from mnq.venues.shadow.bar_feed import ShadowBarFeed  # noqa: F401
 
 # =====================================================================
