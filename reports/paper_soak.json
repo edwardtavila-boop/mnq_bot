@@ -1,5 +1,6 @@
 {
   "created_at": "2026-05-01T03:33:39.677901+00:00",
   "weeks_clean": 0,
-  "status": "pending"
+  "status": "14-day paper-soak initiated 2026-05-01. IBKR paper credentials OK. Bots: mnq_futures, nq_futures, mnq_futures_sage, nq_futures_sage, btc_sage_daily_etf, btc_regime_trend_etf. RTH calendar: 10 sessions.",
+  "started_at": "2026-05-01T00:00:00+00:00"
 }
