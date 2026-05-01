@@ -18,7 +18,7 @@ Given a day's ``list[mnq.core.types.Bar]`` we:
    as ``engine_live``.
 6. Emit a dict shaped identically to
    ``scripts.firm_vs_baseline._synthetic_day_apex_pm_output`` so
-   ``mnq.eta_v3.gate.apex_gate`` accepts it unchanged.
+   ``mnq.eta_v3.gate.eta_gate`` accepts it unchanged.
 
 The math for ``delta`` mirrors PM's fold-in (0.80 * base + 0.20 *
 voice_agree/15 + corroboration/dissent bonus). That preserves the gate
@@ -35,8 +35,8 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-APEX_PY = REPO_ROOT / "eta_v3_framework" / "python"
-for p in (str(APEX_PY),):
+ETA_PY = REPO_ROOT / "eta_v3_framework" / "python"
+for p in (str(ETA_PY),):
     if p not in sys.path:
         sys.path.insert(0, p)
 
@@ -169,7 +169,7 @@ def day_pm_output_from_real_apex(
     gauntlet_delta: float | None = None,
     gauntlet_weight: float = 0.15,
 ) -> dict[str, Any]:
-    """One day's bars → PM-shaped dict that ``apex_gate`` will accept.
+    """One day's bars → PM-shaped dict that ``eta_gate`` will accept.
 
     This is the drop-in replacement for
     ``_synthetic_day_apex_pm_output`` — same output schema, real signal.
@@ -188,7 +188,7 @@ def day_pm_output_from_real_apex(
     engine_live = agg["engine_live"]
 
     # PM fold-in math (same as the synthetic version, so delta thresholds
-    # in apex_gate stay comparable between snapshot and real runs):
+    # in eta_gate stay comparable between snapshot and real runs):
     strong = voice_agree >= 12
     # Direction conflict is unknowable without a baseline bias — treat
     # "engine said fire but net direction is 0" OR "both sides fired
@@ -202,15 +202,15 @@ def day_pm_output_from_real_apex(
     bonus = 0.05 if (strong and engine_live) else 0.0
     penalty = 0.05 if (strong and direction_conflict) else 0.0
     adjusted = max(0.0, min(1.0, blended + bonus - penalty))
-    apex_only_delta = adjusted - base_probability
+    eta_only_delta = adjusted - base_probability
 
     # V16 blend: fold gauntlet delta into the composite signal
     if gauntlet_delta is not None:
         # Scale gauntlet [-1, +1] to apex-delta magnitude (~0.15)
         gauntlet_scaled = gauntlet_delta * 0.15
-        delta = (1 - gauntlet_weight) * apex_only_delta + gauntlet_weight * gauntlet_scaled
+        delta = (1 - gauntlet_weight) * eta_only_delta + gauntlet_weight * gauntlet_scaled
     else:
-        delta = apex_only_delta
+        delta = eta_only_delta
 
     return {
         "verdict": "GO",  # the gate still applies; PM verdict upstream is a separate concern
@@ -228,7 +228,7 @@ def day_pm_output_from_real_apex(
                 "base_probability": base_probability,
                 "adjusted_probability": adjusted,
                 "delta": delta,
-                "apex_only_delta": apex_only_delta,
+                "eta_only_delta": eta_only_delta,
                 "gauntlet_delta": gauntlet_delta,
                 "gauntlet_weight": gauntlet_weight if gauntlet_delta is not None else 0.0,
                 "blend_weight": 0.20,

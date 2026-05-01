@@ -36,7 +36,7 @@ from strategy_ab import _load_real_days  # noqa: E402
 from strategy_v2 import VARIANTS as _VARIANT_LIST  # noqa: E402
 
 from mnq.core.types import OrderType, Side, Signal  # noqa: E402
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
+from mnq.eta_v3.gate import eta_gate  # noqa: E402
 from mnq.sim.layer2 import Layer2Engine  # noqa: E402
 from mnq.spec.loader import load_spec  # noqa: E402
 from mnq.venues.shadow import (  # noqa: E402
@@ -137,7 +137,7 @@ def _run_scenario(
     equity_curve: list[float] = [0.0]
 
     for (_regime, bars), ledger, pm_out in zip(days, ledgers, pm_outputs, strict=True):
-        dec = apex_gate(pm_out)
+        dec = eta_gate(pm_out)
         action = dec["action"]
         if action == "skip":
             continue

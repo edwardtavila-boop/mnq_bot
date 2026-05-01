@@ -276,7 +276,7 @@ fails silently.
 
 `src/mnq/risk/tiered_rollout.py` ships TIER_0..TIER_N state machine.
 `grep "allowed_qty"` across `scripts/live_sim.py` returns ZERO matches.
-`webhook.py:122` reads `int(os.environ.get("APEX_QTY", "1"))` — ignores
+`webhook.py:122` reads `int(os.environ.get("ETA_QTY", "1"))` — ignores
 the rollout. Promotion pipeline produces a green report but the bot can
 be sized at TIER_3 even when the state machine says HALTED.
 

@@ -1,13 +1,13 @@
 """Gauntlet hard-gate — direct block/reduce based on pass_rate.
 
 Batch 9A. The V16 delta-blend path (Batch 5D) proved mathematically
-disconnected from the apex_gate thresholds: PM base delta for GO verdicts
+disconnected from the eta_gate thresholds: PM base delta for GO verdicts
 always lands above the skip threshold (−0.10), so the gauntlet's ±0.06
 nudge never flips a day from allow→block.
 
 This module provides a **parallel** gate that operates on the gauntlet's
 raw pass_rate and weighted score rather than blending into the delta. It
-sits alongside ``apex_gate`` — callers combine both decisions and take
+sits alongside ``eta_gate`` — callers combine both decisions and take
 the stricter one.
 
 Gate logic:
@@ -28,10 +28,10 @@ rather than gates calibrated against "suitable conditions."
 Usage:
 
     from mnq.gauntlet.hard_gate import gauntlet_hard_gate, combine_gates
-    from mnq.eta_v3.gate import apex_gate
+    from mnq.eta_v3.gate import eta_gate
 
     g_decision = gauntlet_hard_gate(day_score)
-    a_decision = apex_gate(pm_output)
+    a_decision = eta_gate(pm_output)
     final = combine_gates(a_decision, g_decision)
 """
 
@@ -73,7 +73,7 @@ class GauntletHardGateConfig:
     gate_weights: dict[str, float] | None = None
 
 
-# Re-use the same shape as apex_gate's GateDecision
+# Re-use the same shape as eta_gate's GateDecision
 HardGateDecision = dict[str, Any]
 
 
@@ -147,10 +147,10 @@ def gauntlet_hard_gate(
 
 
 def combine_gates(
-    apex_decision: dict[str, Any],
+    eta_decision: dict[str, Any],
     gauntlet_decision: dict[str, Any],
 ) -> dict[str, Any]:
-    """Combine apex_gate and gauntlet_hard_gate — take the stricter decision.
+    """Combine eta_gate and gauntlet_hard_gate — take the stricter decision.
 
     Strictness ordering: skip > reduced > full.
     When both are "reduced", take the smaller size_mult.
@@ -160,7 +160,7 @@ def combine_gates(
     """
     _rank = {"skip": 0, "reduced": 1, "full": 2}
 
-    a_action = apex_decision.get("action", "full")
+    a_action = eta_decision.get("action", "full")
     g_action = gauntlet_decision.get("action", "full")
 
     a_rank = _rank.get(a_action, 2)
@@ -170,24 +170,24 @@ def combine_gates(
         # Apex is stricter
         return _decision(
             a_action,
-            apex_decision.get("size_mult", 0.0),
-            f"apex={apex_decision.get('reason', '')}|gauntlet={gauntlet_decision.get('reason', '')}",
+            eta_decision.get("size_mult", 0.0),
+            f"apex={eta_decision.get('reason', '')}|gauntlet={gauntlet_decision.get('reason', '')}",
         )
     if g_rank < a_rank:
         # Gauntlet is stricter
         return _decision(
             g_action,
             gauntlet_decision.get("size_mult", 0.0),
-            f"gauntlet={gauntlet_decision.get('reason', '')}|apex={apex_decision.get('reason', '')}",
+            f"gauntlet={gauntlet_decision.get('reason', '')}|apex={eta_decision.get('reason', '')}",
         )
 
     # Same action — take smaller size_mult
-    a_size = float(apex_decision.get("size_mult", 1.0))
+    a_size = float(eta_decision.get("size_mult", 1.0))
     g_size = float(gauntlet_decision.get("size_mult", 1.0))
     return _decision(
         a_action,
         min(a_size, g_size),
-        f"both_{a_action}|apex={apex_decision.get('reason', '')}|gauntlet={gauntlet_decision.get('reason', '')}",
+        f"both_{a_action}|apex={eta_decision.get('reason', '')}|gauntlet={gauntlet_decision.get('reason', '')}",
     )
 
 

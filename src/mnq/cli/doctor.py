@@ -198,7 +198,7 @@ def _check_broker_dormancy() -> CheckResult:
     healthy when the configured execution broker is in DORMANT_BROKERS.
 
     Reads the broker name from the same env var families the
-    eta_v3_framework webhook reads (``BROKER_TYPE`` / ``APEX_BROKER``)
+    eta_v3_framework webhook reads (``BROKER_TYPE`` / ``ETA_BROKER``)
     so a misconfiguration is caught at ``mnq doctor`` time rather than
     at order-submission time. When neither env var is set we skip
     (paper-only sessions are common; this check is for the live path).
@@ -213,7 +213,7 @@ def _check_broker_dormancy() -> CheckResult:
     # might have wired. None of these are required; absence is fine.
     candidates = [
         os.environ.get("BROKER_TYPE", "").strip(),
-        os.environ.get("APEX_BROKER", "").strip(),
+        os.environ.get("ETA_BROKER", "").strip(),
         os.environ.get("MNQ_LIVE_BROKER", "").strip(),
     ]
     configured = next((c for c in candidates if c), "")

@@ -112,14 +112,14 @@ def gauntlet_day_score(
 
 
 def blend_deltas(
-    apex_delta: float,
+    eta_delta: float,
     gauntlet_delta: float,
     *,
     gauntlet_weight: float = 0.15,
 ) -> float:
     """Blend Apex V3 delta with gauntlet delta.
 
-    The gauntlet_delta is in [-1.0, +1.0] while apex_delta is typically
+    The gauntlet_delta is in [-1.0, +1.0] while eta_delta is typically
     in [-0.15, +0.15]. We scale the gauntlet delta to the same range
     before blending.
 
@@ -131,4 +131,4 @@ def blend_deltas(
     """
     # Scale gauntlet to apex-delta magnitude (~0.15 range)
     gauntlet_scaled = gauntlet_delta * 0.15
-    return (1 - gauntlet_weight) * apex_delta + gauntlet_weight * gauntlet_scaled
+    return (1 - gauntlet_weight) * eta_delta + gauntlet_weight * gauntlet_scaled

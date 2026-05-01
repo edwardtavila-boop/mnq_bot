@@ -44,7 +44,7 @@ from strategy_ab import _load_real_days, _run_variant  # noqa: E402
 from strategy_v2 import VARIANTS as _VARIANT_LIST  # noqa: E402
 
 from mnq.core.types import Bar as _MnqBar  # noqa: E402
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
+from mnq.eta_v3.gate import eta_gate  # noqa: E402
 from mnq.spec.loader import load_spec  # noqa: E402
 
 BASELINE = REPO_ROOT / "specs" / "strategies" / "v0_1_baseline.yaml"
@@ -130,23 +130,23 @@ def _apply_apex_gate_to_day_pnls(
     day_keys: list[str] | None = None,
     *,
     seed: int = 42,
-    apex_source: str = "synthetic",
+    eta_source: str = "synthetic",
     day_bars: list[list[_MnqBar]] | None = None,
 ) -> tuple[list[float], list[dict]]:
     """Apply the Apex V3 gate to each day's PnL.
 
     For every day we build a PM output dict — either via the seeded-hash
-    synthesizer (``apex_source='synthetic'``, default) or via a real
+    synthesizer (``eta_source='synthetic'``, default) or via a real
     per-day run of ``eta_v3_framework.firm_engine.evaluate()`` over the
-    day's bars (``apex_source='real'``, requires ``day_bars``). The
-    resulting dict is passed to ``apex_gate``, and the day's PnL is
+    day's bars (``eta_source='real'``, requires ``day_bars``). The
+    resulting dict is passed to ``eta_gate``, and the day's PnL is
     multiplied by the gate's ``size_mult`` (1.0 / 0.5 / 0.0). The gate
     decision is returned so the report can tally {full, reduced, skip}
     counts and include voice_agree / delta diagnostics.
     """
-    if apex_source == "real":
+    if eta_source == "real":
         if day_bars is None:
-            raise ValueError("apex_source='real' requires day_bars")
+            raise ValueError("eta_source='real' requires day_bars")
         if len(day_bars) != len(day_pnls):
             raise ValueError(f"day_bars has {len(day_bars)} days, day_pnls has {len(day_pnls)}")
         # Import here so synthetic-path callers don't pay the eta_v3_framework
@@ -156,17 +156,17 @@ def _apply_apex_gate_to_day_pnls(
     gated: list[float] = []
     decisions: list[dict] = []
     for i, pnl in enumerate(day_pnls):
-        if apex_source == "real":
+        if eta_source == "real":
             pm_out = day_pm_output_from_real_apex(day_bars[i])
         else:
             key = day_keys[i] if day_keys and i < len(day_keys) else None
             pm_out = _synthetic_day_apex_pm_output(i, day_key=key, seed=seed)
-        decision = apex_gate(pm_out)
+        decision = eta_gate(pm_out)
         gated.append(pnl * decision["size_mult"])
         decision = dict(decision)
         decision["delta"] = pm_out["payload"]["eta_v3"]["delta"]
         decision["voice_agree"] = pm_out["payload"]["eta_v3"]["voice_agree"]
-        decision["apex_source"] = apex_source
+        decision["eta_source"] = eta_source
         decisions.append(decision)
     return gated, decisions
 
@@ -201,8 +201,8 @@ def compare(
     timeframe: str = "1m",
     n_boot: int = 2000,
     with_apex_gate: bool = False,
-    apex_seed: int = 42,
-    apex_source: str = "synthetic",
+    eta_seed: int = 42,
+    eta_source: str = "synthetic",
     data_source: str = "rth_csv",
     days_tail: int | None = None,
 ) -> dict:
@@ -210,8 +210,8 @@ def compare(
         raise KeyError(f"unknown filtered variant: {filtered_name}")
     if baseline_name not in VARIANTS:
         raise KeyError(f"unknown baseline variant: {baseline_name}")
-    if apex_source not in ("synthetic", "real"):
-        raise ValueError(f"apex_source must be 'synthetic' or 'real', got {apex_source!r}")
+    if eta_source not in ("synthetic", "real"):
+        raise ValueError(f"eta_source must be 'synthetic' or 'real', got {eta_source!r}")
     if data_source not in ("rth_csv", "databento"):
         raise ValueError(f"data_source must be 'rth_csv' or 'databento', got {data_source!r}")
 
@@ -223,18 +223,18 @@ def compare(
 
     filtered_day_pnls: list[float] = list(filt.day_pnls)
     baseline_day_pnls: list[float] = list(base.day_pnls)
-    apex_decisions: list[dict] | None = None
+    eta_decisions: list[dict] | None = None
 
     if with_apex_gate:
         # Gate ONLY the filtered path — Apex is co-signing the Firm's
         # decision, not the naive baseline.
         day_keys = [str(d) for d in days] if days else None
-        day_bars_only = [bars for _label, bars in days] if apex_source == "real" else None
-        filtered_day_pnls, apex_decisions = _apply_apex_gate_to_day_pnls(
+        day_bars_only = [bars for _label, bars in days] if eta_source == "real" else None
+        filtered_day_pnls, eta_decisions = _apply_apex_gate_to_day_pnls(
             filtered_day_pnls,
             day_keys=day_keys,
-            seed=apex_seed,
-            apex_source=apex_source,
+            seed=eta_seed,
+            eta_source=eta_source,
             day_bars=day_bars_only,
         )
 
@@ -251,8 +251,8 @@ def compare(
         "ci_lo": lo,
         "ci_hi": hi,
         "with_apex_gate": with_apex_gate,
-        "apex_decisions": apex_decisions,
-        "apex_source": apex_source if with_apex_gate else None,
+        "eta_decisions": eta_decisions,
+        "eta_source": eta_source if with_apex_gate else None,
         "data_source": data_source,
         "days_tail": days_tail,
     }
@@ -278,7 +278,7 @@ def _render(d: dict) -> str:
     filt = d["filtered"]
     base = d["baseline"]
     with_gate: bool = d.get("with_apex_gate", False)
-    apex_decisions: list[dict] | None = d.get("apex_decisions")
+    eta_decisions: list[dict] | None = d.get("eta_decisions")
     filt_eff = d.get("filtered_day_pnls_effective") or list(filt.day_pnls)
 
     lines: list[str] = ["# Firm-Filtered vs. Baseline", ""]
@@ -287,7 +287,7 @@ def _render(d: dict) -> str:
     lines.append(f"- Baseline variant: `{d['baseline_name']}`")
     lines.append(f"- Apex V3 downstream gate: **{'ON' if with_gate else 'off'}**")
     if with_gate:
-        lines.append(f"- Apex snapshot source: **{d.get('apex_source', 'synthetic')}**")
+        lines.append(f"- Apex snapshot source: **{d.get('eta_source', 'synthetic')}**")
     lines.append("")
     lines.append("## Headline numbers")
     lines.append("")
@@ -316,15 +316,15 @@ def _render(d: dict) -> str:
     lines.append(f"- Total lift: **${d['total_diff']:+,.2f}**")
     lines.append(f"- 95% bootstrap CI: **${d['ci_lo']:+,.2f} / ${d['ci_hi']:+,.2f}**")
     lines.append("")
-    if with_gate and apex_decisions:
+    if with_gate and eta_decisions:
         tally = {"full": 0, "reduced": 0, "skip": 0}
-        for dec in apex_decisions:
+        for dec in eta_decisions:
             tally[dec.get("action", "full")] = tally.get(dec.get("action", "full"), 0) + 1
         lines.append("## Apex V3 gate decisions")
         lines.append("")
         lines.append(
             f"- Full: **{tally['full']}** | Reduced: **{tally['reduced']}** | "
-            f"Skipped: **{tally['skip']}** (of {len(apex_decisions)} days)"
+            f"Skipped: **{tally['skip']}** (of {len(eta_decisions)} days)"
         )
         lines.append("")
     lines.append("## Per-day ledger")
@@ -335,8 +335,8 @@ def _render(d: dict) -> str:
         for i, (fp_raw, fp_eff, bp) in enumerate(
             zip(filt.day_pnls, filt_eff, base.day_pnls, strict=True)
         ):
-            action = apex_decisions[i]["action"] if apex_decisions else "—"
-            va = apex_decisions[i].get("voice_agree", "—") if apex_decisions else "—"
+            action = eta_decisions[i]["action"] if eta_decisions else "—"
+            va = eta_decisions[i].get("voice_agree", "—") if eta_decisions else "—"
             lines.append(
                 f"| {i} | ${fp_raw:+,.2f} | {action[:4]} (va={va}) | "
                 f"${fp_eff:+,.2f} | ${bp:+,.2f} | ${fp_eff - bp:+,.2f} |"
@@ -384,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Apply the Apex V3 downstream gate (src/mnq/eta_v3/gate.py) "
         "to the filtered variant's per-day PnLs. A deterministic per-day "
-        "Apex snapshot is synthesized and routed through apex_gate().",
+        "Apex snapshot is synthesized and routed through eta_gate().",
     )
     parser.add_argument(
         "--apex-seed",
@@ -425,8 +425,8 @@ def main(argv: list[str] | None = None) -> int:
         timeframe=args.timeframe,
         n_boot=args.n_boot,
         with_apex_gate=args.with_apex_gate,
-        apex_seed=args.apex_seed,
-        apex_source=args.apex_source,
+        eta_seed=args.eta_seed,
+        eta_source=args.eta_source,
         data_source=args.data_source,
         days_tail=args.days_tail,
     )

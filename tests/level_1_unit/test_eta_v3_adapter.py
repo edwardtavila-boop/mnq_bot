@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from mnq.eta_v3 import (
     ApexVoiceSnapshot,
-    apex_to_firm_payload,
+    eta_to_firm_payload,
     build_enrichment_payload,
     enrich_agent_input,
     probe_eta_v3_engine,
@@ -65,40 +65,40 @@ class TestRunEvaluation:
 class TestPayloadEnrichment:
     def test_none_snapshot_returns_base_unchanged_copy(self):
         base = {"symbol": "MNQ", "side": "long", "qty": 1}
-        out = apex_to_firm_payload(base, None)
+        out = eta_to_firm_payload(base, None)
         assert out == base
         assert out is not base  # must be a copy, not the same dict
 
     def test_none_snapshot_does_not_mutate_input(self):
         base = {"symbol": "MNQ"}
-        apex_to_firm_payload(base, None)
+        eta_to_firm_payload(base, None)
         assert base == {"symbol": "MNQ"}
 
     def test_snapshot_adds_eta_v3_voices_key(self):
         base = {"symbol": "MNQ", "side": "long"}
         snap = _fake_snapshot()
-        out = apex_to_firm_payload(base, snap)
+        out = eta_to_firm_payload(base, snap)
         assert "eta_v3_voices" in out
         assert out["eta_v3_voices"]["regime"] == "NEUTRAL"
         assert out["eta_v3_voices"]["pm_final"] == 42.5
 
     def test_snapshot_adds_convenience_keys(self):
         snap = _fake_snapshot(pm_final=67.0, regime="TRENDING", direction=-1)
-        out = apex_to_firm_payload({}, snap)
+        out = eta_to_firm_payload({}, snap)
         assert out["eta_v3_pm_final"] == 67.0
         assert out["eta_v3_regime"] == "TRENDING"
         assert out["eta_v3_direction"] == -1
 
     def test_base_keys_preserved_when_enriched(self):
         base = {"symbol": "MNQ", "side": "long", "trace_id": "abc-123"}
-        out = apex_to_firm_payload(base, _fake_snapshot())
+        out = eta_to_firm_payload(base, _fake_snapshot())
         for k in base:
             assert out[k] == base[k]
 
     def test_convenience_aliases_equal_primary_builder(self):
         base = {"symbol": "MNQ"}
         snap = _fake_snapshot()
-        assert apex_to_firm_payload(base, snap) == build_enrichment_payload(base, snap)
+        assert eta_to_firm_payload(base, snap) == build_enrichment_payload(base, snap)
 
     def test_snapshot_as_dict_contains_voices(self):
         snap = _fake_snapshot()

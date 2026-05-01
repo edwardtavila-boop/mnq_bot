@@ -31,7 +31,7 @@ from real_eta_driver import day_pm_output_from_real_apex  # noqa: E402
 from strategy_ab import _load_real_days  # noqa: E402
 from strategy_v2 import VARIANTS as _VARIANT_LIST  # noqa: E402
 
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
+from mnq.eta_v3.gate import eta_gate  # noqa: E402
 from mnq.gauntlet.day_aggregate import gauntlet_day_score  # noqa: E402
 from mnq.sim.layer2 import Layer2Engine  # noqa: E402
 from mnq.spec.loader import load_spec  # noqa: E402
@@ -116,7 +116,7 @@ def _run_sweep(
                 gauntlet_delta=g_delta if weight > 0 else None,
                 gauntlet_weight=weight,
             )
-            dec = apex_gate(pm_out)
+            dec = eta_gate(pm_out)
             action = dec["action"]
             mult = float(dec["size_mult"])
 

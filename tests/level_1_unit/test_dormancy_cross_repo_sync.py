@@ -89,22 +89,22 @@ class TestCrossRepoDormancySync:
     """Pin both repos to the same dormant-brokers set when co-located."""
 
     def test_sets_agree_when_eta_engine_is_co_located(self) -> None:
-        apex_root = _find_eta_engine()
-        if apex_root is None:
+        eta_root = _find_eta_engine()
+        if eta_root is None:
             pytest.skip(
                 "eta_engine repo not co-located at "
                 f"{_ETA_ENGINE_REPO_CANDIDATES[0]}; cross-repo "
                 "sync test skipped (operator-machine-local check).",
             )
-        router_py = apex_root / "venues" / "router.py"
+        router_py = eta_root / "venues" / "router.py"
         assert router_py.exists(), (
-            f"eta_engine co-located at {apex_root} but router.py "
+            f"eta_engine co-located at {eta_root} but router.py "
             "missing -- repo state inconsistent."
         )
-        apex_dormant = _parse_dormant_brokers(router_py)
-        assert apex_dormant == MNQ_BOT_DORMANT, (
+        eta_dormant = _parse_dormant_brokers(router_py)
+        assert eta_dormant == MNQ_BOT_DORMANT, (
             f"DORMANT_BROKERS mismatch:\n"
-            f"  eta_engine/venues/router.py: {sorted(apex_dormant)}\n"
+            f"  eta_engine/venues/router.py: {sorted(eta_dormant)}\n"
             f"  mnq_bot/src/mnq/venues/dormancy.py: {sorted(MNQ_BOT_DORMANT)}\n"
             f"\n"
             f"The operator-wide mandate requires both repos to track "

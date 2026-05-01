@@ -58,7 +58,7 @@ def main() -> int:
                 f"- Reason: `{result.get('reason', 'unknown')}`",
                 "",
                 "The adapter's contract is fail-open: with the engine unavailable,",
-                "``apex_to_firm_payload(base, None)`` returns the base payload",
+                "``eta_to_firm_payload(base, None)`` returns the base payload",
                 "unchanged. No trading path is affected.",
             ]
         )

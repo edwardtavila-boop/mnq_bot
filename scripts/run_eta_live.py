@@ -14,7 +14,7 @@ Refuse-to-boot guards
 The script REFUSES to enter live mode unless every check passes:
 
   1. ``--live`` flag passed (default is dry-run / paper)
-  2. ``APEX_LIVE_READY=1`` in env (operator-acknowledged readiness)
+  2. ``ETA_LIVE_READY=1`` in env (operator-acknowledged readiness)
   3. The configured broker is NOT in ``DORMANT_BROKERS`` (per the
      2026-04-24 broker dormancy mandate; Tradovate is dormant)
   4. ``_promotion_gate.py --all`` returns rc=0 (all 9 gates PASS)
@@ -45,7 +45,7 @@ Modes
 ``--dry-run`` (default): no real orders. Constructs the full safety
 stack so the wiring is exercised, but routes through a MockVenue.
 
-``--live``: requires APEX_LIVE_READY=1 + non-dormant broker +
+``--live``: requires ETA_LIVE_READY=1 + non-dormant broker +
 promotion gates green + doctor green. Routes through the real
 :class:`VenueRouter`.
 
@@ -55,7 +55,7 @@ Usage
     python scripts/run_eta_live.py --max-bars 1
 
     # Live (requires explicit operator opt-in)
-    APEX_LIVE_READY=1 BROKER_TYPE=ibkr python scripts/run_eta_live.py --live
+    ETA_LIVE_READY=1 BROKER_TYPE=ibkr python scripts/run_eta_live.py --live
 
     # JARVIS-supervised paper
     python scripts/run_eta_live.py --max-bars 1440 --tick-interval 60
@@ -121,7 +121,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--live",
         action="store_true",
         help=(
-            "Enable live mode. Requires APEX_LIVE_READY=1 + non-dormant "
+            "Enable live mode. Requires ETA_LIVE_READY=1 + non-dormant "
             "broker + promotion gates green + doctor green. Default is "
             "dry-run / paper."
         ),
@@ -264,21 +264,21 @@ class BootCheck:
 
 
 def _check_live_ready_env() -> BootCheck:
-    """APEX_LIVE_READY=1 must be set explicitly."""
-    val = os.environ.get("APEX_LIVE_READY", "").strip()
+    """ETA_LIVE_READY=1 must be set explicitly."""
+    val = os.environ.get("ETA_LIVE_READY", "").strip()
     if val == "1":
         return BootCheck(
             "live_ready_env",
             ok=True,
-            detail="APEX_LIVE_READY=1 set",
+            detail="ETA_LIVE_READY=1 set",
         )
     return BootCheck(
         "live_ready_env",
         ok=False,
         detail=(
-            f"APEX_LIVE_READY != '1' (got {val!r}). "
+            f"ETA_LIVE_READY != '1' (got {val!r}). "
             "Live mode requires explicit operator acknowledgment. "
-            "Set APEX_LIVE_READY=1 in env to proceed."
+            "Set ETA_LIVE_READY=1 in env to proceed."
         ),
     )
 

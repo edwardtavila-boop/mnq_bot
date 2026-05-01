@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-APEX_V3_PY = REPO_ROOT / "eta_v3_framework" / "python"
+ETA_V3_PY = REPO_ROOT / "eta_v3_framework" / "python"
 
 # Conservative default overrides used when the meta engine is
 # unavailable. Matches firm_meta.MetaDecision defaults so downstream
@@ -92,9 +92,9 @@ def _ensure_eta_v3_on_path() -> bool:
     otherwise. Mirrors the helper in ``adapter.py`` but tests the
     meta module rather than the per-trade engine.
     """
-    if not APEX_V3_PY.exists():
+    if not ETA_V3_PY.exists():
         return False
-    p = str(APEX_V3_PY)
+    p = str(ETA_V3_PY)
     if p not in sys.path:
         sys.path.insert(0, p)
     try:
@@ -111,7 +111,7 @@ def probe_meta_firm_engine() -> dict[str, Any]:
     Returns the same shape the per-trade probe does so reporter scripts
     can treat both engines identically.
     """
-    if not APEX_V3_PY.exists():
+    if not ETA_V3_PY.exists():
         return {"available": False, "reason": "eta_v3_framework/python not present"}
     if not _ensure_eta_v3_on_path():
         return {"available": False, "reason": "firm_meta import failed"}

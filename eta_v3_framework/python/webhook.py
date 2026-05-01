@@ -20,7 +20,7 @@ Run locally:
 For production, put behind nginx + use gunicorn:
   gunicorn -w 2 -b 0.0.0.0:5000 webhook:app
 
-Authentication: set APEX_WEBHOOK_SECRET in env. Pine should append it as a
+Authentication: set ETA_WEBHOOK_SECRET in env. Pine should append it as a
 "secret" field in the JSON payload. Requests without matching secret are 401.
 """
 
@@ -37,7 +37,7 @@ except ImportError as e:
 
 import requests
 
-LOG_DIR = Path(os.environ.get("APEX_LOG_DIR", "./logs"))
+LOG_DIR = Path(os.environ.get("ETA_LOG_DIR", "./logs"))
 LOG_DIR.mkdir(exist_ok=True, parents=True)
 
 logging.basicConfig(
@@ -52,15 +52,15 @@ log = logging.getLogger("apex.webhook")
 
 app = Flask(__name__)
 
-WEBHOOK_SECRET = os.environ.get("APEX_WEBHOOK_SECRET", "")
+WEBHOOK_SECRET = os.environ.get("ETA_WEBHOOK_SECRET", "")
 # PM threshold harmonized with firm_engine.FirmConfig.pm_threshold (40.0).
 # The legacy default of 75 was unreachable with weighted-avg math; this caused
 # the webhook to silently reject every signal approved by the engine.
 # See BASEMENT_THEORY_AUDIT.md Fix #1.
-PM_THRESHOLD = float(os.environ.get("APEX_PM_THRESHOLD", "40"))
-DRY_RUN = os.environ.get("APEX_DRY_RUN", "true").lower() in ("1", "true", "yes")
-BROKER_URL = os.environ.get("APEX_BROKER_URL", "")  # optional forward
-BROKER_API_KEY = os.environ.get("APEX_BROKER_API_KEY", "")
+PM_THRESHOLD = float(os.environ.get("ETA_PM_THRESHOLD", "40"))
+DRY_RUN = os.environ.get("ETA_DRY_RUN", "true").lower() in ("1", "true", "yes")
+BROKER_URL = os.environ.get("ETA_BROKER_URL", "")  # optional forward
+BROKER_API_KEY = os.environ.get("ETA_BROKER_API_KEY", "")
 
 TRADES_LOG = LOG_DIR / "trades.jsonl"
 
@@ -128,12 +128,12 @@ def forward_to_broker(p: dict) -> dict:
     The Red Team observed that this function would POST a real order
     to BROKER_URL whenever DRY_RUN was set to false, with no kill
     switch, no gate chain, no tiered rollout, no Firm review.
-    Setting APEX_DRY_RUN=false was a one-env-var path to live with
+    Setting ETA_DRY_RUN=false was a one-env-var path to live with
     every safety subsystem bypassed.
 
     Live mode now requires THREE concurrent conditions:
-      1. APEX_DRY_RUN is unset / "false" (legacy)
-      2. APEX_LIVE_READY is set to "1" (operator-acknowledged
+      1. ETA_DRY_RUN is unset / "false" (legacy)
+      2. ETA_LIVE_READY is set to "1" (operator-acknowledged
          live-readiness; the env var name is intentionally distinct
          from any existing config so flipping it is a deliberate act)
       3. The configured broker is NOT in DORMANT_BROKERS (per
@@ -154,16 +154,16 @@ def forward_to_broker(p: dict) -> dict:
         return {"forwarded": False, "reason": "dry_run_mode"}
 
     # B1 paper-only gate: explicit live-readiness env var required.
-    if os.environ.get("APEX_LIVE_READY", "").strip() != "1":
+    if os.environ.get("ETA_LIVE_READY", "").strip() != "1":
         log.warning(
-            "live order REFUSED: APEX_LIVE_READY != '1' (got %r). "
+            "live order REFUSED: ETA_LIVE_READY != '1' (got %r). "
             "See docs/RED_TEAM_REVIEW_2026_04_25.md B1 for the "
             "full live-promotion checklist.",
-            os.environ.get("APEX_LIVE_READY", ""),
+            os.environ.get("ETA_LIVE_READY", ""),
         )
         return {
             "forwarded": False,
-            "reason": "live_mode_not_acknowledged_set_APEX_LIVE_READY=1",
+            "reason": "live_mode_not_acknowledged_set_ETA_LIVE_READY=1",
         }
 
     # B5 dormancy gate: refuse if broker is on the dormant list.
@@ -191,7 +191,7 @@ def forward_to_broker(p: dict) -> dict:
         order = {
             "symbol": p["ticker"],
             "side": "BUY" if p["side"] == "long" else "SELL",
-            "qty": int(os.environ.get("APEX_QTY", "1")),
+            "qty": int(os.environ.get("ETA_QTY", "1")),
             "type": "MARKET",
             "stopLoss": p["sl"],
             "takeProfit1": p["tp1"],
@@ -286,7 +286,7 @@ def health():
     return jsonify(
         {
             "ok": True,
-            "service": "apex_v2_webhook",
+            "service": "eta_v2_webhook",
             "pm_threshold": PM_THRESHOLD,
             "dry_run": DRY_RUN,
             "broker_configured": bool(BROKER_URL),
@@ -312,4 +312,4 @@ if __name__ == "__main__":
         f"Starting Apex v2 webhook server  (PM≥{PM_THRESHOLD}  "
         f"dry_run={DRY_RUN}  auth={'on' if WEBHOOK_SECRET else 'off'})"
     )
-    app.run(host="0.0.0.0", port=int(os.environ.get("APEX_PORT", "5000")), debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("ETA_PORT", "5000")), debug=False)

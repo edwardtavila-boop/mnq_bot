@@ -47,7 +47,7 @@ from typing import Any
 __all__ = [
     "GateAction",
     "GateDecision",
-    "apex_gate",
+    "eta_gate",
 ]
 
 
@@ -78,7 +78,7 @@ class GateAction:
 GateDecision = dict[str, Any]  # {"action": str, "size_mult": float, "reason": str}
 
 
-def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
+def eta_gate(pm_output: dict[str, Any] | None) -> GateDecision:
     """Route a PM output through the Apex delta gate.
 
     Parameters
@@ -131,7 +131,7 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
         return _decision(
             GateAction.SKIP,
             SIZE_SKIP,
-            f"apex_strong_dissent_delta={delta:+.3f}",
+            f"eta_strong_dissent_delta={delta:+.3f}",
         )
 
     # Soft dissent → half size
@@ -140,7 +140,7 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
         return _decision(
             GateAction.REDUCED,
             SIZE_REDUCED,
-            f"apex_soft_dissent_delta={delta:+.3f}",
+            f"eta_soft_dissent_delta={delta:+.3f}",
         )
 
     # Active corroboration → full
@@ -148,7 +148,7 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
         return _decision(
             GateAction.FULL,
             SIZE_FULL,
-            f"apex_corroborates_delta={delta:+.3f}",
+            f"eta_corroborates_delta={delta:+.3f}",
         )
 
     # Neutral zone: -0.05 <= delta < 0.02
@@ -157,14 +157,14 @@ def apex_gate(pm_output: dict[str, Any] | None) -> GateDecision:
         return _decision(
             GateAction.REDUCED,
             SIZE_REDUCED,
-            f"apex_neutral_on_modify_delta={delta:+.3f}",
+            f"eta_neutral_on_modify_delta={delta:+.3f}",
         )
 
     # Clean GO with neutral Apex → ship full
     return _decision(
         GateAction.FULL,
         SIZE_FULL,
-        f"apex_neutral_on_go_delta={delta:+.3f}",
+        f"eta_neutral_on_go_delta={delta:+.3f}",
     )
 
 

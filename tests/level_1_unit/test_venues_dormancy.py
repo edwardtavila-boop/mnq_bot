@@ -98,7 +98,7 @@ class TestDormancyDoctorIntegration:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         # Strip any inherited env vars
-        for var in ("BROKER_TYPE", "APEX_BROKER", "MNQ_LIVE_BROKER"):
+        for var in ("BROKER_TYPE", "ETA_BROKER", "MNQ_LIVE_BROKER"):
             monkeypatch.delenv(var, raising=False)
         from mnq.cli.doctor import _check_broker_dormancy
 
@@ -110,7 +110,7 @@ class TestDormancyDoctorIntegration:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        for var in ("APEX_BROKER", "MNQ_LIVE_BROKER"):
+        for var in ("ETA_BROKER", "MNQ_LIVE_BROKER"):
             monkeypatch.delenv(var, raising=False)
         monkeypatch.setenv("BROKER_TYPE", "tradovate")
         from mnq.cli.doctor import _check_broker_dormancy
@@ -123,7 +123,7 @@ class TestDormancyDoctorIntegration:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        for var in ("APEX_BROKER", "MNQ_LIVE_BROKER"):
+        for var in ("ETA_BROKER", "MNQ_LIVE_BROKER"):
             monkeypatch.delenv(var, raising=False)
         monkeypatch.setenv("BROKER_TYPE", "ibkr")
         from mnq.cli.doctor import _check_broker_dormancy

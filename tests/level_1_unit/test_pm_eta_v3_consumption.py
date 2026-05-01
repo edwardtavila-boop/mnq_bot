@@ -246,29 +246,29 @@ class TestApexFoldMath:
     def test_adjusted_probability_clipped_to_one(self):
         agent = PMAgent()
         voices = _apex_voices(voice_agree=15, direction=1)
-        original_w = PMAgent.APEX_V3_PM_WEIGHT
-        original_b = PMAgent.APEX_V3_AGREE_BOOST
+        original_w = PMAgent.ETA_V3_PM_WEIGHT
+        original_b = PMAgent.ETA_V3_AGREE_BOOST
         try:
             # Force blend to hit 1.0 before clipping
-            PMAgent.APEX_V3_PM_WEIGHT = 1.0
-            PMAgent.APEX_V3_AGREE_BOOST = 0.5
+            PMAgent.ETA_V3_PM_WEIGHT = 1.0
+            PMAgent.ETA_V3_AGREE_BOOST = 0.5
             out = agent.evaluate(
                 _build_input(_clean_agent_outputs(), voices=voices, pm_final=100.0)
             )
         finally:
-            PMAgent.APEX_V3_PM_WEIGHT = original_w
-            PMAgent.APEX_V3_AGREE_BOOST = original_b
+            PMAgent.ETA_V3_PM_WEIGHT = original_w
+            PMAgent.ETA_V3_AGREE_BOOST = original_b
         assert out.probability == 1.0
 
     def test_adjusted_probability_clipped_to_zero(self):
         agent = PMAgent()
         _apex_voices(voice_agree=0, direction=-1, fire_long=False, fire_short=True)
-        original_w = PMAgent.APEX_V3_PM_WEIGHT
-        original_p = PMAgent.APEX_V3_DISAGREE_PENALTY
+        original_w = PMAgent.ETA_V3_PM_WEIGHT
+        original_p = PMAgent.ETA_V3_DISAGREE_PENALTY
         try:
             # Force blend + penalty to cross zero
-            PMAgent.APEX_V3_PM_WEIGHT = 1.0
-            PMAgent.APEX_V3_DISAGREE_PENALTY = 0.5
+            PMAgent.ETA_V3_PM_WEIGHT = 1.0
+            PMAgent.ETA_V3_DISAGREE_PENALTY = 0.5
             # Need strong agreement for penalty → but voice_agree=0 not strong
             # So zero out base and test min clip via 0 base + 0 signal
             out = agent.evaluate(
@@ -282,8 +282,8 @@ class TestApexFoldMath:
                 )
             )
         finally:
-            PMAgent.APEX_V3_PM_WEIGHT = original_w
-            PMAgent.APEX_V3_DISAGREE_PENALTY = original_p
+            PMAgent.ETA_V3_PM_WEIGHT = original_w
+            PMAgent.ETA_V3_DISAGREE_PENALTY = original_p
         # base=0.6, w=1.0, signal=0.0 → blend 0.0, no penalty (not strong) → 0.0
         assert out.probability == 0.0
 

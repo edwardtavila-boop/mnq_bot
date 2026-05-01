@@ -18,7 +18,7 @@ This module exposes:
   2. ``ApexVoiceSnapshot`` — a frozen dataclass representing the
      trimmed-down view the Firm actually needs.
 
-  3. ``apex_to_firm_payload(base, snapshot)`` — returns a NEW dict with
+  3. ``eta_to_firm_payload(base, snapshot)`` — returns a NEW dict with
      ``eta_v3_voices`` added. Never mutates ``base``.
 
   4. ``summarize_voices(snapshot)`` — single-line diagnostic string.
@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-APEX_V3_PY = REPO_ROOT / "eta_v3_framework" / "python"
+ETA_V3_PY = REPO_ROOT / "eta_v3_framework" / "python"
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,9 +74,9 @@ def _ensure_eta_v3_on_path() -> bool:
 
     Returns True if the package is importable, False otherwise.
     """
-    if not APEX_V3_PY.exists():
+    if not ETA_V3_PY.exists():
         return False
-    p = str(APEX_V3_PY)
+    p = str(ETA_V3_PY)
     if p not in sys.path:
         sys.path.insert(0, p)
     try:
@@ -93,7 +93,7 @@ def probe_eta_v3_engine() -> dict[str, Any]:
     Useful for reporter scripts that want to show whether the adapter
     is currently wired or fallback-stubbed.
     """
-    if not APEX_V3_PY.exists():
+    if not ETA_V3_PY.exists():
         return {"available": False, "reason": "eta_v3_framework/python not present"}
     if not _ensure_eta_v3_on_path():
         return {"available": False, "reason": "firm_engine import failed"}
@@ -150,7 +150,7 @@ def run_apex_evaluation(
     )
 
 
-def apex_to_firm_payload(
+def eta_to_firm_payload(
     base_payload: dict[str, Any], snapshot: ApexVoiceSnapshot | None
 ) -> dict[str, Any]:
     """Return a NEW dict with eta_v3_voices enrichment added.
@@ -190,7 +190,7 @@ def summarize_voices(snapshot: ApexVoiceSnapshot | None) -> str:
 def build_enrichment_payload(
     base_payload: dict[str, Any], snapshot: ApexVoiceSnapshot | None
 ) -> dict[str, Any]:
-    return apex_to_firm_payload(base_payload, snapshot)
+    return eta_to_firm_payload(base_payload, snapshot)
 
 
 def enrich_agent_input(agent_input: Any, snapshot: ApexVoiceSnapshot | None) -> Any:
@@ -204,5 +204,5 @@ def enrich_agent_input(agent_input: Any, snapshot: ApexVoiceSnapshot | None) -> 
     payload = getattr(agent_input, "payload", None)
     if not isinstance(payload, dict):
         return agent_input
-    agent_input.payload = apex_to_firm_payload(payload, snapshot)
+    agent_input.payload = eta_to_firm_payload(payload, snapshot)
     return agent_input

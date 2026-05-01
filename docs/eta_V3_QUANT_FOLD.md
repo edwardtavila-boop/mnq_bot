@@ -15,21 +15,21 @@ constants control the blend:
 
 | Constant | Default | Purpose |
 |---|---|---|
-| `APEX_V3_BLEND_WEIGHT` | `0.25` | Weight of Apex signal in the probability blend |
-| `APEX_V3_MIN_AGREE` | `8` | Voices out of 15 counted as "supporting" |
-| `APEX_V3_STRONG_AGREE` | `12` | Voices out of 15 counted as "strong corroboration" |
-| `APEX_V3_BLOCK_PENALTY` | `0.10` | Probability subtraction when Apex engine reports a block |
-| `APEX_V3_DISAGREE_PENALTY` | `0.05` | Probability subtraction when Apex direction disagrees with spec side |
+| `ETA_V3_BLEND_WEIGHT` | `0.25` | Weight of Apex signal in the probability blend |
+| `ETA_V3_MIN_AGREE` | `8` | Voices out of 15 counted as "supporting" |
+| `ETA_V3_STRONG_AGREE` | `12` | Voices out of 15 counted as "strong corroboration" |
+| `ETA_V3_BLOCK_PENALTY` | `0.10` | Probability subtraction when Apex engine reports a block |
+| `ETA_V3_DISAGREE_PENALTY` | `0.05` | Probability subtraction when Apex direction disagrees with spec side |
 
 ### Fold math
 
-    apex_signal       = voice_agree / 15           # in [0, 1]
-    blended           = (1 - w) · base + w · apex_signal
+    eta_signal       = voice_agree / 15           # in [0, 1]
+    blended           = (1 - w) · base + w · eta_signal
     penalty           = block_penalty + disagree_penalty
     adjusted          = clip(blended - penalty, 0, 1)
 
 The base rule-based probability remains the dominant signal (default
-weight 0.75). Apex contributes at most `APEX_V3_BLEND_WEIGHT` of the
+weight 0.75). Apex contributes at most `ETA_V3_BLEND_WEIGHT` of the
 blended value, so a 15-of-15 corroboration can only push a clean-spec GO
 probability from 0.70 to 0.775 (+0.075) — no runaway amplification.
 

@@ -108,14 +108,14 @@ class TestCustomConfig:
 
 class TestCombineGates:
     def test_apex_skip_wins_over_gauntlet_full(self) -> None:
-        apex = {"action": "skip", "size_mult": 0.0, "reason": "apex_dissent"}
+        apex = {"action": "skip", "size_mult": 0.0, "reason": "eta_dissent"}
         gauntlet = {"action": "full", "size_mult": 1.0, "reason": "gauntlet_ok"}
         combined = combine_gates(apex, gauntlet)
         assert combined["action"] == "skip"
         assert combined["size_mult"] == 0.0
 
     def test_gauntlet_skip_wins_over_apex_full(self) -> None:
-        apex = {"action": "full", "size_mult": 1.0, "reason": "apex_ok"}
+        apex = {"action": "full", "size_mult": 1.0, "reason": "eta_ok"}
         gauntlet = {"action": "skip", "size_mult": 0.0, "reason": "gauntlet_block"}
         combined = combine_gates(apex, gauntlet)
         assert combined["action"] == "skip"
@@ -123,20 +123,20 @@ class TestCombineGates:
         assert "gauntlet_block" in combined["reason"]
 
     def test_both_full_returns_full(self) -> None:
-        apex = {"action": "full", "size_mult": 1.0, "reason": "apex_ok"}
+        apex = {"action": "full", "size_mult": 1.0, "reason": "eta_ok"}
         gauntlet = {"action": "full", "size_mult": 1.0, "reason": "gauntlet_ok"}
         combined = combine_gates(apex, gauntlet)
         assert combined["action"] == "full"
         assert combined["size_mult"] == 1.0
 
     def test_reduced_wins_over_full(self) -> None:
-        apex = {"action": "reduced", "size_mult": 0.5, "reason": "apex_soft"}
+        apex = {"action": "reduced", "size_mult": 0.5, "reason": "eta_soft"}
         gauntlet = {"action": "full", "size_mult": 1.0, "reason": "gauntlet_ok"}
         combined = combine_gates(apex, gauntlet)
         assert combined["action"] == "reduced"
 
     def test_gauntlet_reduced_wins_over_apex_full(self) -> None:
-        apex = {"action": "full", "size_mult": 1.0, "reason": "apex_ok"}
+        apex = {"action": "full", "size_mult": 1.0, "reason": "eta_ok"}
         gauntlet = {"action": "reduced", "size_mult": 0.5, "reason": "gauntlet_marginal"}
         combined = combine_gates(apex, gauntlet)
         assert combined["action"] == "reduced"
@@ -150,14 +150,14 @@ class TestCombineGates:
         assert combined["size_mult"] == 0.25
 
     def test_combined_reason_includes_both(self) -> None:
-        apex = {"action": "full", "size_mult": 1.0, "reason": "apex_ok"}
+        apex = {"action": "full", "size_mult": 1.0, "reason": "eta_ok"}
         gauntlet = {"action": "skip", "size_mult": 0.0, "reason": "gauntlet_block"}
         combined = combine_gates(apex, gauntlet)
-        assert "apex_ok" in combined["reason"]
+        assert "eta_ok" in combined["reason"]
         assert "gauntlet_block" in combined["reason"]
 
     def test_both_skip_returns_skip(self) -> None:
-        apex = {"action": "skip", "size_mult": 0.0, "reason": "apex_block"}
+        apex = {"action": "skip", "size_mult": 0.0, "reason": "eta_block"}
         gauntlet = {"action": "skip", "size_mult": 0.0, "reason": "gauntlet_block"}
         combined = combine_gates(apex, gauntlet)
         assert combined["action"] == "skip"

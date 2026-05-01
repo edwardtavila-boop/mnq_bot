@@ -340,7 +340,7 @@ class TestApexFlowsEndToEnd:
 
 
 class TestEngineGateAtIntegration:
-    """pm_final below APEX_V3_PM_GATE should not grant the agreement bonus."""
+    """pm_final below ETA_V3_PM_GATE should not grant the agreement bonus."""
 
     def test_pm_final_below_gate_blocks_bonus(self):
         # Full voice agreement but pm_final=5.0 < 40.0 gate → no bonus

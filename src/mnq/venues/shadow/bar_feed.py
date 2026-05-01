@@ -21,6 +21,8 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+from decimal import Decimal
+
 from mnq.core.types import Bar
 from mnq.workspace_paths import workspace_mnq_data_root
 
@@ -43,13 +45,14 @@ def _default_bar_source() -> list[Bar] | None:
     with open(str(csv_path), newline="") as f:
         reader = DictReader(f)
         for row in reader:
+            raw_ts = float(row.get("time", 0))
             bars.append(Bar(
-                time=float(row.get("time", 0)),
-                open=float(row.get("open", 0)),
-                high=float(row.get("high", 0)),
-                low=float(row.get("low", 0)),
-                close=float(row.get("close", 0)),
-                volume=float(row.get("volume", 0)),
+                ts=datetime.fromtimestamp(raw_ts / 1000.0 if raw_ts > 1e10 else raw_ts, tz=UTC),
+                open=Decimal(str(row.get("open", 0))),
+                high=Decimal(str(row.get("high", 0))),
+                low=Decimal(str(row.get("low", 0))),
+                close=Decimal(str(row.get("close", 0))),
+                volume=int(float(row.get("volume", 0))),
             ))
     return bars[-200:] if bars else None  # last 200 bars for shadow replay
 
@@ -109,11 +112,11 @@ class ShadowBarFeed:
             self._thread.join(timeout=5.0)
 
     def _run(self) -> None:
-        last_bar_ts = 0.0
+        last_bar_ts: datetime | None = None
         while self._alive:
             bars = self._bar_source()
             if bars:
-                new_bars = [b for b in bars if b.time > last_bar_ts]
+                new_bars = [b for b in bars if last_bar_ts is None or b.ts > last_bar_ts]
                 if new_bars:
                     self._append_journal(new_bars)
                     for obs in self._observers:
@@ -121,7 +124,7 @@ class ShadowBarFeed:
                             obs(new_bars)
                         except Exception:
                             pass
-                    last_bar_ts = new_bars[-1].time
+                    last_bar_ts = new_bars[-1].ts
                     self._bar_count += len(new_bars)
             self._save_state()
             time.sleep(self.interval_s)
@@ -132,11 +135,11 @@ class ShadowBarFeed:
                 for b in bars:
                     f.write(json.dumps({
                         "ts": datetime.now(UTC).isoformat(),
-                        "bar_time": b.time,
-                        "open": b.open,
-                        "high": b.high,
-                        "low": b.low,
-                        "close": b.close,
+                        "bar_time": b.ts.isoformat() if hasattr(b.ts, 'isoformat') else str(b.ts),
+                        "open": float(b.open),
+                        "high": float(b.high),
+                        "low": float(b.low),
+                        "close": float(b.close),
                         "volume": b.volume,
                     }, default=str) + "\n")
         except OSError:

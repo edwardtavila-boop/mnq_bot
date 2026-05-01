@@ -40,7 +40,7 @@ from strategy_ab import _load_real_days, _run_variant  # noqa: E402
 from strategy_v2 import VARIANTS as _VARIANT_LIST  # noqa: E402
 
 from mnq.eta_v3 import (  # noqa: E402
-    apex_to_firm_payload,
+    eta_to_firm_payload,
     run_apex_evaluation,
     summarize_voices,
 )
@@ -244,9 +244,9 @@ def _derive_apex_snapshot(variant_name: str, spec_payload: dict):
         import sys as _sys
         from pathlib import Path as _Path
 
-        APEX_PY = _Path(__file__).resolve().parents[1] / "eta_v3_framework" / "python"  # noqa: N806 -- module-path constant, retained from pre-B4 code for stability
-        if str(APEX_PY) not in _sys.path:
-            _sys.path.insert(0, str(APEX_PY))
+        ETA_PY = _Path(__file__).resolve().parents[1] / "eta_v3_framework" / "python"  # noqa: N806 -- module-path constant, retained from pre-B4 code for stability
+        if str(ETA_PY) not in _sys.path:
+            _sys.path.insert(0, str(ETA_PY))
         import firm_engine  # type: ignore
     except ImportError:
         return None
@@ -335,17 +335,17 @@ def _derive_apex_snapshot(variant_name: str, spec_payload: dict):
     )
 
 
-def _render_verdict(variant: str, spec_payload: dict, stages: dict, apex_snapshot=None) -> str:
+def _render_verdict(variant: str, spec_payload: dict, stages: dict, eta_snapshot=None) -> str:
     lines = [f"# Firm Review (LIVE) — `{variant}`", ""]
     lines.append("This review was produced by the real six-stage Firm Python")
     lines.append("agents, invoked through `mnq.firm_runtime.run_six_stage_review`.")
     lines.append("")
-    if apex_snapshot is not None:
+    if eta_snapshot is not None:
         lines.append("**Apex V3 enrichment:** active — payload carries")
         lines.append("`eta_v3_voices` for QuantAgent consumption.")
         lines.append("")
         lines.append("```")
-        lines.append(summarize_voices(apex_snapshot))
+        lines.append(summarize_voices(eta_snapshot))
         lines.append("```")
         lines.append("")
     else:
@@ -441,18 +441,18 @@ def main(argv: list[str] | None = None) -> int:
 
     # Apex V3 enrichment — derive a representative snapshot for this
     # variant and splice into the payload. If the engine is unavailable,
-    # `apex_to_firm_payload` returns the base dict unchanged (fail-open).
+    # `eta_to_firm_payload` returns the base dict unchanged (fail-open).
     cfg = VARIANTS[args.variant]
-    apex_snapshot = _derive_apex_snapshot(args.variant, spec_payload)
-    enriched_payload = apex_to_firm_payload(
+    eta_snapshot = _derive_apex_snapshot(args.variant, spec_payload)
+    enriched_payload = eta_to_firm_payload(
         {"spec": spec_payload, "side": _variant_side(cfg)},
-        apex_snapshot,
+        eta_snapshot,
     )
 
     # Feed Apex V3 voices into confluence if snapshot available
-    if apex_snapshot is not None:
-        apex_voices = enriched_payload.get("eta_v3_voices", {})
-        if apex_voices:
+    if eta_snapshot is not None:
+        eta_voices = enriched_payload.get("eta_v3_voices", {})
+        if eta_voices:
             confluence_result = compute_confluence(
                 internals={"tick": 250, "add": 800, "vold_ratio": 1.15},
                 volatility={"vix": 18.0, "vix9d": 16.5, "realized_vol": 15.5},
@@ -460,7 +460,7 @@ def main(argv: list[str] | None = None) -> int:
                 session={"phase": "NY_OPEN", "is_rth": True, "minutes_to_catalyst": 180},
                 micro={"spread_ticks": 1.0, "depth_ratio": 1.1, "cum_delta": 300},
                 calendar={"next_event": "", "hours_until": 999},
-                eta_v3=apex_voices,
+                eta_v3=eta_voices,
                 regime={"canonical": canonical, "persistence_bars": 40},
             )
 
@@ -472,7 +472,7 @@ def main(argv: list[str] | None = None) -> int:
         confluence_result=confluence_result,
     )
 
-    md = _render_verdict(args.variant, spec_payload, stages, apex_snapshot=apex_snapshot)
+    md = _render_verdict(args.variant, spec_payload, stages, eta_snapshot=eta_snapshot)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     dest = args.output_dir / f"{args.variant}_live.md"
     dest.write_text(md)

@@ -11,8 +11,8 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO_ROOT / "scripts"
-APEX_PY = REPO_ROOT / "eta_v3_framework" / "python"
-for p in (str(SCRIPTS), str(APEX_PY)):
+ETA_PY = REPO_ROOT / "eta_v3_framework" / "python"
+for p in (str(SCRIPTS), str(ETA_PY)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
@@ -24,7 +24,7 @@ from real_eta_driver import (  # noqa: E402
 )
 
 from mnq.core.types import Bar as MnqBar  # noqa: E402
-from mnq.eta_v3.gate import apex_gate  # noqa: E402
+from mnq.eta_v3.gate import eta_gate  # noqa: E402
 
 
 def _make_bars(n: int, *, start_px: float = 18000.0, slope: float = 0.5) -> list[MnqBar]:
@@ -114,7 +114,7 @@ class TestAggregateDay:
 
 
 class TestDayPmOutputShape:
-    """Contract: apex_gate must accept our output dict unchanged."""
+    """Contract: eta_gate must accept our output dict unchanged."""
 
     def test_required_keys_present(self):
         bars = _make_bars(40)
@@ -150,13 +150,13 @@ class TestDayPmOutputShape:
         assert apex["engine_live"] is False
         assert apex["fire_count"] == 0
         # Gate must still accept it
-        gate_out = apex_gate(out)
+        gate_out = eta_gate(out)
         assert gate_out["action"] in ("full", "reduced", "skip")
 
     def test_gate_accepts_output(self):
         bars = _make_bars(60)
         out = day_pm_output_from_real_apex(bars)
-        gate_out = apex_gate(out)
+        gate_out = eta_gate(out)
         # Must produce a valid decision
         assert gate_out["action"] in ("full", "reduced", "skip")
         assert gate_out["size_mult"] in (0.0, 0.5, 1.0)

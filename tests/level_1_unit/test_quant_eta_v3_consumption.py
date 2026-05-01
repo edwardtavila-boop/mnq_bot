@@ -258,10 +258,10 @@ class TestApexFoldMath:
     def test_adjusted_probability_clipped_to_one(self):
         agent = QuantAgent()
         # Stress test: patch blend weight to 1.0 and expectancy high
-        # so blended = apex_signal. With 15/15 + base 0.7 we get 1.0.
-        original = QuantAgent.APEX_V3_BLEND_WEIGHT
+        # so blended = eta_signal. With 15/15 + base 0.7 we get 1.0.
+        original = QuantAgent.ETA_V3_BLEND_WEIGHT
         try:
-            QuantAgent.APEX_V3_BLEND_WEIGHT = 1.0
+            QuantAgent.ETA_V3_BLEND_WEIGHT = 1.0
             out = agent.evaluate(
                 _build_input(
                     _clean_spec(expected_expectancy_r=0.5),
@@ -269,7 +269,7 @@ class TestApexFoldMath:
                 )
             )
         finally:
-            QuantAgent.APEX_V3_BLEND_WEIGHT = original
+            QuantAgent.ETA_V3_BLEND_WEIGHT = original
         assert out.probability == 1.0
 
     def test_summary_direction_label_map(self):

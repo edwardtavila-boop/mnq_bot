@@ -8,10 +8,10 @@ sees at the quant stage.
 
 Usage::
 
-    from mnq.eta_v3 import run_apex_evaluation, apex_to_firm_payload
+    from mnq.eta_v3 import run_apex_evaluation, eta_to_firm_payload
 
     decision = run_apex_evaluation(bar, setup_triggers, regime=regime)
-    enriched = apex_to_firm_payload(base_payload, decision)
+    enriched = eta_to_firm_payload(base_payload, decision)
     # enriched["eta_v3_voices"] now present; feed into AgentInput
 
 The Meta-Firm adapter lives alongside it for the system-level layer::
@@ -25,9 +25,9 @@ The Meta-Firm adapter lives alongside it for the system-level layer::
 
 The downstream gate reads a PM output and emits a routing decision::
 
-    from mnq.eta_v3 import apex_gate
+    from mnq.eta_v3 import eta_gate
 
-    decision = apex_gate(pm_output)
+    decision = eta_gate(pm_output)
     # decision = {"action": "full|reduced|skip", "size_mult": float, "reason": str}
 """
 
@@ -35,14 +35,14 @@ from __future__ import annotations
 
 from .adapter import (
     ApexVoiceSnapshot,
-    apex_to_firm_payload,
+    eta_to_firm_payload,
     build_enrichment_payload,
     enrich_agent_input,
     probe_eta_v3_engine,
     run_apex_evaluation,
     summarize_voices,
 )
-from .gate import GateAction, apex_gate
+from .gate import GateAction, eta_gate
 from .meta_adapter import (
     MetaSnapshot,
     apply_meta_overrides,
@@ -57,8 +57,8 @@ __all__ = [
     "ApexVoiceSnapshot",
     "GateAction",
     "MetaSnapshot",
-    "apex_gate",
-    "apex_to_firm_payload",
+    "eta_gate",
+    "eta_to_firm_payload",
     "apply_meta_overrides",
     "build_enrichment_payload",
     "build_meta_context",

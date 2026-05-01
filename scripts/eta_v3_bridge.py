@@ -23,7 +23,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from mnq.eta_v3 import (  # noqa: E402
-    apex_to_firm_payload,
+    eta_to_firm_payload,
     build_enrichment_payload,
     probe_eta_v3_engine,
     run_apex_evaluation,
@@ -98,7 +98,7 @@ def main() -> int:
         bar, setup = _synthetic_bar_and_setup()
         if bar is not None:
             snapshot = run_apex_evaluation(bar, setup, regime="NEUTRAL", **EVAL_EXTRA_KWARGS)
-            enriched = apex_to_firm_payload(base_payload, snapshot)
+            enriched = eta_to_firm_payload(base_payload, snapshot)
 
     # Demonstrate idempotent enrichment-without-engine path
     stub_enriched = build_enrichment_payload(base_payload, None)

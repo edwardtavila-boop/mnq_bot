@@ -239,7 +239,7 @@ class TestComposition:
         # per-trade voices, then fold in meta-level overrides. Both
         # fragments must coexist in the final payload without either
         # clobbering the other.
-        from mnq.eta_v3 import ApexVoiceSnapshot, apex_to_firm_payload
+        from mnq.eta_v3 import ApexVoiceSnapshot, eta_to_firm_payload
 
         voice_snap = ApexVoiceSnapshot(
             regime="NEUTRAL",
@@ -258,7 +258,7 @@ class TestComposition:
         meta_snap = _fake_snapshot()
         base = {"symbol": "MNQ", "side": "long", "trace_id": "t1"}
 
-        stage_1 = apex_to_firm_payload(base, voice_snap)
+        stage_1 = eta_to_firm_payload(base, voice_snap)
         stage_2 = meta_to_firm_payload(stage_1, meta_snap)
 
         # Both fragments present, no mutation of earlier stages.
