@@ -30,7 +30,8 @@ from mnq.executor.reconciler import net_positions_from_journal
 from mnq.storage.journal import EventJournal
 from mnq.storage.schema import ORDER_FILLED, ORDER_SUBMITTED
 
-MNQ_1M_CSV = Path("C:/Users/edwar/projects/mnq_bot/data/bars/databento/mnq1_1m.csv")
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+MNQ_1M_CSV = _REPO_ROOT / "data" / "bars" / "databento" / "mnq1_1m.csv"
 
 
 pytestmark = pytest.mark.skipif(
