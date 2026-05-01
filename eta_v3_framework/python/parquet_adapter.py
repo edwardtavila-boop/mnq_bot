@@ -27,10 +27,8 @@ from pathlib import Path
 
 import pandas as pd
 
-PARQUET_ROOT = Path(
-    "/sessions/kind-keen-faraday/mnt/OneDrive/Desktop/Base/mnq_backtest/.cache/parquet"
-)
-CSV_OUT_ROOT = Path("/sessions/kind-keen-faraday/mnt/mnq_bot/data/bars/databento")
+PARQUET_ROOT = Path(__file__).resolve().parents[3] / "data" / "bars" / "databento"
+CSV_OUT_ROOT = Path(__file__).resolve().parents[3] / "data" / "bars" / "databento"
 
 DEFAULT_SYMBOLS = [
     ("MNQ1", "5m"),  # primary execution instrument

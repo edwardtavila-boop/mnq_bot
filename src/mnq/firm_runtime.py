@@ -16,7 +16,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-_FIRM_PACKAGE_PARENT = Path("C:\\Users\\edwar\\projects")
+_FIRM_PACKAGE_PARENT = Path(
+    __import__("os").environ.get(
+        "FIRM_CODE_PATH",
+        str(Path(__file__).resolve().parents[3].parent / "firm"),
+    )
+)
 if str(_FIRM_PACKAGE_PARENT) not in sys.path:
     sys.path.insert(0, str(_FIRM_PACKAGE_PARENT))
 
