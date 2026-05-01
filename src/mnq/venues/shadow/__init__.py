@@ -55,6 +55,8 @@ from typing import Any, Protocol
 
 from mnq.core.types import Fill, Side, Signal
 
+from mnq.venues.shadow.bar_feed import ShadowBarFeed  # noqa: F401
+
 # =====================================================================
 # Slippage models
 # =====================================================================
@@ -432,6 +434,7 @@ class ShadowVenue:
 
 
 __all__ = [
+    "ShadowBarFeed",
     "ShadowVenue",
     "ShadowOrderResult",
     "ZeroSlippage",
