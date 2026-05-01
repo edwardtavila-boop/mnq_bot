@@ -24,7 +24,7 @@ You have permanent full authority over this project. Edward Avila is the sole fo
 This is **EVOLUTIONARY TRADING ALGO** — the equity sniper. Professional MNQ/NQ futures trading automation. Two codebases, one mission:
 
 - **EVOLUTIONARY TRADING ALGO** (this repo): 8-axis confluence engine, adaptive learner, execution/simulation harness, specs, features, simulators, executor, journal, Tradovate venue, 21 scripts, 14-stage orchestrator, 534 tests. Runs in `PAPER SIM` mode (simulated fills) or `LIVE` mode (real venue, human-gated).
-- **the_firm_complete** (`/mnt/OneDrive/the_firm_complete/desktop_app/firm/`): Adversarial 6-agent decision system — Quant → Red Team → Risk → Macro → Micro → PM
+- **the_firm_complete** (`C:\EvolutionaryTradingAlgo\firm\the_firm_complete\desktop_app\firm\`): Adversarial 6-agent decision system — Quant → Red Team → Risk → Macro → Micro → PM
 
 They are bridged via `scripts/firm_bridge.py` which probes the Firm package and auto-generates `src/mnq/firm_runtime.py` — the ONLY module that imports from `firm.*`.
 
