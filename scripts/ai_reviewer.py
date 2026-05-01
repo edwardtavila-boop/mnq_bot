@@ -47,28 +47,24 @@ def _heuristic_review(t) -> list[str]:
 
 
 def _llm_review(t) -> str:
-    """Optional LLM-powered review. Requires anthropic SDK + ANTHROPIC_API_KEY."""
+    """Optional LLM-powered review. Uses DeepSeek native provider via llm_provider."""
     try:
-        import anthropic  # type: ignore
+        from eta_engine.brain.llm_provider import chat_completion, ModelTier
     except ImportError:
-        return "[LLM disabled — anthropic package not installed]"
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not key:
-        return "[LLM disabled — ANTHROPIC_API_KEY not set]"
+        return "[LLM disabled — eta_engine not accessible]"
+    prompt = (
+        f"Reviewing a futures trade: {t.side} {t.qty}\u00d7 MNQ, entered "
+        f"${t.entry_price:.2f} exited ${t.exit_price:.2f}, held {t.duration_s:.0f}s, "
+        f"net ${t.net_pnl:+.2f} ({t.r_multiple:+.2f}R). Give one sentence of critique."
+    )
     try:
-        c = anthropic.Anthropic(api_key=key)
-        prompt = (
-            f"Reviewing a futures trade: {t.side} {t.qty}× MNQ, entered "
-            f"${t.entry_price:.2f} exited ${t.exit_price:.2f}, held {t.duration_s:.0f}s, "
-            f"net ${t.net_pnl:+.2f} ({t.r_multiple:+.2f}R). Give one sentence of critique."
-        )
-        resp = c.messages.create(
-            model="claude-haiku-4-5-20251001",
+        resp = chat_completion(
+            tier=ModelTier.HAIKU,
+            user_message=prompt,
             max_tokens=200,
-            messages=[{"role": "user", "content": prompt}],
         )
-        return resp.content[0].text if resp.content else "[empty response]"
-    except Exception as exc:  # noqa: BLE001
+        return resp.text if resp.text else "[empty response]"
+    except Exception as exc:
         return f"[LLM error: {exc}]"
 
 
