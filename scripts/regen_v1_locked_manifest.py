@@ -3,6 +3,7 @@ after a v1 re-freeze.
 
 Run from anywhere: python scripts/regen_v1_locked_manifest.py
 """
+
 import hashlib
 import json
 import pathlib

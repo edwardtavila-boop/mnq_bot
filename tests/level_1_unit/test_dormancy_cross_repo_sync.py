@@ -98,8 +98,7 @@ class TestCrossRepoDormancySync:
             )
         router_py = eta_root / "venues" / "router.py"
         assert router_py.exists(), (
-            f"eta_engine co-located at {eta_root} but router.py "
-            "missing -- repo state inconsistent."
+            f"eta_engine co-located at {eta_root} but router.py missing -- repo state inconsistent."
         )
         eta_dormant = _parse_dormant_brokers(router_py)
         assert eta_dormant == MNQ_BOT_DORMANT, (

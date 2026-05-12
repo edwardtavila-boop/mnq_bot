@@ -12,8 +12,10 @@ journal at ``data/shadow/shadow_journal.jsonl``.
 
 Phase 8 — Shadow Trading (30-day mandatory pre-live run).
 """
+
 from __future__ import annotations
 
+import contextlib
 import json
 import threading
 import time
@@ -45,14 +47,16 @@ def _default_bar_source() -> list[Bar] | None:
         reader = DictReader(f)
         for row in reader:
             raw_ts = float(row.get("time", 0))
-            bars.append(Bar(
-                ts=datetime.fromtimestamp(raw_ts / 1000.0 if raw_ts > 1e10 else raw_ts, tz=UTC),
-                open=Decimal(str(row.get("open", 0))),
-                high=Decimal(str(row.get("high", 0))),
-                low=Decimal(str(row.get("low", 0))),
-                close=Decimal(str(row.get("close", 0))),
-                volume=int(float(row.get("volume", 0))),
-            ))
+            bars.append(
+                Bar(
+                    ts=datetime.fromtimestamp(raw_ts / 1000.0 if raw_ts > 1e10 else raw_ts, tz=UTC),
+                    open=Decimal(str(row.get("open", 0))),
+                    high=Decimal(str(row.get("high", 0))),
+                    low=Decimal(str(row.get("low", 0))),
+                    close=Decimal(str(row.get("close", 0))),
+                    volume=int(float(row.get("volume", 0))),
+                )
+            )
     return bars[-200:] if bars else None  # last 200 bars for shadow replay
 
 
@@ -119,10 +123,8 @@ class ShadowBarFeed:
                 if new_bars:
                     self._append_journal(new_bars)
                     for obs in self._observers:
-                        try:
+                        with contextlib.suppress(Exception):
                             obs(new_bars)
-                        except Exception:
-                            pass
                     last_bar_ts = new_bars[-1].ts
                     self._bar_count += len(new_bars)
             self._save_state()
@@ -132,26 +134,39 @@ class ShadowBarFeed:
         try:
             with self._journal_path.open("a", encoding="utf-8") as f:
                 for b in bars:
-                    f.write(json.dumps({
-                        "ts": datetime.now(UTC).isoformat(),
-                        "bar_time": b.ts.isoformat() if hasattr(b.ts, 'isoformat') else str(b.ts),
-                        "open": float(b.open),
-                        "high": float(b.high),
-                        "low": float(b.low),
-                        "close": float(b.close),
-                        "volume": b.volume,
-                    }, default=str) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "ts": datetime.now(UTC).isoformat(),
+                                "bar_time": b.ts.isoformat()
+                                if hasattr(b.ts, "isoformat")
+                                else str(b.ts),
+                                "open": float(b.open),
+                                "high": float(b.high),
+                                "low": float(b.low),
+                                "close": float(b.close),
+                                "volume": b.volume,
+                            },
+                            default=str,
+                        )
+                        + "\n"
+                    )
         except OSError:
             pass
 
     def _save_state(self) -> None:
         try:
             self._state_path.parent.mkdir(parents=True, exist_ok=True)
-            self._state_path.write_text(json.dumps({
-                "started_at": self._started_at.isoformat() if self._started_at else None,
-                "days_active": round(self.days_active, 2),
-                "bar_count": self._bar_count,
-                "observers": len(self._observers),
-            }, indent=2))
+            self._state_path.write_text(
+                json.dumps(
+                    {
+                        "started_at": self._started_at.isoformat() if self._started_at else None,
+                        "days_active": round(self.days_active, 2),
+                        "bar_count": self._bar_count,
+                        "observers": len(self._observers),
+                    },
+                    indent=2,
+                )
+            )
         except OSError:
             pass
